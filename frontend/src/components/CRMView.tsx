@@ -478,7 +478,11 @@ export function CRMView() {
         if (c2?.externalId) setPcConsumerContractExtId(c2.externalId)
       }
       // Auto-generate consumer list ext ID from MSISDN
-      setPcConsumerListExtId(`Consumer_List_${msisdn}`)
+      // Use the PROVIDER's existing consumerList externalId (not a per-consumer one)
+      const providerProduct = products.find((p: any) => p.externalId === pcProviderProductExtId || p.sharingProvider)
+      const existingListExtId = providerProduct?.sharingProvider?.consumerList?.[0]?.externalId || ''
+      if (existingListExtId) setPcConsumerListExtId(existingListExtId)
+      else setPcConsumerListExtId(`Consumer_List_${msisdn}`)
     } catch (e: any) { setActionErr(`Lookup failed: ${e.message}`) }
     setPcLookupLoading(false)
   }
@@ -1522,7 +1526,13 @@ export function CRMView() {
                   <div>
                     <label style={{ display: 'block', fontSize: 11, fontWeight: 600, marginBottom: 2 }}>Provider Product External ID *</label>
                     <select style={{ width: '100%', padding: '4px 8px', fontSize: 12 }} value={pcProviderProductExtId}
-                      onChange={e => setPcProviderProductExtId(e.target.value)}>
+                      onChange={e => {
+                        setPcProviderProductExtId(e.target.value)
+                        // Auto-fill consumer list ext ID from the selected provider product
+                        const selProd = products.find((p: any) => p.externalId === e.target.value)
+                        const listExtId = selProd?.sharingProvider?.consumerList?.[0]?.externalId || ''
+                        if (listExtId) setPcConsumerListExtId(listExtId)
+                      }}>
                       <option value="">-- Select provider product --</option>
                       {products.filter((p: any) => p.sharingProvider).map((p: any) => (
                         <option key={p.externalId} value={p.externalId}>{p.name || p.productOfferingExternalId} ({p.externalId})</option>
@@ -1562,9 +1572,9 @@ export function CRMView() {
                   )}
 
                   <div>
-                    <label style={{ display: 'block', fontSize: 11, fontWeight: 600, marginBottom: 2 }}>Consumer List External ID {pcAction === 'removeConsumer' ? '*' : `${pcConsumerListExtId ? '✓' : '(auto-generated)'}`}</label>
+                    <label style={{ display: 'block', fontSize: 11, fontWeight: 600, marginBottom: 2 }}>Provider's Consumer List External ID {pcAction === 'removeConsumer' ? '*' : `${pcConsumerListExtId ? '✓' : '(from provider)'}`}</label>
                     <input style={{ width: '100%', padding: '4px 8px', fontSize: 12, background: pcConsumerListExtId ? '#f0fff4' : '#fff' }} value={pcConsumerListExtId}
-                      onChange={e => setPcConsumerListExtId(e.target.value)} placeholder="Auto-generated from MSISDN lookup" />
+                      onChange={e => setPcConsumerListExtId(e.target.value)} placeholder="Auto-filled from provider's sharingProvider.consumerList" />
                   </div>
                 </div>
               )}
