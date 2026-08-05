@@ -1,0 +1,31 @@
+version: "3.8"
+services:
+  backend:
+    build: ./backend
+    container_name: ecev-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./config:/app/config
+      - db-data:/app/data
+    environment:
+      - CONFIG_PATH=/app/config/config.json
+      - DB_PATH=/app/data/provisioning.db
+      - CORS_ORIGINS=http://localhost:3000
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  frontend:
+    build: ./frontend
+    container_name: ecev-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  db-data:
