@@ -487,14 +487,41 @@ export function CRMView() {
     setActionLoading(true); setActionMsg(''); setActionErr(''); setPcResult(null)
     try {
       if (pcAction === 'viewConsumers') {
-        const commId = msisdnValue || searchValue
-        const params = new URLSearchParams()
-        if (custExtId) params.append('customerExternalId', custExtId)
-        if (commId) { params.append('communicationId', commId); params.append('communicationIdType', 'E.164') }
-        const r = await fetch(`${API}/subscription/consumerProduct?${params.toString()}`)
-        if (!r.ok) throw new Error((await r.json()).detail || `HTTP ${r.status}`)
-        setPcResult(await r.json())
-        setActionMsg('✓ Consumer products loaded')
+        // Check if this subscriber has provider products - if so, show their consumer list from loaded data
+        const providerProducts = products.filter((p: any) => p.sharingProvider)
+        if (providerProducts.length > 0) {
+          // Show consumer list from already-loaded contract data
+          const consumers = providerProducts.flatMap((p: any) =>
+            (p.sharingProvider?.consumerList || []).map((cl: any) => ({
+              providerProduct: p.externalId,
+              consumerListExtId: cl.externalId,
+              consumerCustomer: cl.consumerCustomerExternalId,
+              consumerContract: cl.consumerContractExternalId,
+              status: cl.status?.slice(-1)[0]?.status || 'Active',
+            }))
+          )
+          setPcResult({ _type: 'provider', consumers, message: `This subscriber is a PROVIDER with ${consumers.length} consumer(s)` })
+          setActionMsg(`✓ Provider with ${consumers.length} consumer(s) — from loaded contract data`)
+        } else {
+          // Try fetching consumer products from API
+          const commId = msisdnValue || searchValue
+          const params = new URLSearchParams()
+          if (custExtId) params.append('customerExternalId', custExtId)
+          if (commId) { params.append('communicationId', commId); params.append('communicationIdType', 'E.164') }
+          const r = await fetch(`${API}/subscription/consumerProduct?${params.toString()}`)
+          if (!r.ok) {
+            const errText = (await r.json()).detail || ''
+            if (errText.includes('partition') || r.status === 400) {
+              setPcResult({ _type: 'none', message: 'This subscriber has no consumer products (not a consumer in any sharing group)' })
+              setActionMsg('ℹ No consumer products found')
+            } else {
+              throw new Error(errText || `HTTP ${r.status}`)
+            }
+          } else {
+            setPcResult(await r.json())
+            setActionMsg('✓ Consumer products loaded')
+          }
+        }
       } else if (pcAction === 'addConsumer') {
         // Step 1: Add consumer product to consumer's contract
         const consumerListExt = pcConsumerListExtId || `Consumer_List_${pcConsumerMsisdn}`
