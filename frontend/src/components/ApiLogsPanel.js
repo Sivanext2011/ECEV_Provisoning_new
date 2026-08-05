@@ -1,0 +1,18 @@
+import { jsx as _jsx, jsxs as _jsxs, Fragment as _Fragment } from "react/jsx-runtime";
+import React, { useState, useEffect } from 'react';
+const API = '/api/v1';
+export function ApiLogsPanel() {
+    const [logs, setLogs] = useState([]);
+    const [expanded, setExpanded] = useState(null);
+    const load = async () => {
+        const r = await fetch(`${API}/logs`);
+        setLogs(await r.json());
+    };
+    useEffect(() => { load(); }, []);
+    return (_jsxs("div", { children: [_jsx("h2", { children: "API Request/Response Logs" }), _jsx("button", { onClick: load, children: "Refresh" }), _jsx("button", { onClick: () => fetch(`${API}/logs/clear`, { method: 'DELETE' }).then(load), style: { marginLeft: 8 }, children: "Clear" }), _jsxs("table", { style: { width: '100%', borderCollapse: 'collapse', marginTop: 10, fontSize: 12 }, children: [_jsx("thead", { children: _jsxs("tr", { style: { background: '#eee', textAlign: 'left' }, children: [_jsx("th", { style: { padding: 6 }, children: "Time" }), _jsx("th", { style: { padding: 6 }, children: "Type" }), _jsx("th", { style: { padding: 6 }, children: "Method" }), _jsx("th", { style: { padding: 6 }, children: "URL" }), _jsx("th", { style: { padding: 6 }, children: "Status" })] }) }), _jsx("tbody", { children: logs.map((l, i) => (_jsxs(React.Fragment, { children: [_jsxs("tr", { style: { borderBottom: '1px solid #ddd', cursor: 'pointer', background: l.status === 'ERROR' ? '#fff0f0' : undefined }, onClick: () => setExpanded(expanded === i ? null : i), children: [_jsx("td", { style: { padding: 6 }, children: l.timestamp?.split('T')[1]?.slice(0, 8) }), _jsx("td", { style: { padding: 6 }, children: l.type || 'RESPONSE' }), _jsx("td", { style: { padding: 6 }, children: l.method }), _jsx("td", { style: { padding: 6, wordBreak: 'break-all', maxWidth: 400 }, children: l.url }), _jsx("td", { style: { padding: 6, color: l.status >= 400 || l.status === 'ERROR' ? 'red' : 'green' }, children: l.status })] }), expanded === i && (_jsx("tr", { children: _jsxs("td", { colSpan: 5, style: { padding: 10, background: '#f9f9f9' }, children: [l.ssl_verify && _jsxs(_Fragment, { children: [_jsx("b", { children: "SSL Verify:" }), " ", l.ssl_verify, " | ", _jsx("b", { children: "SOCKS5:" }), " ", l.socks5_proxy, _jsx("br", {})] }), l.headers && _jsxs(_Fragment, { children: [_jsx("b", { children: "Request Headers:" }), _jsx("pre", { style: { fontSize: 11, margin: '4px 0' }, children: JSON.stringify(l.headers, null, 2) })] }), l.request_body && _jsxs(_Fragment, { children: [_jsx("b", { children: "Request Body:" }), _jsx("pre", { style: { fontSize: 11, margin: '4px 0' }, children: JSON.stringify(l.request_body, null, 2) })] }), l.response_headers && _jsxs(_Fragment, { children: [_jsx("b", { children: "Response Headers:" }), _jsx("pre", { style: { fontSize: 11, margin: '4px 0' }, children: JSON.stringify(l.response_headers, null, 2) })] }), l.response_body && _jsxs(_Fragment, { children: [_jsx("b", { children: "Response Body:" }), _jsx("pre", { style: { fontSize: 11, margin: '4px 0', maxHeight: 600, overflow: 'auto', whiteSpace: 'pre-wrap' }, children: (() => { try {
+                                                            return JSON.stringify(JSON.parse(l.response_body), null, 2);
+                                                        }
+                                                        catch {
+                                                            return l.response_body;
+                                                        } })() })] })] }) }))] }, i))) })] }), logs.length === 0 && _jsx("p", { children: "No API calls recorded yet." })] }));
+}
