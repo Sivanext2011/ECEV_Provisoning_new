@@ -13,7 +13,8 @@ fi
 
 # Install backend dependencies
 echo "Installing backend dependencies..."
-pip3.11 install --user -q -r backend/requirements.txt 2>&1 | tail -3
+python3.11 -m pip install --user -q -r backend/requirements.txt 2>&1 | tail -3
+export PATH="$HOME/.local/bin:$PATH"
 
 # Kill any existing instances
 pkill -f "uvicorn app.main:app" 2>/dev/null
