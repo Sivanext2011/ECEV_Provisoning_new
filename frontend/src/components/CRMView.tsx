@@ -1588,18 +1588,33 @@ export function CRMView() {
                               .then((pops: any[]) => {
                                 setPcPopPersonalization(pops)
                                 const defaults: Record<string, { value: string; unit: string }> = {}
-                                for (const pop of pops)
+                                const selectedAll: Record<string, boolean> = {}
+                                for (const pop of pops) {
+                                  selectedAll[pop.popId] = true
                                   for (const row of (pop.rows || []))
                                     for (const c of (row.chars || []))
                                       defaults[`${pop.popId}_${row.rowId}_${c.id}`] = { value: c.defaultValue || '', unit: c.defaultUnit || (c.units?.[0] || '') }
+                                }
                                 setPcPopValues(defaults)
+                                setPcPopSelected(selectedAll)
+                                if (pops.length > 0) setPcPopEnabled(true)
                                 setPcPopLoading(false)
                               })
                               .catch(() => setPcPopLoading(false))
                           } else { setPcPopLoading(false) }
                         }}>
                         <option value="">-- Select Consumer PO --</option>
-                        {poList.map((p: any) => <option key={p.id || p.externalId} value={p.externalId}>{p.name} ({p.externalId})</option>)}
+                        {poList.filter((p: any) => {
+                          const types = (p.offeringTypes || []).map((t: string) => t.toUpperCase())
+                          const name = (p.name || '').toLowerCase()
+                          return types.includes('SHARING_CONSUMER') || types.includes('CONSUMER') || name.includes('consumer') || name.includes('sharing')
+                        }).map((p: any) => <option key={p.id || p.externalId} value={p.externalId}>{p.name} ({p.externalId})</option>)}
+                        <option disabled>───── All POs ─────</option>
+                        {poList.filter((p: any) => {
+                          const types = (p.offeringTypes || []).map((t: string) => t.toUpperCase())
+                          const name = (p.name || '').toLowerCase()
+                          return !(types.includes('SHARING_CONSUMER') || types.includes('CONSUMER') || name.includes('consumer') || name.includes('sharing'))
+                        }).map((p: any) => <option key={p.id || p.externalId} value={p.externalId}>{p.name} ({p.externalId})</option>)}
                       </select>
                     </div>
                     <div>
