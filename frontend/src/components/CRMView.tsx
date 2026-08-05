@@ -1524,7 +1524,7 @@ export function CRMView() {
                 <label style={{ display: 'block', fontSize: 11, fontWeight: 600, marginBottom: 4 }}>Action</label>
                 <select style={{ width: '100%', padding: '6px 8px', fontSize: 12 }} value={pcAction}
                   onChange={e => setPcAction(e.target.value as any)}>
-                  <option value="viewConsumers">View Consumer Products</option>
+                  <option value="viewConsumers">View Provider/Consumer Products</option>
                   <option value="addConsumer">Add Consumer to Provider</option>
                   <option value="removeConsumer">Remove Consumer from Provider</option>
                 </select>
@@ -1533,7 +1533,7 @@ export function CRMView() {
               {pcAction === 'viewConsumers' && (
                 <div>
                   <p style={{ fontSize: 11, color: '#666', margin: '0 0 10px' }}>
-                    Fetch consumer products for customer: <b>{custExtId}</b>
+                    View sharing provider/consumer products for: <b>{custExtId}</b>
                   </p>
                 </div>
               )}
