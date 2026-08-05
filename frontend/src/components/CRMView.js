@@ -515,7 +515,15 @@ export function CRMView() {
         setPcResult(null);
         try {
             if (pcAction === 'viewConsumers') {
-                const r = await fetch(`${API}/subscription/consumerProduct?customerExternalId=${encodeURIComponent(custExtId)}`);
+                const commId = msisdnValue || searchValue;
+                const params = new URLSearchParams();
+                if (custExtId)
+                    params.append('customerExternalId', custExtId);
+                if (commId) {
+                    params.append('communicationId', commId);
+                    params.append('communicationIdType', 'E.164');
+                }
+                const r = await fetch(`${API}/subscription/consumerProduct?${params.toString()}`);
                 if (!r.ok)
                     throw new Error((await r.json()).detail || `HTTP ${r.status}`);
                 setPcResult(await r.json());
