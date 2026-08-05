@@ -154,6 +154,7 @@ export function CRMView() {
   const [pcPopEnabled, setPcPopEnabled] = useState(false)
   const [pcPopSelected, setPcPopSelected] = useState<Record<string, boolean>>({})
   const [pcPopLoading, setPcPopLoading] = useState(false)
+  const [pcLinkedConsumerPO, setPcLinkedConsumerPO] = useState<{ id: string; externalId: string; name: string } | null>(null)
 
   // Add Contract state
   const [showAddContract, setShowAddContract] = useState(false)
@@ -1528,7 +1529,46 @@ export function CRMView() {
                     <select style={{ width: '100%', padding: '4px 8px', fontSize: 12 }} value={pcProviderProductExtId}
                       onChange={e => {
                         setPcProviderProductExtId(e.target.value)
-                        // Don't override consumer list entry - it's per-consumer, set on MSISDN lookup
+                        setPcLinkedConsumerPO(null)
+                        // Fetch provider PO spec to get linked consumer PO
+                        const selProd = products.find((p: any) => p.externalId === e.target.value)
+                        const poExtId = selProd?.productOfferingExternalId
+                        if (poExtId) {
+                          fetch(`${API}/spec/productOffering?externalId=${encodeURIComponent(poExtId)}`)
+                            .then(r => r.ok ? r.json() : null)
+                            .then((data: any) => {
+                              const poSpec = Array.isArray(data) ? data[0] : data
+                              // Find linked consumer PO from productOffering[type=PROVIDES_TO]
+                              const linkedPOs = (poSpec?.productOffering || []).filter((po: any) => po.type === 'PROVIDES_TO')
+                              if (linkedPOs.length > 0) {
+                                const linked = linkedPOs[0]
+                                setPcLinkedConsumerPO({ id: linked.id, externalId: linked.externalId, name: linked.name })
+                                setPcConsumerPO(linked.externalId)
+                                setPcConsumerProductExtId(`${linked.externalId}-${pcConsumerMsisdn || 'new'}`)
+                                // Also fetch POP for the linked consumer PO
+                                setPcPopLoading(true)
+                                fetch(`${API}/spec/productOffering/popPersonalization?externalId=${encodeURIComponent(linked.externalId)}`)
+                                  .then(r => r.ok ? r.json() : [])
+                                  .then((pops: any[]) => {
+                                    setPcPopPersonalization(pops)
+                                    const defaults: Record<string, { value: string; unit: string }> = {}
+                                    const selectedAll: Record<string, boolean> = {}
+                                    for (const pop of pops) {
+                                      selectedAll[pop.popId] = true
+                                      for (const row of (pop.rows || []))
+                                        for (const c of (row.chars || []))
+                                          defaults[`${pop.popId}_${row.rowId}_${c.id}`] = { value: c.defaultValue || '', unit: c.defaultUnit || (c.units?.[0] || '') }
+                                    }
+                                    setPcPopValues(defaults)
+                                    setPcPopSelected(selectedAll)
+                                    if (pops.length > 0) setPcPopEnabled(true)
+                                    setPcPopLoading(false)
+                                  })
+                                  .catch(() => setPcPopLoading(false))
+                              }
+                            })
+                            .catch(() => {})
+                        }
                       }}>
                       <option value="">-- Select provider product --</option>
                       {products.filter((p: any) => p.sharingProvider).map((p: any) => (
@@ -1582,12 +1622,19 @@ export function CRMView() {
                   <div style={{ fontSize: 11, fontWeight: 600, marginBottom: 6 }}>📦 Consumer Product Offering</div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 8 }}>
                     <div>
-                      <label style={{ display: 'block', fontSize: 10, marginBottom: 2 }}>Consumer PO *</label>
+                      <label style={{ display: 'block', fontSize: 10, marginBottom: 2 }}>
+                        Consumer PO *
+                        {pcLinkedConsumerPO && <span style={{ fontSize: 9, color: '#059669', marginLeft: 6 }}>⚡ Auto-detected from provider spec</span>}
+                      </label>
+                      {pcLinkedConsumerPO ? (
+                        <div style={{ padding: '4px 8px', fontSize: 11, background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: 4 }}>
+                          {pcLinkedConsumerPO.name} ({pcLinkedConsumerPO.externalId})
+                        </div>
+                      ) : (
                       <select style={{ width: '100%', padding: '4px 8px', fontSize: 11 }} value={pcConsumerPO}
                         onChange={e => {
                           setPcConsumerPO(e.target.value)
                           setPcConsumerProductExtId(`${e.target.value}-${pcConsumerMsisdn}`)
-                          // Fetch POP personalization for consumer PO
                           setPcPopPersonalization([]); setPcPopValues({}); setPcPopEnabled(false); setPcPopSelected({}); setPcPopLoading(true)
                           if (e.target.value) {
                             fetch(`${API}/spec/productOffering/popPersonalization?externalId=${encodeURIComponent(e.target.value)}`)
@@ -1623,6 +1670,7 @@ export function CRMView() {
                           return !(types.includes('SHARING_CONSUMER') || types.includes('CONSUMER') || name.includes('consumer') || name.includes('sharing'))
                         }).map((p: any) => <option key={p.id || p.externalId} value={p.externalId}>{p.name} ({p.externalId})</option>)}
                       </select>
+                      )}
                     </div>
                     <div>
                       <label style={{ display: 'block', fontSize: 10, marginBottom: 2 }}>Product External ID</label>
