@@ -128,6 +128,15 @@ export function CRMView() {
     const [modifyPopValues, setModifyPopValues] = useState({});
     const [modifyPopSelected, setModifyPopSelected] = useState({});
     const [modifyPopLoading, setModifyPopLoading] = useState(false);
+    // Set Sharing Limits state
+    const [limitCommonValue, setLimitCommonValue] = useState('');
+    const [limitCommonUnit, setLimitCommonUnit] = useState('byte');
+    const [limitIndividualValue, setLimitIndividualValue] = useState('');
+    const [limitIndividualUnit, setLimitIndividualUnit] = useState('byte');
+    const [limitConsumerMsisdn, setLimitConsumerMsisdn] = useState('');
+    const [limitConsumerCustExtId, setLimitConsumerCustExtId] = useState('');
+    const [limitConsumerContractExtId, setLimitConsumerContractExtId] = useState('');
+    const [limitConsumerProductExtId, setLimitConsumerProductExtId] = useState('');
     // Add Contract state
     const [showAddContract, setShowAddContract] = useState(false);
     const [newContractExtId, setNewContractExtId] = useState('');
@@ -791,6 +800,102 @@ export function CRMView() {
         }
         setActionLoading(false);
     };
+    // === Set Sharing Limits handler ===
+    const doSetLimits = async (type) => {
+        setActionLoading(true);
+        setActionMsg('');
+        setActionErr('');
+        try {
+            if (type === 'common') {
+                // Set common limit on provider's product
+                const providerProduct = products.find((p) => p.sharingProvider);
+                if (!providerProduct)
+                    throw new Error('No provider product found');
+                const body = {
+                    relatedParty: { externalId: custExtId, '@referredType': 'Customer' },
+                    contractExternalId: contractExtId,
+                    communicationId: msisdnValue || searchValue,
+                    communicationIdType: 'E.164',
+                    productAdjustments: [{
+                            productRef: { externalId: providerProduct.externalId },
+                            productBuckets: [{
+                                    bucketSpecExternalId: 'PBS_Data_Sharing_Limit_Common_CHT',
+                                    action: 'Set',
+                                    amount: { number: parseInt(limitCommonValue), decimalPlaces: 0 },
+                                    unitOfMeasure: limitCommonUnit,
+                                }]
+                        }]
+                };
+                const r = await fetch(`${API}/balance/productAdjustment`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+                if (!r.ok)
+                    throw new Error((await r.json()).detail || `HTTP ${r.status}`);
+                setActionMsg(`✓ Common limit set to ${limitCommonValue} ${limitCommonUnit}`);
+            }
+            else {
+                // Set individual limit on consumer's product
+                if (!limitConsumerCustExtId || !limitConsumerContractExtId || !limitConsumerProductExtId) {
+                    throw new Error('Lookup consumer first');
+                }
+                const body = {
+                    relatedParty: { externalId: limitConsumerCustExtId, '@referredType': 'Customer' },
+                    contractExternalId: limitConsumerContractExtId,
+                    communicationId: limitConsumerMsisdn,
+                    communicationIdType: 'E.164',
+                    productAdjustments: [{
+                            productRef: { externalId: limitConsumerProductExtId },
+                            productBuckets: [{
+                                    bucketSpecExternalId: 'PBS_Data_Sharing_Limit_CHT',
+                                    action: 'Set',
+                                    amount: { number: parseInt(limitIndividualValue), decimalPlaces: 0 },
+                                    unitOfMeasure: limitIndividualUnit,
+                                }]
+                        }]
+                };
+                const r = await fetch(`${API}/balance/productAdjustment`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+                if (!r.ok)
+                    throw new Error((await r.json()).detail || `HTTP ${r.status}`);
+                setActionMsg(`✓ Individual limit set to ${limitIndividualValue} ${limitIndividualUnit} for ${limitConsumerMsisdn}`);
+            }
+        }
+        catch (e) {
+            setActionErr(e.message);
+        }
+        setActionLoading(false);
+    };
+    const lookupConsumerForLimit = async (msisdn) => {
+        if (!msisdn)
+            return;
+        setActionErr('');
+        try {
+            const custR = await fetch(`${API}/customer?msisdn=${encodeURIComponent(msisdn)}`);
+            if (custR.ok) {
+                const d = await custR.json();
+                const cu2 = Array.isArray(d) ? d[0] : d;
+                if (cu2?.externalId)
+                    setLimitConsumerCustExtId(cu2.externalId);
+            }
+            const ctrR = await fetch(`${API}/contract?msisdn=${encodeURIComponent(msisdn)}`);
+            if (ctrR.ok) {
+                const d = await ctrR.json();
+                const c2 = Array.isArray(d) ? d[0] : d;
+                if (c2?.externalId)
+                    setLimitConsumerContractExtId(c2.externalId);
+                // Find the consumer product (one with sharingConsumer)
+                const consumerProd = (c2?.product || []).find((p) => p.sharingConsumer);
+                if (consumerProd)
+                    setLimitConsumerProductExtId(consumerProd.externalId);
+            }
+        }
+        catch (e) {
+            setActionErr(`Lookup failed: ${e.message}`);
+        }
+    };
     // === Modify POP handler ===
     const loadProductPop = async (productExtId, poExtId) => {
         setModifyPopProduct(productExtId);
@@ -1143,7 +1248,7 @@ export function CRMView() {
                         return (_jsxs("div", { style: { border: '1px solid #a7f3d0', borderRadius: 8, padding: 16, background: '#ecfdf5', marginBottom: 16 }, children: [_jsx("h4", { style: { margin: '0 0 12px', color: '#059669' }, children: "\uD83D\uDCB0 Balance Top-Up" }), _jsxs("div", { style: { fontSize: 11, color: '#666', marginBottom: 10, padding: '6px 8px', background: '#fff', borderRadius: 4 }, children: ["Customer: ", _jsx("b", { children: custExtId }), " | Contract: ", _jsx("b", { children: contractExtId }), " | MSISDN: ", _jsx("b", { children: msisdnValue || searchValue })] }), _jsxs("div", { style: { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 12 }, children: [_jsxs("div", { children: [_jsx("label", { style: { display: 'block', fontSize: 11, fontWeight: 600, marginBottom: 2 }, children: "Amount *" }), _jsx("input", { type: "number", style: { width: '100%', padding: '4px 8px', fontSize: 12 }, value: topUpAmount, onChange: e => setTopUpAmount(e.target.value), placeholder: "e.g. 1000" })] }), _jsxs("div", { children: [_jsx("label", { style: { display: 'block', fontSize: 11, fontWeight: 600, marginBottom: 2 }, children: "Unit of Measure" }), _jsx("select", { style: { width: '100%', padding: '4px 8px', fontSize: 12 }, value: topUpUnit, onChange: e => setTopUpUnit(e.target.value), children: knownUnits.length > 0
                                                         ? knownUnits.map(u => _jsx("option", { value: u, children: u }, u))
                                                         : _jsxs(_Fragment, { children: [_jsx("option", { value: "euro", children: "euro" }), _jsx("option", { value: "byte", children: "byte" }), _jsx("option", { value: "second", children: "second" }), _jsx("option", { value: "unit", children: "unit" }), _jsx("option", { value: "SMS", children: "SMS" }), _jsx("option", { value: "MMS", children: "MMS" })] }) }), knownUnits.length > 0 && _jsx("div", { style: { fontSize: 10, color: '#999', marginTop: 2 }, children: "From loaded buckets" })] }), _jsxs("div", { children: [_jsx("label", { style: { display: 'block', fontSize: 11, fontWeight: 600, marginBottom: 2 }, children: "Decimal Places" }), _jsx("input", { type: "number", style: { width: '100%', padding: '4px 8px', fontSize: 12 }, value: topUpDecimalPlaces, onChange: e => setTopUpDecimalPlaces(e.target.value), placeholder: "0" })] })] }), _jsxs("div", { style: { display: 'flex', gap: 8 }, children: [_jsx("button", { onClick: doBalanceTopUp, disabled: actionLoading || !topUpAmount, style: { background: '#059669', color: '#fff', border: 'none', borderRadius: 6, padding: '8px 20px', cursor: 'pointer', fontWeight: 600 }, children: actionLoading ? 'Processing...' : 'Top Up' }), _jsx("button", { onClick: () => setShowTopUp(false), style: { background: '#f3f4f6', border: '1px solid #ddd', borderRadius: 6, padding: '8px 14px', cursor: 'pointer' }, children: "Cancel" })] })] }));
-                    })(), showRecurring && (_jsxs("div", { style: { border: '1px solid #bae6fd', borderRadius: 8, padding: 16, background: '#f0f9ff', marginBottom: 16 }, children: [_jsx("h4", { style: { margin: '0 0 12px', color: '#0284c7' }, children: "\uD83D\uDD04 Recurrence Enquiry" }), _jsxs("p", { style: { fontSize: 12, color: '#555', margin: '0 0 10px' }, children: ["Query recurrence schedules for this subscriber. This fetches active recurring charges tied to MSISDN: ", _jsx("b", { children: msisdnValue || searchValue })] }), _jsxs("div", { style: { display: 'flex', gap: 8, marginBottom: 10 }, children: [_jsx("button", { onClick: doRunRecurring, disabled: actionLoading, style: { background: '#0284c7', color: '#fff', border: 'none', borderRadius: 6, padding: '8px 20px', cursor: 'pointer', fontWeight: 600 }, children: actionLoading ? 'Querying...' : 'Query Recurrences' }), _jsx("button", { onClick: () => { setShowRecurring(false); setRecurringResult(null); }, style: { background: '#f3f4f6', border: '1px solid #ddd', borderRadius: 6, padding: '8px 14px', cursor: 'pointer' }, children: "Close" })] }), recurringResult && (_jsx("pre", { style: { fontSize: 11, background: '#fff', border: '1px solid #e0e0e0', borderRadius: 4, padding: 10, maxHeight: 300, overflow: 'auto', whiteSpace: 'pre-wrap' }, children: JSON.stringify(recurringResult, null, 2) }))] })), showProviderConsumer && (_jsxs("div", { style: { border: '1px solid #fecaca', borderRadius: 8, padding: 16, background: '#fef2f2', marginBottom: 16 }, children: [_jsx("h4", { style: { margin: '0 0 12px', color: '#dc2626' }, children: "\uD83D\uDD17 Sharing Provider / Consumer Management" }), _jsxs("div", { style: { marginBottom: 12 }, children: [_jsx("label", { style: { display: 'block', fontSize: 11, fontWeight: 600, marginBottom: 4 }, children: "Action" }), _jsxs("select", { style: { width: '100%', padding: '6px 8px', fontSize: 12 }, value: pcAction, onChange: e => setPcAction(e.target.value), children: [_jsx("option", { value: "viewConsumers", children: "View Provider/Consumer Products" }), _jsx("option", { value: "addConsumer", children: "Add Consumer to Provider" }), _jsx("option", { value: "removeConsumer", children: "Remove Consumer from Provider" })] })] }), pcAction === 'viewConsumers' && (_jsx("div", { children: _jsxs("p", { style: { fontSize: 11, color: '#666', margin: '0 0 10px' }, children: ["View sharing provider/consumer products for: ", _jsx("b", { children: custExtId })] }) })), (pcAction === 'addConsumer' || pcAction === 'removeConsumer') && (_jsxs("div", { style: { display: 'grid', gap: 8, marginBottom: 12 }, children: [_jsxs("div", { children: [_jsx("label", { style: { display: 'block', fontSize: 11, fontWeight: 600, marginBottom: 2 }, children: "Provider Product External ID *" }), _jsxs("select", { style: { width: '100%', padding: '4px 8px', fontSize: 12 }, value: pcProviderProductExtId, onChange: e => {
+                    })(), showRecurring && (_jsxs("div", { style: { border: '1px solid #bae6fd', borderRadius: 8, padding: 16, background: '#f0f9ff', marginBottom: 16 }, children: [_jsx("h4", { style: { margin: '0 0 12px', color: '#0284c7' }, children: "\uD83D\uDD04 Recurrence Enquiry" }), _jsxs("p", { style: { fontSize: 12, color: '#555', margin: '0 0 10px' }, children: ["Query recurrence schedules for this subscriber. This fetches active recurring charges tied to MSISDN: ", _jsx("b", { children: msisdnValue || searchValue })] }), _jsxs("div", { style: { display: 'flex', gap: 8, marginBottom: 10 }, children: [_jsx("button", { onClick: doRunRecurring, disabled: actionLoading, style: { background: '#0284c7', color: '#fff', border: 'none', borderRadius: 6, padding: '8px 20px', cursor: 'pointer', fontWeight: 600 }, children: actionLoading ? 'Querying...' : 'Query Recurrences' }), _jsx("button", { onClick: () => { setShowRecurring(false); setRecurringResult(null); }, style: { background: '#f3f4f6', border: '1px solid #ddd', borderRadius: 6, padding: '8px 14px', cursor: 'pointer' }, children: "Close" })] }), recurringResult && (_jsx("pre", { style: { fontSize: 11, background: '#fff', border: '1px solid #e0e0e0', borderRadius: 4, padding: 10, maxHeight: 300, overflow: 'auto', whiteSpace: 'pre-wrap' }, children: JSON.stringify(recurringResult, null, 2) }))] })), showProviderConsumer && (_jsxs("div", { style: { border: '1px solid #fecaca', borderRadius: 8, padding: 16, background: '#fef2f2', marginBottom: 16 }, children: [_jsx("h4", { style: { margin: '0 0 12px', color: '#dc2626' }, children: "\uD83D\uDD17 Sharing Provider / Consumer Management" }), _jsxs("div", { style: { marginBottom: 12 }, children: [_jsx("label", { style: { display: 'block', fontSize: 11, fontWeight: 600, marginBottom: 4 }, children: "Action" }), _jsxs("select", { style: { width: '100%', padding: '6px 8px', fontSize: 12 }, value: pcAction, onChange: e => setPcAction(e.target.value), children: [_jsx("option", { value: "viewConsumers", children: "View Provider/Consumer Products" }), _jsx("option", { value: "addConsumer", children: "Add Consumer to Provider" }), _jsx("option", { value: "removeConsumer", children: "Remove Consumer from Provider" }), _jsx("option", { value: "setLimits", children: "Set Sharing Limits" })] })] }), pcAction === 'viewConsumers' && (_jsx("div", { children: _jsxs("p", { style: { fontSize: 11, color: '#666', margin: '0 0 10px' }, children: ["View sharing provider/consumer products for: ", _jsx("b", { children: custExtId })] }) })), (pcAction === 'addConsumer' || pcAction === 'removeConsumer') && (_jsxs("div", { style: { display: 'grid', gap: 8, marginBottom: 12 }, children: [_jsxs("div", { children: [_jsx("label", { style: { display: 'block', fontSize: 11, fontWeight: 600, marginBottom: 2 }, children: "Provider Product External ID *" }), _jsxs("select", { style: { width: '100%', padding: '4px 8px', fontSize: 12 }, value: pcProviderProductExtId, onChange: e => {
                                                     setPcProviderProductExtId(e.target.value);
                                                     setPcLinkedConsumerPO(null);
                                                     // Fetch provider PO spec to get linked consumer PO
@@ -1230,7 +1335,7 @@ export function CRMView() {
                                                             const key = `${pop.popId}_${row.rowId}_${c.id}`;
                                                             const val = pcPopValues[key] || { value: '', unit: '' };
                                                             return (_jsxs("div", { style: { display: 'flex', gap: 4, marginBottom: 2, alignItems: 'center' }, children: [_jsx("span", { style: { fontSize: 10, minWidth: 80, color: '#555' }, children: c.name || c.externalId || c.id }), _jsx("input", { style: { flex: 1, padding: '2px 4px', fontSize: 10 }, placeholder: c.defaultValue || 'limit value', value: val.value, onChange: e => setPcPopValues(prev => ({ ...prev, [key]: { ...val, value: e.target.value } })) }), c.units && c.units.length > 0 ? (_jsx("select", { style: { padding: '2px 4px', fontSize: 10 }, value: val.unit, onChange: e => setPcPopValues(prev => ({ ...prev, [key]: { ...val, unit: e.target.value } })), children: c.units.map((u) => _jsx("option", { value: u, children: u }, u)) })) : val.unit ? _jsx("span", { style: { fontSize: 9, color: '#888' }, children: val.unit }) : null] }, c.id));
-                                                        }) }, row.rowId)))] }, pop.popId)))] }))] })), _jsxs("div", { style: { display: 'flex', gap: 8, marginBottom: 10 }, children: [_jsx("button", { onClick: doProviderConsumerAction, disabled: actionLoading, style: { background: '#dc2626', color: '#fff', border: 'none', borderRadius: 6, padding: '8px 20px', cursor: 'pointer', fontWeight: 600 }, children: actionLoading ? 'Processing...' : pcAction === 'viewConsumers' ? 'Fetch' : pcAction === 'addConsumer' ? 'Add Consumer' : 'Remove Consumer' }), _jsx("button", { onClick: () => { setShowProviderConsumer(false); setPcResult(null); }, style: { background: '#f3f4f6', border: '1px solid #ddd', borderRadius: 6, padding: '8px 14px', cursor: 'pointer' }, children: "Close" })] }), pcResult && (_jsx("pre", { style: { fontSize: 11, background: '#fff', border: '1px solid #e0e0e0', borderRadius: 4, padding: 10, maxHeight: 300, overflow: 'auto', whiteSpace: 'pre-wrap' }, children: JSON.stringify(pcResult, null, 2) }))] })), showResourceSwap && (() => {
+                                                        }) }, row.rowId)))] }, pop.popId)))] }))] })), pcAction === 'setLimits' && (_jsxs("div", { style: { display: 'grid', gap: 10, marginBottom: 12 }, children: [_jsxs("div", { style: { padding: '8px 10px', background: '#fef9c3', borderRadius: 6, border: '1px solid #fde047' }, children: [_jsx("div", { style: { fontSize: 11, fontWeight: 600, marginBottom: 6 }, children: "Common Limit (all consumers collectively)" }), _jsx("div", { style: { fontSize: 10, color: '#666', marginBottom: 6 }, children: "Bucket: PBS_Data_Sharing_Limit_Common_CHT on provider product" }), _jsxs("div", { style: { display: 'flex', gap: 8, alignItems: 'center' }, children: [_jsx("input", { type: "number", style: { flex: 1, padding: '4px 8px', fontSize: 12 }, value: limitCommonValue, onChange: e => setLimitCommonValue(e.target.value), placeholder: "e.g. 5368709120 (5GB in bytes)" }), _jsxs("select", { style: { padding: '4px 8px', fontSize: 11 }, value: limitCommonUnit, onChange: e => setLimitCommonUnit(e.target.value), children: [_jsx("option", { value: "byte", children: "byte" }), _jsx("option", { value: "kilobyte", children: "kilobyte" }), _jsx("option", { value: "megabyte", children: "megabyte" }), _jsx("option", { value: "gigabyte", children: "gigabyte" })] }), _jsx("button", { onClick: () => doSetLimits('common'), disabled: actionLoading || !limitCommonValue, style: { fontSize: 10, padding: '4px 12px', background: '#b45309', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer' }, children: "Set Common" })] })] }), _jsxs("div", { style: { padding: '8px 10px', background: '#ede9fe', borderRadius: 6, border: '1px solid #c4b5fd' }, children: [_jsx("div", { style: { fontSize: 11, fontWeight: 600, marginBottom: 6 }, children: "Individual Limit (per consumer)" }), _jsx("div", { style: { fontSize: 10, color: '#666', marginBottom: 6 }, children: "Bucket: PBS_Data_Sharing_Limit_CHT on consumer product" }), _jsxs("div", { style: { marginBottom: 6 }, children: [_jsx("label", { style: { display: 'block', fontSize: 10, marginBottom: 2 }, children: "Consumer MSISDN" }), _jsxs("div", { style: { display: 'flex', gap: 6 }, children: [_jsx("input", { style: { flex: 1, padding: '4px 8px', fontSize: 11 }, value: limitConsumerMsisdn, onChange: e => setLimitConsumerMsisdn(e.target.value), placeholder: "Consumer MSISDN" }), _jsx("button", { onClick: () => lookupConsumerForLimit(limitConsumerMsisdn), disabled: !limitConsumerMsisdn, style: { fontSize: 10, padding: '3px 8px', background: '#dbeafe', border: '1px solid #93c5fd', borderRadius: 4, cursor: 'pointer' }, children: "\uD83D\uDD0D" })] }), limitConsumerProductExtId && (_jsxs("div", { style: { fontSize: 10, color: '#059669', marginTop: 3 }, children: ["\u2713 Product: ", limitConsumerProductExtId] }))] }), _jsxs("div", { style: { display: 'flex', gap: 8, alignItems: 'center' }, children: [_jsx("input", { type: "number", style: { flex: 1, padding: '4px 8px', fontSize: 12 }, value: limitIndividualValue, onChange: e => setLimitIndividualValue(e.target.value), placeholder: "e.g. 1073741824 (1GB in bytes)" }), _jsxs("select", { style: { padding: '4px 8px', fontSize: 11 }, value: limitIndividualUnit, onChange: e => setLimitIndividualUnit(e.target.value), children: [_jsx("option", { value: "byte", children: "byte" }), _jsx("option", { value: "kilobyte", children: "kilobyte" }), _jsx("option", { value: "megabyte", children: "megabyte" }), _jsx("option", { value: "gigabyte", children: "gigabyte" })] }), _jsx("button", { onClick: () => doSetLimits('individual'), disabled: actionLoading || !limitIndividualValue || !limitConsumerProductExtId, style: { fontSize: 10, padding: '4px 12px', background: '#7c3aed', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer' }, children: "Set Individual" })] })] })] })), _jsxs("div", { style: { display: 'flex', gap: 8, marginBottom: 10 }, children: [_jsx("button", { onClick: doProviderConsumerAction, disabled: actionLoading || pcAction === 'setLimits', style: { background: '#dc2626', color: '#fff', border: 'none', borderRadius: 6, padding: '8px 20px', cursor: 'pointer', fontWeight: 600 }, children: actionLoading ? 'Processing...' : pcAction === 'viewConsumers' ? 'Fetch' : pcAction === 'addConsumer' ? 'Add Consumer' : pcAction === 'setLimits' ? 'Set Limits' : 'Remove Consumer' }), _jsx("button", { onClick: () => { setShowProviderConsumer(false); setPcResult(null); }, style: { background: '#f3f4f6', border: '1px solid #ddd', borderRadius: 6, padding: '8px 14px', cursor: 'pointer' }, children: "Close" })] }), pcResult && (_jsx("pre", { style: { fontSize: 11, background: '#fff', border: '1px solid #e0e0e0', borderRadius: 4, padding: 10, maxHeight: 300, overflow: 'auto', whiteSpace: 'pre-wrap' }, children: JSON.stringify(pcResult, null, 2) }))] })), showResourceSwap && (() => {
                         // Extract current resources from contract
                         const contractResources = (c?.resource || []).map((r) => ({
                             number: r.resourceNumber,

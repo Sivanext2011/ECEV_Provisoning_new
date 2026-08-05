@@ -138,7 +138,7 @@ export function CRMView() {
 
   // Provider/Consumer state
   const [showProviderConsumer, setShowProviderConsumer] = useState(false)
-  const [pcAction, setPcAction] = useState<'addConsumer' | 'removeConsumer' | 'viewConsumers'>('viewConsumers')
+  const [pcAction, setPcAction] = useState<'addConsumer' | 'removeConsumer' | 'viewConsumers' | 'setLimits'>('viewConsumers')
   const [pcConsumerMsisdn, setPcConsumerMsisdn] = useState('')
   const [pcConsumerCustExtId, setPcConsumerCustExtId] = useState('')
   const [pcConsumerContractExtId, setPcConsumerContractExtId] = useState('')
@@ -162,6 +162,16 @@ export function CRMView() {
   const [modifyPopValues, setModifyPopValues] = useState<Record<string, { value: string; unit: string }>>({})
   const [modifyPopSelected, setModifyPopSelected] = useState<Record<string, boolean>>({})
   const [modifyPopLoading, setModifyPopLoading] = useState(false)
+
+  // Set Sharing Limits state
+  const [limitCommonValue, setLimitCommonValue] = useState('')
+  const [limitCommonUnit, setLimitCommonUnit] = useState('byte')
+  const [limitIndividualValue, setLimitIndividualValue] = useState('')
+  const [limitIndividualUnit, setLimitIndividualUnit] = useState('byte')
+  const [limitConsumerMsisdn, setLimitConsumerMsisdn] = useState('')
+  const [limitConsumerCustExtId, setLimitConsumerCustExtId] = useState('')
+  const [limitConsumerContractExtId, setLimitConsumerContractExtId] = useState('')
+  const [limitConsumerProductExtId, setLimitConsumerProductExtId] = useState('')
 
   // Add Contract state
   const [showAddContract, setShowAddContract] = useState(false)
@@ -733,6 +743,88 @@ export function CRMView() {
       setActionMsg('✓ Contract created successfully'); setShowAddContract(false); search()
     } catch (e: any) { setActionErr(e.message) }
     setActionLoading(false)
+  }
+
+  // === Set Sharing Limits handler ===
+  const doSetLimits = async (type: 'common' | 'individual') => {
+    setActionLoading(true); setActionMsg(''); setActionErr('')
+    try {
+      if (type === 'common') {
+        // Set common limit on provider's product
+        const providerProduct = products.find((p: any) => p.sharingProvider)
+        if (!providerProduct) throw new Error('No provider product found')
+        const body = {
+          relatedParty: { externalId: custExtId, '@referredType': 'Customer' },
+          contractExternalId: contractExtId,
+          communicationId: msisdnValue || searchValue,
+          communicationIdType: 'E.164',
+          productAdjustments: [{
+            productRef: { externalId: providerProduct.externalId },
+            productBuckets: [{
+              bucketSpecExternalId: 'PBS_Data_Sharing_Limit_Common_CHT',
+              action: 'Set',
+              amount: { number: parseInt(limitCommonValue), decimalPlaces: 0 },
+              unitOfMeasure: limitCommonUnit,
+            }]
+          }]
+        }
+        const r = await fetch(`${API}/balance/productAdjustment`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        })
+        if (!r.ok) throw new Error((await r.json()).detail || `HTTP ${r.status}`)
+        setActionMsg(`✓ Common limit set to ${limitCommonValue} ${limitCommonUnit}`)
+      } else {
+        // Set individual limit on consumer's product
+        if (!limitConsumerCustExtId || !limitConsumerContractExtId || !limitConsumerProductExtId) {
+          throw new Error('Lookup consumer first')
+        }
+        const body = {
+          relatedParty: { externalId: limitConsumerCustExtId, '@referredType': 'Customer' },
+          contractExternalId: limitConsumerContractExtId,
+          communicationId: limitConsumerMsisdn,
+          communicationIdType: 'E.164',
+          productAdjustments: [{
+            productRef: { externalId: limitConsumerProductExtId },
+            productBuckets: [{
+              bucketSpecExternalId: 'PBS_Data_Sharing_Limit_CHT',
+              action: 'Set',
+              amount: { number: parseInt(limitIndividualValue), decimalPlaces: 0 },
+              unitOfMeasure: limitIndividualUnit,
+            }]
+          }]
+        }
+        const r = await fetch(`${API}/balance/productAdjustment`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        })
+        if (!r.ok) throw new Error((await r.json()).detail || `HTTP ${r.status}`)
+        setActionMsg(`✓ Individual limit set to ${limitIndividualValue} ${limitIndividualUnit} for ${limitConsumerMsisdn}`)
+      }
+    } catch (e: any) { setActionErr(e.message) }
+    setActionLoading(false)
+  }
+
+  const lookupConsumerForLimit = async (msisdn: string) => {
+    if (!msisdn) return
+    setActionErr('')
+    try {
+      const custR = await fetch(`${API}/customer?msisdn=${encodeURIComponent(msisdn)}`)
+      if (custR.ok) {
+        const d = await custR.json()
+        const cu2 = Array.isArray(d) ? d[0] : d
+        if (cu2?.externalId) setLimitConsumerCustExtId(cu2.externalId)
+      }
+      const ctrR = await fetch(`${API}/contract?msisdn=${encodeURIComponent(msisdn)}`)
+      if (ctrR.ok) {
+        const d = await ctrR.json()
+        const c2 = Array.isArray(d) ? d[0] : d
+        if (c2?.externalId) setLimitConsumerContractExtId(c2.externalId)
+        // Find the consumer product (one with sharingConsumer)
+        const consumerProd = (c2?.product || []).find((p: any) => p.sharingConsumer)
+        if (consumerProd) setLimitConsumerProductExtId(consumerProd.externalId)
+      }
+    } catch (e: any) { setActionErr(`Lookup failed: ${e.message}`) }
   }
 
   // === Modify POP handler ===
@@ -1650,6 +1742,7 @@ export function CRMView() {
                   <option value="viewConsumers">View Provider/Consumer Products</option>
                   <option value="addConsumer">Add Consumer to Provider</option>
                   <option value="removeConsumer">Remove Consumer from Provider</option>
+                  <option value="setLimits">Set Sharing Limits</option>
                 </select>
               </div>
 
@@ -1865,10 +1958,69 @@ export function CRMView() {
                 </div>
               )}
 
+              {/* Set Sharing Limits form */}
+              {pcAction === 'setLimits' && (
+                <div style={{ display: 'grid', gap: 10, marginBottom: 12 }}>
+                  {/* Common Limit (on provider) */}
+                  <div style={{ padding: '8px 10px', background: '#fef9c3', borderRadius: 6, border: '1px solid #fde047' }}>
+                    <div style={{ fontSize: 11, fontWeight: 600, marginBottom: 6 }}>Common Limit (all consumers collectively)</div>
+                    <div style={{ fontSize: 10, color: '#666', marginBottom: 6 }}>Bucket: PBS_Data_Sharing_Limit_Common_CHT on provider product</div>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                      <input type="number" style={{ flex: 1, padding: '4px 8px', fontSize: 12 }} value={limitCommonValue}
+                        onChange={e => setLimitCommonValue(e.target.value)} placeholder="e.g. 5368709120 (5GB in bytes)" />
+                      <select style={{ padding: '4px 8px', fontSize: 11 }} value={limitCommonUnit} onChange={e => setLimitCommonUnit(e.target.value)}>
+                        <option value="byte">byte</option>
+                        <option value="kilobyte">kilobyte</option>
+                        <option value="megabyte">megabyte</option>
+                        <option value="gigabyte">gigabyte</option>
+                      </select>
+                      <button onClick={() => doSetLimits('common')} disabled={actionLoading || !limitCommonValue}
+                        style={{ fontSize: 10, padding: '4px 12px', background: '#b45309', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer' }}>
+                        Set Common
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Individual Limit (on consumer) */}
+                  <div style={{ padding: '8px 10px', background: '#ede9fe', borderRadius: 6, border: '1px solid #c4b5fd' }}>
+                    <div style={{ fontSize: 11, fontWeight: 600, marginBottom: 6 }}>Individual Limit (per consumer)</div>
+                    <div style={{ fontSize: 10, color: '#666', marginBottom: 6 }}>Bucket: PBS_Data_Sharing_Limit_CHT on consumer product</div>
+                    <div style={{ marginBottom: 6 }}>
+                      <label style={{ display: 'block', fontSize: 10, marginBottom: 2 }}>Consumer MSISDN</label>
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        <input style={{ flex: 1, padding: '4px 8px', fontSize: 11 }} value={limitConsumerMsisdn}
+                          onChange={e => setLimitConsumerMsisdn(e.target.value)} placeholder="Consumer MSISDN" />
+                        <button onClick={() => lookupConsumerForLimit(limitConsumerMsisdn)} disabled={!limitConsumerMsisdn}
+                          style={{ fontSize: 10, padding: '3px 8px', background: '#dbeafe', border: '1px solid #93c5fd', borderRadius: 4, cursor: 'pointer' }}>🔍</button>
+                      </div>
+                      {limitConsumerProductExtId && (
+                        <div style={{ fontSize: 10, color: '#059669', marginTop: 3 }}>
+                          ✓ Product: {limitConsumerProductExtId}
+                        </div>
+                      )}
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                      <input type="number" style={{ flex: 1, padding: '4px 8px', fontSize: 12 }} value={limitIndividualValue}
+                        onChange={e => setLimitIndividualValue(e.target.value)} placeholder="e.g. 1073741824 (1GB in bytes)" />
+                      <select style={{ padding: '4px 8px', fontSize: 11 }} value={limitIndividualUnit} onChange={e => setLimitIndividualUnit(e.target.value)}>
+                        <option value="byte">byte</option>
+                        <option value="kilobyte">kilobyte</option>
+                        <option value="megabyte">megabyte</option>
+                        <option value="gigabyte">gigabyte</option>
+                      </select>
+                      <button onClick={() => doSetLimits('individual')} disabled={actionLoading || !limitIndividualValue || !limitConsumerProductExtId}
+                        style={{ fontSize: 10, padding: '4px 12px', background: '#7c3aed', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer' }}>
+                        Set Individual
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
-                <button onClick={doProviderConsumerAction} disabled={actionLoading}
+                <button onClick={doProviderConsumerAction} disabled={actionLoading || pcAction === 'setLimits'}
                   style={{ background: '#dc2626', color: '#fff', border: 'none', borderRadius: 6, padding: '8px 20px', cursor: 'pointer', fontWeight: 600 }}>
-                  {actionLoading ? 'Processing...' : pcAction === 'viewConsumers' ? 'Fetch' : pcAction === 'addConsumer' ? 'Add Consumer' : 'Remove Consumer'}
+                  {actionLoading ? 'Processing...' : pcAction === 'viewConsumers' ? 'Fetch' : pcAction === 'addConsumer' ? 'Add Consumer' : pcAction === 'setLimits' ? 'Set Limits' : 'Remove Consumer'}
                 </button>
                 <button onClick={() => { setShowProviderConsumer(false); setPcResult(null) }}
                   style={{ background: '#f3f4f6', border: '1px solid #ddd', borderRadius: 6, padding: '8px 14px', cursor: 'pointer' }}>Close</button>
