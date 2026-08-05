@@ -122,6 +122,12 @@ export function CRMView() {
     const [pcPopSelected, setPcPopSelected] = useState({});
     const [pcPopLoading, setPcPopLoading] = useState(false);
     const [pcLinkedConsumerPO, setPcLinkedConsumerPO] = useState(null);
+    // Modify POP state
+    const [modifyPopProduct, setModifyPopProduct] = useState(''); // product externalId being modified
+    const [modifyPopData, setModifyPopData] = useState([]);
+    const [modifyPopValues, setModifyPopValues] = useState({});
+    const [modifyPopSelected, setModifyPopSelected] = useState({});
+    const [modifyPopLoading, setModifyPopLoading] = useState(false);
     // Add Contract state
     const [showAddContract, setShowAddContract] = useState(false);
     const [newContractExtId, setNewContractExtId] = useState('');
@@ -785,6 +791,92 @@ export function CRMView() {
         }
         setActionLoading(false);
     };
+    // === Modify POP handler ===
+    const loadProductPop = async (productExtId, poExtId) => {
+        setModifyPopProduct(productExtId);
+        setModifyPopData([]);
+        setModifyPopValues({});
+        setModifyPopSelected({});
+        setModifyPopLoading(true);
+        try {
+            const r = await fetch(`${API}/spec/productOffering/popPersonalization?externalId=${encodeURIComponent(poExtId)}`);
+            const pops = r.ok ? await r.json() : [];
+            setModifyPopData(pops);
+            const defaults = {};
+            const selected = {};
+            for (const pop of pops) {
+                selected[pop.popId] = true;
+                for (const row of (pop.rows || []))
+                    for (const c of (row.chars || []))
+                        defaults[`${pop.popId}_${row.rowId}_${c.id}`] = { value: c.defaultValue || '', unit: c.defaultUnit || (c.units?.[0] || '') };
+            }
+            setModifyPopValues(defaults);
+            setModifyPopSelected(selected);
+        }
+        catch (e) { /* ignore */ }
+        setModifyPopLoading(false);
+    };
+    const saveProductPop = async () => {
+        if (!modifyPopProduct || modifyPopData.length === 0)
+            return;
+        setActionLoading(true);
+        setActionMsg('');
+        setActionErr('');
+        try {
+            const priceEntries = modifyPopData
+                .filter((pop) => modifyPopSelected[pop.popId])
+                .map((pop) => {
+                const priceRows = (pop.rows || []).map((row) => {
+                    const priceAction = (row.chars || []).map((c) => {
+                        const val = modifyPopValues[`${pop.popId}_${row.rowId}_${c.id}`];
+                        if (!val?.value?.trim())
+                            return null;
+                        const char = { value: [{ value: val.value }] };
+                        if (val.unit)
+                            char.value[0].unitOfMeasure = val.unit;
+                        if (c.externalId)
+                            char.charSpecExternalId = c.externalId;
+                        else
+                            char.charSpecId = c.id;
+                        const action = { characteristic: [char] };
+                        if (c.actionId)
+                            action.action = { id: c.actionId };
+                        else if (c.actionExternalId)
+                            action.action = { externalId: c.actionExternalId };
+                        return action;
+                    }).filter(Boolean);
+                    if (!priceAction.length)
+                        return null;
+                    return { ...(row.rowId ? { productOfferingPriceRow: { id: row.rowId } } : {}), priceAction };
+                }).filter(Boolean);
+                if (!priceRows.length)
+                    return null;
+                return { productOfferingPrice: { id: pop.popId, ...(pop.popExternalId ? { externalId: pop.popExternalId } : {}) }, priceRow: priceRows };
+            }).filter(Boolean);
+            if (priceEntries.length === 0) {
+                setActionErr('No values to update');
+                setActionLoading(false);
+                return;
+            }
+            const body = {
+                product: [{ externalId: modifyPopProduct, price: priceEntries }],
+                _params: { customerExternalId: custExtId, contractExternalId: contractExtId }
+            };
+            const r = await fetch(`${API}/execute/update_contract`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+            if (!r.ok)
+                throw new Error((await r.json()).detail || `HTTP ${r.status}`);
+            setActionMsg('✓ POP values updated successfully');
+            setModifyPopProduct('');
+            search();
+        }
+        catch (e) {
+            setActionErr(e.message);
+        }
+        setActionLoading(false);
+    };
     // === Resource Swap handler ===
     const doResourceSwap = async () => {
         setActionLoading(true);
@@ -1006,7 +1098,11 @@ export function CRMView() {
                                                             const { products: prodBucketMap } = flattenBuckets(balance);
                                                             const buckets = prodBucketMap[p.externalId] || prodBucketMap[p.id] || [];
                                                             return buckets.length > 0 ? (_jsxs("div", { style: { marginTop: 6 }, children: [_jsx("div", { style: { fontSize: 11, color: '#7c3aed', fontWeight: 600, marginBottom: 4 }, children: "Buckets" }), buckets.map((b, k) => _jsx(BucketCard, { bucket: b }, k))] })) : null;
-                                                        })(), _jsxs("div", { style: { display: 'flex', gap: 4, marginTop: 6, flexWrap: 'wrap' }, children: [_jsx("button", { disabled: actionLoading, onClick: () => changeProductStatus(p.externalId, 'ProductActive'), style: { fontSize: 10, padding: '2px 6px' }, children: "Activate" }), _jsx("button", { disabled: actionLoading, onClick: () => changeProductStatus(p.externalId, 'ProductHalt'), style: { fontSize: 10, padding: '2px 6px' }, children: "Halt" }), _jsx("button", { disabled: actionLoading, onClick: () => changeProductStatus(p.externalId, 'ProductTerminated'), style: { fontSize: 10, padding: '2px 6px', color: 'red' }, children: "Terminate" })] })] }, i));
+                                                        })(), _jsxs("div", { style: { display: 'flex', gap: 4, marginTop: 6, flexWrap: 'wrap' }, children: [_jsx("button", { disabled: actionLoading, onClick: () => changeProductStatus(p.externalId, 'ProductActive'), style: { fontSize: 10, padding: '2px 6px' }, children: "Activate" }), _jsx("button", { disabled: actionLoading, onClick: () => changeProductStatus(p.externalId, 'ProductHalt'), style: { fontSize: 10, padding: '2px 6px' }, children: "Halt" }), _jsx("button", { disabled: actionLoading, onClick: () => changeProductStatus(p.externalId, 'ProductTerminated'), style: { fontSize: 10, padding: '2px 6px', color: 'red' }, children: "Terminate" }), _jsx("button", { disabled: actionLoading, onClick: () => modifyPopProduct === p.externalId ? setModifyPopProduct('') : loadProductPop(p.externalId, p.productOfferingExternalId), style: { fontSize: 10, padding: '2px 6px', background: modifyPopProduct === p.externalId ? '#7c3aed' : '#f3e8ff', color: modifyPopProduct === p.externalId ? '#fff' : '#7c3aed', border: '1px solid #c4b5fd', borderRadius: 3 }, children: modifyPopProduct === p.externalId ? '✕ Close' : '✎ Modify POP' })] }), modifyPopProduct === p.externalId && (_jsxs("div", { style: { marginTop: 8, padding: '8px 10px', background: '#faf5ff', borderRadius: 6, border: '1px solid #e9d5ff' }, children: [modifyPopLoading && _jsx("div", { style: { fontSize: 11, color: '#888' }, children: "Loading POP values..." }), modifyPopData.length === 0 && !modifyPopLoading && _jsx("div", { style: { fontSize: 11, color: '#888' }, children: "No personalizable POP values for this product" }), modifyPopData.map((pop) => (_jsxs("div", { style: { marginBottom: 6 }, children: [_jsxs("label", { style: { display: 'flex', alignItems: 'center', gap: 6, fontSize: 10, fontWeight: 600, cursor: 'pointer', marginBottom: 3 }, children: [_jsx("input", { type: "checkbox", checked: !!modifyPopSelected[pop.popId], onChange: e => setModifyPopSelected(prev => ({ ...prev, [pop.popId]: e.target.checked })) }), pop.popName || pop.popExternalId] }), modifyPopSelected[pop.popId] && (pop.rows || []).map((row) => (_jsx("div", { style: { marginLeft: 14 }, children: (row.chars || []).map((c) => {
+                                                                                const key = `${pop.popId}_${row.rowId}_${c.id}`;
+                                                                                const val = modifyPopValues[key] || { value: '', unit: '' };
+                                                                                return (_jsxs("div", { style: { display: 'flex', gap: 4, marginBottom: 2, alignItems: 'center' }, children: [_jsx("span", { style: { fontSize: 10, minWidth: 80, color: '#555' }, children: c.name || c.externalId }), _jsx("input", { style: { flex: 1, padding: '2px 4px', fontSize: 10 }, value: val.value, onChange: e => setModifyPopValues(prev => ({ ...prev, [key]: { ...val, value: e.target.value } })) }), c.units && c.units.length > 0 ? (_jsx("select", { style: { padding: '2px 4px', fontSize: 9 }, value: val.unit, onChange: e => setModifyPopValues(prev => ({ ...prev, [key]: { ...val, unit: e.target.value } })), children: c.units.map((u) => _jsx("option", { value: u, children: u }, u)) })) : val.unit ? _jsx("span", { style: { fontSize: 9, color: '#888' }, children: val.unit }) : null] }, c.id));
+                                                                            }) }, row.rowId)))] }, pop.popId))), modifyPopData.length > 0 && (_jsxs("div", { style: { display: 'flex', gap: 6, marginTop: 6 }, children: [_jsx("button", { onClick: saveProductPop, disabled: actionLoading, style: { fontSize: 10, padding: '3px 10px', background: '#7c3aed', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer' }, children: actionLoading ? 'Saving...' : 'Save Changes' }), _jsx("button", { onClick: () => setModifyPopProduct(''), style: { fontSize: 10, padding: '3px 10px', background: '#f3f4f6', border: '1px solid #ddd', borderRadius: 4, cursor: 'pointer' }, children: "Cancel" })] }))] }))] }, i));
                                             })] }))] })), balance && (() => {
                                 const { billing } = flattenBuckets(balance);
                                 if (!billing.length)

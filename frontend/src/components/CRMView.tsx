@@ -156,6 +156,13 @@ export function CRMView() {
   const [pcPopLoading, setPcPopLoading] = useState(false)
   const [pcLinkedConsumerPO, setPcLinkedConsumerPO] = useState<{ id: string; externalId: string; name: string } | null>(null)
 
+  // Modify POP state
+  const [modifyPopProduct, setModifyPopProduct] = useState<string>('')  // product externalId being modified
+  const [modifyPopData, setModifyPopData] = useState<any[]>([])
+  const [modifyPopValues, setModifyPopValues] = useState<Record<string, { value: string; unit: string }>>({})
+  const [modifyPopSelected, setModifyPopSelected] = useState<Record<string, boolean>>({})
+  const [modifyPopLoading, setModifyPopLoading] = useState(false)
+
   // Add Contract state
   const [showAddContract, setShowAddContract] = useState(false)
   const [newContractExtId, setNewContractExtId] = useState('')
@@ -728,6 +735,71 @@ export function CRMView() {
     setActionLoading(false)
   }
 
+  // === Modify POP handler ===
+  const loadProductPop = async (productExtId: string, poExtId: string) => {
+    setModifyPopProduct(productExtId)
+    setModifyPopData([]); setModifyPopValues({}); setModifyPopSelected({}); setModifyPopLoading(true)
+    try {
+      const r = await fetch(`${API}/spec/productOffering/popPersonalization?externalId=${encodeURIComponent(poExtId)}`)
+      const pops = r.ok ? await r.json() : []
+      setModifyPopData(pops)
+      const defaults: Record<string, { value: string; unit: string }> = {}
+      const selected: Record<string, boolean> = {}
+      for (const pop of pops) {
+        selected[pop.popId] = true
+        for (const row of (pop.rows || []))
+          for (const c of (row.chars || []))
+            defaults[`${pop.popId}_${row.rowId}_${c.id}`] = { value: c.defaultValue || '', unit: c.defaultUnit || (c.units?.[0] || '') }
+      }
+      setModifyPopValues(defaults)
+      setModifyPopSelected(selected)
+    } catch (e) { /* ignore */ }
+    setModifyPopLoading(false)
+  }
+
+  const saveProductPop = async () => {
+    if (!modifyPopProduct || modifyPopData.length === 0) return
+    setActionLoading(true); setActionMsg(''); setActionErr('')
+    try {
+      const priceEntries = modifyPopData
+        .filter((pop: any) => modifyPopSelected[pop.popId])
+        .map((pop: any) => {
+          const priceRows = (pop.rows || []).map((row: any) => {
+            const priceAction = (row.chars || []).map((c: any) => {
+              const val = modifyPopValues[`${pop.popId}_${row.rowId}_${c.id}`]
+              if (!val?.value?.trim()) return null
+              const char: any = { value: [{ value: val.value }] }
+              if (val.unit) char.value[0].unitOfMeasure = val.unit
+              if (c.externalId) char.charSpecExternalId = c.externalId
+              else char.charSpecId = c.id
+              const action: any = { characteristic: [char] }
+              if (c.actionId) action.action = { id: c.actionId }
+              else if (c.actionExternalId) action.action = { externalId: c.actionExternalId }
+              return action
+            }).filter(Boolean)
+            if (!priceAction.length) return null
+            return { ...(row.rowId ? { productOfferingPriceRow: { id: row.rowId } } : {}), priceAction }
+          }).filter(Boolean)
+          if (!priceRows.length) return null
+          return { productOfferingPrice: { id: pop.popId, ...(pop.popExternalId ? { externalId: pop.popExternalId } : {}) }, priceRow: priceRows }
+        }).filter(Boolean)
+
+      if (priceEntries.length === 0) { setActionErr('No values to update'); setActionLoading(false); return }
+
+      const body = {
+        product: [{ externalId: modifyPopProduct, price: priceEntries }],
+        _params: { customerExternalId: custExtId, contractExternalId: contractExtId }
+      }
+      const r = await fetch(`${API}/execute/update_contract`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      })
+      if (!r.ok) throw new Error((await r.json()).detail || `HTTP ${r.status}`)
+      setActionMsg('✓ POP values updated successfully'); setModifyPopProduct(''); search()
+    } catch (e: any) { setActionErr(e.message) }
+    setActionLoading(false)
+  }
+
   // === Resource Swap handler ===
   const doResourceSwap = async () => {
     setActionLoading(true); setActionMsg(''); setActionErr('')
@@ -1054,7 +1126,58 @@ export function CRMView() {
                             <button disabled={actionLoading} onClick={() => changeProductStatus(p.externalId, 'ProductActive')} style={{ fontSize: 10, padding: '2px 6px' }}>Activate</button>
                             <button disabled={actionLoading} onClick={() => changeProductStatus(p.externalId, 'ProductHalt')} style={{ fontSize: 10, padding: '2px 6px' }}>Halt</button>
                             <button disabled={actionLoading} onClick={() => changeProductStatus(p.externalId, 'ProductTerminated')} style={{ fontSize: 10, padding: '2px 6px', color: 'red' }}>Terminate</button>
+                            <button disabled={actionLoading} onClick={() => modifyPopProduct === p.externalId ? setModifyPopProduct('') : loadProductPop(p.externalId, p.productOfferingExternalId)}
+                              style={{ fontSize: 10, padding: '2px 6px', background: modifyPopProduct === p.externalId ? '#7c3aed' : '#f3e8ff', color: modifyPopProduct === p.externalId ? '#fff' : '#7c3aed', border: '1px solid #c4b5fd', borderRadius: 3 }}>
+                              {modifyPopProduct === p.externalId ? '✕ Close' : '✎ Modify POP'}
+                            </button>
                           </div>
+                          {/* Inline POP Editor */}
+                          {modifyPopProduct === p.externalId && (
+                            <div style={{ marginTop: 8, padding: '8px 10px', background: '#faf5ff', borderRadius: 6, border: '1px solid #e9d5ff' }}>
+                              {modifyPopLoading && <div style={{ fontSize: 11, color: '#888' }}>Loading POP values...</div>}
+                              {modifyPopData.length === 0 && !modifyPopLoading && <div style={{ fontSize: 11, color: '#888' }}>No personalizable POP values for this product</div>}
+                              {modifyPopData.map((pop: any) => (
+                                <div key={pop.popId} style={{ marginBottom: 6 }}>
+                                  <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 10, fontWeight: 600, cursor: 'pointer', marginBottom: 3 }}>
+                                    <input type="checkbox" checked={!!modifyPopSelected[pop.popId]}
+                                      onChange={e => setModifyPopSelected(prev => ({ ...prev, [pop.popId]: e.target.checked }))} />
+                                    {pop.popName || pop.popExternalId}
+                                  </label>
+                                  {modifyPopSelected[pop.popId] && (pop.rows || []).map((row: any) => (
+                                    <div key={row.rowId} style={{ marginLeft: 14 }}>
+                                      {(row.chars || []).map((c: any) => {
+                                        const key = `${pop.popId}_${row.rowId}_${c.id}`
+                                        const val = modifyPopValues[key] || { value: '', unit: '' }
+                                        return (
+                                          <div key={c.id} style={{ display: 'flex', gap: 4, marginBottom: 2, alignItems: 'center' }}>
+                                            <span style={{ fontSize: 10, minWidth: 80, color: '#555' }}>{c.name || c.externalId}</span>
+                                            <input style={{ flex: 1, padding: '2px 4px', fontSize: 10 }} value={val.value}
+                                              onChange={e => setModifyPopValues(prev => ({ ...prev, [key]: { ...val, value: e.target.value } }))} />
+                                            {c.units && c.units.length > 0 ? (
+                                              <select style={{ padding: '2px 4px', fontSize: 9 }} value={val.unit}
+                                                onChange={e => setModifyPopValues(prev => ({ ...prev, [key]: { ...val, unit: e.target.value } }))}>
+                                                {c.units.map((u: string) => <option key={u} value={u}>{u}</option>)}
+                                              </select>
+                                            ) : val.unit ? <span style={{ fontSize: 9, color: '#888' }}>{val.unit}</span> : null}
+                                          </div>
+                                        )
+                                      })}
+                                    </div>
+                                  ))}
+                                </div>
+                              ))}
+                              {modifyPopData.length > 0 && (
+                                <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
+                                  <button onClick={saveProductPop} disabled={actionLoading}
+                                    style={{ fontSize: 10, padding: '3px 10px', background: '#7c3aed', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer' }}>
+                                    {actionLoading ? 'Saving...' : 'Save Changes'}
+                                  </button>
+                                  <button onClick={() => setModifyPopProduct('')}
+                                    style={{ fontSize: 10, padding: '3px 10px', background: '#f3f4f6', border: '1px solid #ddd', borderRadius: 4, cursor: 'pointer' }}>Cancel</button>
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
                       )
                     })}
