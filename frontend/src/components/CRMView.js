@@ -522,10 +522,12 @@ export function CRMView() {
             if (pcAction === 'viewConsumers') {
                 // Check if this subscriber has provider products - if so, show their consumer list from loaded data
                 const providerProducts = products.filter((p) => p.sharingProvider);
+                const consumerProducts = products.filter((p) => p.sharingConsumer);
                 if (providerProducts.length > 0) {
-                    // Show consumer list from already-loaded contract data
+                    // This subscriber is a PROVIDER - show their consumer list
                     const consumers = providerProducts.flatMap((p) => (p.sharingProvider?.consumerList || []).map((cl) => ({
                         providerProduct: p.externalId,
+                        providerPO: p.productOfferingExternalId,
                         consumerListExtId: cl.externalId,
                         consumerCustomer: cl.consumerCustomerExternalId,
                         consumerContract: cl.consumerContractExternalId,
@@ -533,6 +535,20 @@ export function CRMView() {
                     })));
                     setPcResult({ _type: 'provider', consumers, message: `This subscriber is a PROVIDER with ${consumers.length} consumer(s)` });
                     setActionMsg(`✓ Provider with ${consumers.length} consumer(s) — from loaded contract data`);
+                }
+                else if (consumerProducts.length > 0) {
+                    // This subscriber is a CONSUMER - show their sharing consumer details
+                    const consumerInfo = consumerProducts.map((p) => ({
+                        productExtId: p.externalId,
+                        productPO: p.productOfferingExternalId,
+                        providerCustomer: p.sharingConsumer.providerCustomerExternalId,
+                        providerContract: p.sharingConsumer.providerContractExternalId,
+                        providerProduct: p.sharingConsumer.providerProductExternalId,
+                        consumerListEntry: p.sharingConsumer.consumerListEntryExternalId,
+                        status: p.status?.slice(-1)[0]?.status || '',
+                    }));
+                    setPcResult({ _type: 'consumer', consumerInfo, message: `This subscriber is a CONSUMER in ${consumerInfo.length} sharing group(s)` });
+                    setActionMsg(`✓ Consumer in ${consumerInfo.length} sharing group(s) — from loaded contract data`);
                 }
                 else {
                     // Try fetching consumer products from API
