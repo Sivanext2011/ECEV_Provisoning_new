@@ -557,9 +557,29 @@ export function CRMView() {
                 }
             }
             else if (pcAction === 'addConsumer') {
-                // Step 1: Add consumer product to consumer's contract
                 const consumerListExt = pcConsumerListExtId || `Consumer_List_${pcConsumerMsisdn}`;
                 const consumerProdExtId = pcConsumerProductExtId || `${pcConsumerPO}-${pcConsumerMsisdn}`;
+                // Step 1: Add consumer to provider's consumerList (must exist before consumer PO can reference it)
+                const providerBody = {
+                    product: [{
+                            externalId: pcProviderProductExtId,
+                            sharingProvider: {
+                                consumerList: [{
+                                        externalId: consumerListExt,
+                                        consumerCustomerExternalId: pcConsumerCustExtId,
+                                        consumerContractExternalId: pcConsumerContractExtId,
+                                    }]
+                            }
+                        }],
+                    _params: { customerExternalId: custExtId, contractExternalId: contractExtId }
+                };
+                const r1 = await fetch(`${API}/execute/update_contract`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(providerBody)
+                });
+                if (!r1.ok)
+                    throw new Error(`Provider consumerList update failed: ${(await r1.json()).detail || r1.status}`);
+                // Step 2: Add consumer product to consumer's contract (now the consumerList entry exists)
                 if (pcConsumerPO && pcConsumerCustExtId && pcConsumerContractExtId) {
                     const consumerProduct = {
                         productOfferingExternalId: pcConsumerPO,
@@ -578,7 +598,7 @@ export function CRMView() {
                         consumerProduct.billingAccountReference = { externalId: `extID_BA-${pcConsumerMsisdn}` };
                         consumerProduct.baRefForBillCycleAlignedRecurrence = { externalId: `extID_BA-${pcConsumerMsisdn}` };
                     }
-                    // Add POP price personalization (limits)
+                    // Add POP price personalization (consumer limits)
                     if (pcPopEnabled && pcPopPersonalization.length > 0) {
                         const priceEntries = pcPopPersonalization
                             .filter((pop) => pcPopSelected[pop.popId])
@@ -617,33 +637,13 @@ export function CRMView() {
                         product: [consumerProduct],
                         _params: { customerExternalId: pcConsumerCustExtId, contractExternalId: pcConsumerContractExtId }
                     };
-                    const r1 = await fetch(`${API}/execute/update_contract`, {
+                    const r2 = await fetch(`${API}/execute/update_contract`, {
                         method: 'POST', headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(consumerBody)
                     });
-                    if (!r1.ok)
-                        throw new Error(`Consumer PO failed: ${(await r1.json()).detail || r1.status}`);
+                    if (!r2.ok)
+                        throw new Error(`Consumer PO failed: ${(await r2.json()).detail || r2.status}`);
                 }
-                // Step 2: Add consumer to provider's consumerList
-                const providerBody = {
-                    product: [{
-                            externalId: pcProviderProductExtId,
-                            sharingProvider: {
-                                consumerList: [{
-                                        externalId: consumerListExt,
-                                        consumerCustomerExternalId: pcConsumerCustExtId,
-                                        consumerContractExternalId: pcConsumerContractExtId,
-                                    }]
-                            }
-                        }],
-                    _params: { customerExternalId: custExtId, contractExternalId: contractExtId }
-                };
-                const r2 = await fetch(`${API}/execute/update_contract`, {
-                    method: 'POST', headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(providerBody)
-                });
-                if (!r2.ok)
-                    throw new Error(`Provider update failed: ${(await r2.json()).detail || r2.status}`);
                 setActionMsg('✓ Consumer provisioned and added to provider group');
                 search();
             }
