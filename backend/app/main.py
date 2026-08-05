@@ -58,3 +58,18 @@ async def health_bssf():
         return {"status": "ok" if token else "no_token", "has_token": bool(token)}
     except Exception as e:
         return {"status": "error", "detail": str(e)}
+
+
+# Serve frontend static files (for production deployment without separate web server)
+FRONTEND_DIR = Path(__file__).parent.parent.parent / "frontend" / "dist"
+if FRONTEND_DIR.exists():
+    from fastapi.staticfiles import StaticFiles
+    from fastapi.responses import FileResponse
+
+    @app.get("/{full_path:path}")
+    async def serve_frontend(full_path: str):
+        file_path = FRONTEND_DIR / full_path
+        if file_path.is_file():
+            return FileResponse(file_path)
+        # SPA fallback — serve index.html for any non-file route
+        return FileResponse(FRONTEND_DIR / "index.html")
