@@ -12,9 +12,9 @@ router = APIRouter(prefix="/api/v1/trace", tags=["trace-traffic"])
 async def trace_status():
     """Check trace service status."""
     return {
-        "bamctl_exists": trace_service.bamctl_exists,
-        "logged_in": trace_service._logged_in,
-        "traffic_configured": bool(traffic_service.config.get("chf_fqdn")),
+        "bamctlExists": trace_service.bamctl_exists,
+        "loggedIn": trace_service._logged_in,
+        "trafficConfigured": bool(traffic_service.config.get("chf_fqdn")),
     }
 
 
@@ -57,7 +57,12 @@ async def create_trace(body: dict):
 @router.get("/jobs")
 async def list_traces():
     """List all active trace jobs."""
-    return await trace_service.list_trace_jobs()
+    result = await trace_service.list_trace_jobs()
+    # Return data array or empty list
+    if result.get("status") == "success" and result.get("data"):
+        data = result["data"]
+        return data if isinstance(data, list) else [data]
+    return []
 
 
 @router.get("/jobs/{trace_id}")

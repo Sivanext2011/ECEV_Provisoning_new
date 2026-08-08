@@ -273,8 +273,11 @@ export const TraceTraffic: React.FC = () => {
   const fetchJobs = useCallback(async () => {
     try {
       const res = await fetch(`${API}/jobs`);
-      if (res.ok) setTraceJobs(await res.json());
-    } catch { /* silent */ }
+      if (res.ok) {
+        const data = await res.json();
+        setTraceJobs(Array.isArray(data) ? data : []);
+      }
+    } catch { setTraceJobs([]); }
   }, []);
 
   useEffect(() => {
