@@ -344,7 +344,16 @@ export function ProvisionWizard() {
                                         externalId: customerExtId,
                                         customerSpecification: { externalId: selectedCustSpec },
                                         status: [{ status: customerStatus }],
-                                        ...(selectedBASpec ? { account: [{ externalId: baExtId, billingAccountSpecExternalId: selectedBASpec, status: [{ status: baStatus }] }] } : {}),
+                                        ...(selectedBASpec ? { account: [{
+                                                    externalId: baExtId,
+                                                    billingAccountSpecExternalId: selectedBASpec,
+                                                    status: [{ status: baStatus }],
+                                                    ...(billCycleSpecExtId ? { customerBillCycleSpecification: [{
+                                                                externalId: `cbcs-${msisdn}`,
+                                                                billCycleSpecExternalId: billCycleSpecExtId,
+                                                                billCycleChangeType: billCycleChangeType || 'NO_PRORATE',
+                                                            }] } : {}),
+                                                }] } : {}),
                                         engagedParty: { externalId: partyExtId, '@referredType': 'Individual' },
                                     };
                                     if (includeContactMediumAssoc) {
