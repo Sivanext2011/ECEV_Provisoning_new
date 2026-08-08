@@ -363,9 +363,13 @@ export const TraceTraffic: React.FC = () => {
     setError('');
     setLoading('createTrace');
     try {
-      await apiPost('/jobs/create', { criteriaType, criteriaValue, interface: traceInterface, traceLevel });
-      await fetchJobs();
-      setCriteriaValue('');
+      const result = await apiPost('/jobs/create', { criteriaType, criteriaValue, interface: traceInterface, traceLevel });
+      if (result.status === 'failed') {
+        setError(`Create trace failed: ${result.error || result.stderr || 'Unknown error'}\n${result.stdout || ''}`);
+      } else {
+        await fetchJobs();
+        setCriteriaValue('');
+      }
     } catch (e: any) { setError(e.message); }
     setLoading('');
   };
