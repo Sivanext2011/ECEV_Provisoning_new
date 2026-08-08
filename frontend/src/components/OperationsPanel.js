@@ -453,7 +453,8 @@ export const OperationsPanel = () => {
     const getTemplate = (apiKey, fields) => {
         const ts = new Date().toISOString().replace(/\.\d{3}Z/, '.000Z');
         switch (apiKey) {
-            case 'create_party': return {
+            case 'create_party':
+            case 'party_create': return {
                 externalId: fields.partyExternalId || 'extID-party-<msisdn>',
                 givenName: '<givenName>',
                 familyName: '<familyName>',
@@ -463,7 +464,8 @@ export const OperationsPanel = () => {
                     { externalId: 'cm_SMS_<msisdn>', contactMediumSpecExternalId: '<cmSpecExtId>', characteristic: [{ charSpecExternalId: 'communicationId', value: [{ value: '<msisdn>' }] }, { charSpecExternalId: 'channelType', value: [{ value: 'SMS' }] }] }
                 ]
             };
-            case 'create_customer': return {
+            case 'create_customer':
+            case 'customer_create': return {
                 externalId: fields.customerExternalId || 'extID-customer-<msisdn>',
                 engagedParty: { externalId: '<partyExternalId>', '@referredType': 'Individual' },
                 status: [{ status: 'CustomerActive' }],
@@ -475,7 +477,8 @@ export const OperationsPanel = () => {
                     }],
                 contactMediumAssociation: [{ contactRole: 'Notification', language: 'en', contactMediumExternalId: 'cm_SMS_<msisdn>', enabled: true }]
             };
-            case 'create_contract': return {
+            case 'create_contract':
+            case 'contract_create': return {
                 externalId: 'extID-contract-<msisdn>',
                 contractSpecification: { externalId: (specsCache?.contractSpecifications?.[0]?.externalId) || '<contractSpecExternalId>' },
                 status: [{ status: 'Active' }],
@@ -492,19 +495,22 @@ export const OperationsPanel = () => {
                 resource: [{ resourceNumber: '<msisdn>', externalId: 'RS_MSISDN-<msisdn>', resourceSpecificationExternalId: 'RS_MSISDN', productCorrelationId: ['1'] }],
                 contactMediumAssociation: [{ contactRole: 'Notification', language: 'en', contactMediumExternalId: 'cm_SMS_<msisdn>', enabled: true }]
             };
-            case 'create_party_role': return {
+            case 'create_party_role':
+            case 'party_role_create': return {
                 externalId: 'PR_<customerExternalId>',
                 name: 'ContractOwner',
                 engagedParty: { externalId: '<partyExternalId>', '@referredType': 'Individual' },
                 status: [{ status: 'Active', validFor: { startDateTime: ts } }],
                 partyRoleSpecification: { externalId: (specsCache?.partyRoleSpecifications?.[0]?.externalId) || '<prSpecExternalId>' }
             };
-            case 'create_agreement_by_party_external_id': return {
+            case 'create_agreement_by_party_external_id':
+            case 'agreement_create': return {
                 externalId: 'AGR_<msisdn>',
                 validFor: { startDateTime: ts, endDateTime: '2099-12-31T00:00:00.000Z' },
                 status: [{ status: 'Active', validFor: { startDateTime: ts } }],
             };
-            case 'balance_topup': return {
+            case 'balance_topup':
+            case 'topup': return {
                 triggerTime: ts,
                 relatedParty: { externalId: '<customerExternalId>', '@referredType': 'Customer' },
                 contractExternalId: '<contractExternalId>',
@@ -513,7 +519,8 @@ export const OperationsPanel = () => {
                 amount: { number: 0, decimalPlaces: 0 },
                 unitOfMeasure: 'byte',
             };
-            case 'product_bucket_adjustment': return {
+            case 'product_bucket_adjustment':
+            case 'product_adjust': return {
                 relatedParty: { externalId: '<customerExternalId>', '@referredType': 'Customer' },
                 contractExternalId: '<contractExternalId>',
                 communicationIdType: 'E.164',
@@ -525,7 +532,8 @@ export const OperationsPanel = () => {
                 unitOfMeasure: 'byte',
                 validFor: { startDateTime: ts, endDateTime: '2026-12-31T23:59:59.000Z' },
             };
-            case 'billing_account_bucket_adjustment': return {
+            case 'billing_account_bucket_adjustment':
+            case 'ba_adjust': return {
                 relatedParty: { externalId: '<customerExternalId>', '@referredType': 'Customer' },
                 contractExternalId: '<contractExternalId>',
                 communicationIdType: 'E.164',
@@ -536,48 +544,92 @@ export const OperationsPanel = () => {
                 amount: { number: 0, decimalPlaces: 0 },
                 unitOfMeasure: 'byte',
             };
-            case 'swap_logical_resource': return {
+            case 'swap_logical_resource':
+            case 'resource_swap': return {
                 customerExternalId: '<customerExternalId>',
                 contractExternalId: '<contractExternalId>',
                 resource: [{ resourceSpecificationExternalId: 'RS_MSISDN', oldResourceNumber: '<oldMsisdn>', newResourceNumber: '<newMsisdn>' }]
             };
-            case 'replace_product': return {
+            case 'replace_product':
+            case 'product_replace': return {
                 customerExternalId: '<customerExternalId>',
                 contractExternalId: '<contractExternalId>',
                 currentProductExternalId: '<currentProductExternalId>',
                 newProductOfferingExternalId: '<newPOExternalId>',
             };
             case 'update_contract':
+            case 'contract_update':
             case 'update_contract_by_id': return {
                 status: [{ status: 'Active' }],
                 product: [{ externalId: '<productExternalId>', status: [{ status: 'ProductActive' }] }]
             };
-            case 'update_party': return {
+            case 'update_party':
+            case 'party_update': return {
                 givenName: '<newGivenName>',
                 familyName: '<newFamilyName>',
             };
-            case 'update_customer': return {
+            case 'update_customer':
+            case 'customer_update': return {
                 status: [{ status: 'CustomerActive' }],
             };
-            case 'consumer_list_modify': return {
+            case 'consumer_list_modify':
+            case 'sharing_add_consumer': return {
                 product: [{ externalId: '<providerProductExternalId>', sharingProvider: { consumerList: [{ externalId: 'ConsumerEntry-<consumerMsisdn>', consumerCustomerExternalId: '<consumerCustExtId>', consumerContractExternalId: '<consumerContractExtId>' }] } }]
             };
-            case 'change_subscription_status': return {
+            case 'consumer_list_terminate':
+            case 'sharing_remove_consumer': return {
+                product: [{ externalId: '<providerProductExternalId>', sharingProvider: { consumerList: [{ externalId: 'ConsumerEntry-<consumerMsisdn>', status: [{ status: 'Terminated' }] }] } }]
+            };
+            case 'change_subscription_status':
+            case 'status_change': return {
                 customerExternalId: '<customerExternalId>',
                 contractExternalId: '<contractExternalId>',
                 communicationId: '<msisdn>',
                 communicationIdType: 'E.164',
                 status: [{ status: 'Active' }]
             };
-            case 'send_communication_message': return {
+            case 'send_communication_message':
+            case 'send_message': return {
                 communicationId: '<msisdn>',
                 communicationIdType: 'E.164',
                 message: '<message text>',
             };
-            case 'create_organization_party': return {
+            case 'create_organization_party':
+            case 'org_create': return {
                 externalId: 'extID-org-<name>',
                 tradingName: '<Organization Name>',
                 status: [{ status: 'PartyActive' }],
+            };
+            case 'terminate_party_cascade':
+            case 'terminate_customer_cascade':
+            case 'terminate_contract_cascade': return {
+                status: [{ status: 'Terminated' }],
+            };
+            case 'settlement_account_bucket_adjustment': return {
+                relatedParty: { externalId: '<customerExternalId>', '@referredType': 'Customer' },
+                contractExternalId: '<contractExternalId>',
+                settlementAccountExternalId: '<settlementAccountExternalId>',
+                bucketSpecExternalId: '<bucketSpecExternalId>',
+                action: 'Relative',
+                amount: { number: 0, decimalPlaces: 0 },
+                unitOfMeasure: 'byte',
+            };
+            case 'modify_consumer_product': return {
+                providerCustomerExternalId: '<providerCustExtId>',
+                providerContractExternalId: '<providerContractExtId>',
+                providerProductExternalId: '<providerProductExtId>',
+                consumerCustomerExternalId: '<consumerCustExtId>',
+                consumerContractExternalId: '<consumerContractExtId>',
+                action: 'ADD',
+            };
+            case 'create_recurrence_job': return {
+                communicationId: '<msisdn>',
+                communicationIdType: 'E.164',
+            };
+            case 'reset_balance_topup_fraud_counter': return {
+                customerExternalId: '<customerExternalId>',
+                communicationId: '<msisdn>',
+                communicationIdType: 'E.164',
             };
             default: return { _comment: 'Fill in the request body for ' + apiKey };
         }
