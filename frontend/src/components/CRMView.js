@@ -939,6 +939,9 @@ export function CRMView() {
         setActionMsg('');
         setActionErr('');
         try {
+            // Find existing price instance IDs from the loaded contract product
+            const contractProduct = products.find((p) => p.externalId === modifyPopProduct);
+            const existingPrices = contractProduct?.price || [];
             const priceEntries = modifyPopData
                 .filter((pop) => modifyPopSelected[pop.popId])
                 .map((pop) => {
@@ -967,7 +970,16 @@ export function CRMView() {
                 }).filter(Boolean);
                 if (!priceRows.length)
                     return null;
-                return { productOfferingPrice: { id: pop.popId, ...(pop.popExternalId ? { externalId: pop.popExternalId } : {}) }, priceRow: priceRows };
+                // Find existing price instance ID by matching productOfferingPriceId or productOfferingPriceExternalId
+                const existingPrice = existingPrices.find((ep) => ep.productOfferingPriceId === pop.popId ||
+                    ep.productOfferingPriceExternalId === pop.popExternalId ||
+                    ep.productOfferingPrice?.id === pop.popId ||
+                    ep.productOfferingPrice?.externalId === pop.popExternalId);
+                const entry = { productOfferingPrice: { id: pop.popId, ...(pop.popExternalId ? { externalId: pop.popExternalId } : {}) }, priceRow: priceRows };
+                // Include existing price instance ID to update (not create new)
+                if (existingPrice?.id)
+                    entry.id = existingPrice.id;
+                return entry;
             }).filter(Boolean);
             if (priceEntries.length === 0) {
                 setActionErr('No values to update');
