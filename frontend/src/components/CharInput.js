@@ -33,7 +33,16 @@ export function CharInput({ char: c, value, onChange }) {
         : c.unitOfMeasure ? c.unitOfMeasure : '';
     const inputEl = enumPVs.length > 0 ? (_jsxs("select", { style: { width: '100%' }, value: value, onChange: e => onChange(e.target.value), disabled: isFixed || (!personalize && isCan), children: [_jsx("option", { value: "", children: "-- Select --" }), enumPVs.map((pv, i) => (_jsxs("option", { value: pv.value || '', children: [pv.name || pv.value, pv.default ? ' ✓' : ''] }, i)))] })) : (_jsxs("div", { style: { display: 'flex', alignItems: 'center', gap: 4 }, children: [_jsx("input", { type: isDateTime ? 'datetime-local' : isNumeric ? 'number' : 'text', style: { flex: 1, background: (isFixed || (!personalize && isCan)) ? '#f5f5f5' : undefined }, placeholder: c.defaultValue || (hasRange && isNumeric ? `${c.valueFrom}–${c.valueTo}` : isDateTime ? 'Select date/time' : `Enter ${c.name || charKey}`), value: isDateTime && value && value.includes('T') && value.includes('Z') ? value.slice(0, 16) : value, onChange: e => {
                     if (isDateTime && e.target.value) {
-                        onChange(e.target.value.length === 16 ? e.target.value + ':00.000Z' : e.target.value);
+                        // Ensure full BSSF datetime format: yyyy-MM-ddTHH:mm:ss.SSSZ
+                        const v = e.target.value;
+                        if (v.length === 16)
+                            onChange(v + ':00.000Z'); // 2026-09-30T11:32 → add :00.000Z
+                        else if (v.length === 19)
+                            onChange(v + '.000Z'); // 2026-09-30T11:32:00 → add .000Z
+                        else if (!v.endsWith('Z'))
+                            onChange(v + 'Z'); // add Z if missing
+                        else
+                            onChange(v);
                     }
                     else {
                         onChange(e.target.value);

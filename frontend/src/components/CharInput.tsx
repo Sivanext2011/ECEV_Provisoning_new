@@ -56,7 +56,12 @@ export function CharInput({ char: c, value, onChange }: CharInputProps) {
         value={isDateTime && value && value.includes('T') && value.includes('Z') ? value.slice(0, 16) : value}
         onChange={e => {
           if (isDateTime && e.target.value) {
-            onChange(e.target.value.length === 16 ? e.target.value + ':00.000Z' : e.target.value)
+            // Ensure full BSSF datetime format: yyyy-MM-ddTHH:mm:ss.SSSZ
+            const v = e.target.value
+            if (v.length === 16) onChange(v + ':00.000Z')       // 2026-09-30T11:32 → add :00.000Z
+            else if (v.length === 19) onChange(v + '.000Z')     // 2026-09-30T11:32:00 → add .000Z
+            else if (!v.endsWith('Z')) onChange(v + 'Z')        // add Z if missing
+            else onChange(v)
           } else {
             onChange(e.target.value)
           }
