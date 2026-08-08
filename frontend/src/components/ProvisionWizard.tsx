@@ -473,7 +473,7 @@ export function ProvisionWizard() {
             )
           })}
           <button type="button" style={{ fontSize: 11, width: 'fit-content' }} onClick={() => setSelectedCmSpecs([...selectedCmSpecs, { specExtId: '', charVals: {}, externalId: '' }])}>+ Add Contact Medium</button>
-          <button disabled={!selectedPartySpec || !selectedCustSpec || !selectedBASpec || !selectedContractSpec} onClick={() => setStep(1)}>Next →</button>
+          <button disabled={!selectedPartySpec || !selectedCustSpec || !selectedContractSpec} onClick={() => setStep(1)}>Next →</button>
         </div>
       )}
 
@@ -653,7 +653,7 @@ export function ProvisionWizard() {
                 externalId: customerExtId,
                 customerSpecification: { externalId: selectedCustSpec },
                 status: [{ status: customerStatus }],
-                account: [{ externalId: baExtId, billingAccountSpecExternalId: selectedBASpec, status: [{ status: baStatus }] }],
+                ...(selectedBASpec ? { account: [{ externalId: baExtId, billingAccountSpecExternalId: selectedBASpec, status: [{ status: baStatus }] }] } : {}),
                 engagedParty: { externalId: partyExtId, '@referredType': 'Individual' },
               }
               if (includeContactMediumAssoc) {
