@@ -361,13 +361,20 @@ export function CRMView() {
     if (newProductBaRefRecurrence && baExtId) {
       product.baRefForBillCycleAlignedRecurrence = { externalId: baExtId }
     }
-    // Add characteristics
+    // Add characteristics with unitOfMeasure from spec
     const validChars = newProductChars.filter(ch => ch.charSpecExternalId && ch.value)
     if (validChars.length > 0) {
-      product.characteristic = validChars.map(ch => ({
-        charSpecExternalId: ch.charSpecExternalId,
-        value: [{ value: ch.value }]
-      }))
+      const po = poList.find((p: any) => p.externalId === newPO)
+      const poChars = po?.characteristics || []
+      const MEASURE_TO_UNIT: Record<string, string> = { 'Data': 'megabyte', 'Duration': 'hour', 'Money': 'euro', 'Voice': 'second' }
+      product.characteristic = validChars.map(ch => {
+        const specChar = poChars.find((c: any) => (c.externalId || c.id) === ch.charSpecExternalId)
+        let unit = specChar?.possibleValues?.[0]?.unitOfMeasure || ''
+        if (!unit && specChar?.unitOfMeasure && MEASURE_TO_UNIT[specChar.unitOfMeasure]) unit = MEASURE_TO_UNIT[specChar.unitOfMeasure]
+        const valObj: any = { value: ch.value }
+        if (unit) valObj.unitOfMeasure = unit
+        return { charSpecExternalId: ch.charSpecExternalId, value: [valObj] }
+      })
     }
     // Add sharing provider config
     if (newProductSharingProvider && baExtId) {
