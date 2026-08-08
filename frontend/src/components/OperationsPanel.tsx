@@ -845,13 +845,13 @@ export const OperationsPanel: React.FC = () => {
 
       selectedOp.fields.forEach(f => {
         const val = fieldValues[f.name] || ''
-        if (f.type === 'path') pathParams[f.name] = val
-        else if (f.type === 'query') queryParams[f.name] = val
-      })
-
-      // Remove empty query params
-      Object.keys(queryParams).forEach(k => {
-        if (!queryParams[k]) delete queryParams[k]
+        if (val) {
+          // Send all fields as both path and query params
+          // Backend will use pathParams to replace {{varName}} in URL template
+          // and queryParams as httpx params= for query string
+          pathParams[f.name] = val
+          queryParams[f.name] = val
+        }
       })
 
       let response: Response
