@@ -289,8 +289,13 @@ export const TraceTraffic = () => {
         setError('');
         setLoading('login');
         try {
-            await apiPost('/setup/login', { username: loginUser, password: loginPass, iam_url: iamUrl });
-            await fetchStatus();
+            const result = await apiPost('/setup/login', { username: loginUser, password: loginPass, iam_url: iamUrl });
+            if (result.status === 'failed') {
+                setError(`Login failed: ${result.error || result.stderr || 'Unknown error'}\n${result.stdout || ''}`);
+            }
+            else {
+                await fetchStatus();
+            }
         }
         catch (e) {
             setError(e.message);
