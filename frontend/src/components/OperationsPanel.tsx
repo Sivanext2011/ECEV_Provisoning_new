@@ -519,6 +519,9 @@ export const OperationsPanel: React.FC = () => {
   const [loading, setLoading] = useState(false)
   const [statusCode, setStatusCode] = useState<number | null>(null)
   const [specsCache, setSpecsCache] = useState<any>(null)
+  const [formMode, setFormMode] = useState<'json' | 'form'>('form')
+  const [specFormValues, setSpecFormValues] = useState<Record<string, string>>({})
+  const [selectedSpec, setSelectedSpec] = useState('')
 
   // Auto-load specs on mount for templates
   React.useEffect(() => {
@@ -690,6 +693,84 @@ export const OperationsPanel: React.FC = () => {
     }
   }
 
+  // Build JSON body from spec-driven form
+  const buildBodyFromForm = (apiKey: string): any => {
+    const v = specFormValues
+    const ts = new Date().toISOString().replace(/\.\d{3}Z/, '.000Z')
+    if (apiKey === 'party_create' || apiKey === 'create_party') {
+      const body: any = {
+        externalId: v.externalId || `extID-party-${v.msisdn || ''}`,
+        status: [{ status: v.status || 'PartyActive' }],
+      }
+      if (v.givenName) body.givenName = v.givenName
+      if (v.familyName) body.familyName = v.familyName
+      if (selectedSpec) body.individualSpecification = { externalId: selectedSpec }
+      if (v.msisdn) {
+        body.contactMedium = [
+          { externalId: `cm_SMS_${v.msisdn}`, contactMediumSpecExternalId: v.cmSpec || '', characteristic: [{ charSpecExternalId: 'communicationId', value: [{ value: v.msisdn }] }, { charSpecExternalId: 'channelType', value: [{ value: 'SMS' }] }] },
+        ]
+      }
+      // Add characteristics
+      const chars = getSpecChars()
+      const charEntries = chars.filter((c: any) => v[`char_${c.externalId}`])
+      if (charEntries.length) body.characteristic = charEntries.map((c: any) => ({ charSpecExternalId: c.externalId, value: [{ value: v[`char_${c.externalId}`] }] }))
+      return body
+    }
+    if (apiKey === 'customer_create' || apiKey === 'create_customer') {
+      const body: any = {
+        externalId: v.externalId || `extID-customer-${v.msisdn || ''}`,
+        engagedParty: { externalId: v.partyExternalId || `extID-party-${v.msisdn || ''}`, '@referredType': 'Individual' },
+        status: [{ status: v.status || 'CustomerActive' }],
+      }
+      if (selectedSpec) body.customerSpecification = { externalId: selectedSpec }
+      if (v.baSpec) {
+        body.account = [{ externalId: v.baExternalId || `extID_BA-${v.msisdn || ''}`, billingAccountSpecExternalId: v.baSpec, status: [{ status: 'BillingAccountActive' }] }]
+      }
+      if (v.msisdn) {
+        body.contactMediumAssociation = [{ contactRole: 'Notification', language: 'en', contactMediumExternalId: `cm_SMS_${v.msisdn}`, enabled: true }]
+      }
+      const chars = getSpecChars()
+      const charEntries = chars.filter((c: any) => v[`char_${c.externalId}`])
+      if (charEntries.length) body.characteristic = charEntries.map((c: any) => ({ charSpecExternalId: c.externalId, value: [{ value: v[`char_${c.externalId}`] }] }))
+      return body
+    }
+    if (apiKey === 'contract_create' || apiKey === 'create_contract') {
+      const body: any = {
+        externalId: v.externalId || `extID-contract-${v.msisdn || ''}`,
+        status: [{ status: v.status || 'Active' }],
+        homeTimeZone: [{ timeZone: v.timeZone || 'Europe/Stockholm' }],
+      }
+      if (selectedSpec) body.contractSpecification = { externalId: selectedSpec }
+      if (v.poExternalId) {
+        body.product = [{
+          productOfferingExternalId: v.poExternalId,
+          externalId: `${v.poExternalId}-${v.msisdn || 'new'}`,
+          correlationId: '1', name: v.poExternalId,
+          status: [{ status: 'ProductCreated' }],
+          billingAccountReference: { externalId: v.baExternalId || `extID_BA-${v.msisdn || ''}` },
+          baRefForBillCycleAlignedRecurrence: { externalId: v.baExternalId || `extID_BA-${v.msisdn || ''}` },
+        }]
+      }
+      if (v.msisdn) {
+        body.resource = [{ resourceNumber: v.msisdn, externalId: `RS_MSISDN-${v.msisdn}`, resourceSpecificationExternalId: 'RS_MSISDN', productCorrelationId: ['1'] }]
+        body.contactMediumAssociation = [{ contactRole: 'Notification', language: 'en', contactMediumExternalId: `cm_SMS_${v.msisdn}`, enabled: true }]
+      }
+      const chars = getSpecChars()
+      const charEntries = chars.filter((c: any) => v[`char_${c.externalId}`])
+      if (charEntries.length) body.characteristic = charEntries.map((c: any) => ({ charSpecExternalId: c.externalId, value: [{ value: v[`char_${c.externalId}`] }] }))
+      return body
+    }
+    return null
+  }
+
+  // Get characteristics for the selected spec
+  const getSpecChars = (): any[] => {
+    if (!specsCache || !selectedSpec) return []
+    const allSpecs = [...(specsCache.partySpecifications || []), ...(specsCache.customerSpecifications || []), ...(specsCache.contractSpecifications || [])]
+    const spec = allSpecs.find((s: any) => s.externalId === selectedSpec)
+    return (spec?.characteristics || []).filter((c: any) => c.externalId && (c.valueRegulator === 'mustBePersonalized' || c.valueRegulator === 'canBePersonalized'))
+  }
+
   const currentSystem = systemTabs[activeSystem]
   const currentSubTab = currentSystem.subTabs[activeSubTab] || currentSystem.subTabs[0]
 
@@ -714,6 +795,11 @@ export const OperationsPanel: React.FC = () => {
     setJsonBody('{\n  \n}')
     setResult(null)
     setStatusCode(null)
+    setSpecFormValues({})
+    setSelectedSpec('')
+    // Auto-set form mode for spec-driven operations
+    const specDrivenOps = ['party_create', 'create_party', 'customer_create', 'create_customer', 'contract_create', 'create_contract']
+    setFormMode(specDrivenOps.includes(op.apiKey) ? 'form' : 'json')
   }
 
   const handleFieldChange = (name: string, value: string) => {
@@ -754,12 +840,21 @@ export const OperationsPanel: React.FC = () => {
         // POST/PATCH/DELETE/PUT with possible body
         let body: any = undefined
         if (selectedOp.hasJsonBody) {
-          try {
-            body = JSON.parse(jsonBody)
-          } catch {
-            setResult('ERROR: Invalid JSON body')
-            setLoading(false)
-            return
+          if (formMode === 'form') {
+            body = buildBodyFromForm(selectedOp.apiKey)
+            if (!body) {
+              setResult('ERROR: Could not generate body from form. Switch to JSON mode.')
+              setLoading(false)
+              return
+            }
+          } else {
+            try {
+              body = JSON.parse(jsonBody)
+            } catch {
+              setResult('ERROR: Invalid JSON body')
+              setLoading(false)
+              return
+            }
           }
         }
         response = await exec(selectedOp.apiKey, pathParams, body, queryParams)
@@ -856,21 +951,128 @@ export const OperationsPanel: React.FC = () => {
           {/* JSON body textarea */}
           {selectedOp.hasJsonBody && (
             <div style={styles.fieldRow}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                <label style={styles.fieldLabel}>Request Body (JSON)</label>
-                <button onClick={() => {
-                  const tpl = getTemplate(selectedOp.apiKey, fieldValues)
-                  if (tpl) setJsonBody(JSON.stringify(tpl, null, 2))
-                }} style={{ fontSize: 10, padding: '2px 8px', background: '#dbeafe', color: '#1d4ed8', border: '1px solid #93c5fd', borderRadius: 4, cursor: 'pointer' }}>
-                  📋 Load Template
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                <button onClick={() => setFormMode('form')}
+                  style={{ fontSize: 11, padding: '4px 12px', background: formMode === 'form' ? '#1d4ed8' : '#f3f4f6', color: formMode === 'form' ? '#fff' : '#333', border: '1px solid #ddd', borderRadius: 4, cursor: 'pointer', fontWeight: formMode === 'form' ? 600 : 400 }}>
+                  🧙 Form
                 </button>
+                <button onClick={() => setFormMode('json')}
+                  style={{ fontSize: 11, padding: '4px 12px', background: formMode === 'json' ? '#1d4ed8' : '#f3f4f6', color: formMode === 'json' ? '#fff' : '#333', border: '1px solid #ddd', borderRadius: 4, cursor: 'pointer', fontWeight: formMode === 'json' ? 600 : 400 }}>
+                  📝 JSON
+                </button>
+                {formMode === 'form' && (
+                  <button onClick={() => {
+                    const body = buildBodyFromForm(selectedOp.apiKey)
+                    if (body) setJsonBody(JSON.stringify(body, null, 2))
+                    setFormMode('json')
+                  }} style={{ fontSize: 10, padding: '3px 10px', background: '#059669', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer' }}>
+                    Generate JSON →
+                  </button>
+                )}
+                {formMode === 'json' && (
+                  <button onClick={() => {
+                    const tpl = getTemplate(selectedOp.apiKey, fieldValues)
+                    if (tpl) setJsonBody(JSON.stringify(tpl, null, 2))
+                  }} style={{ fontSize: 10, padding: '3px 10px', background: '#dbeafe', color: '#1d4ed8', border: '1px solid #93c5fd', borderRadius: 4, cursor: 'pointer' }}>
+                    📋 Load Template
+                  </button>
+                )}
               </div>
-              <textarea
-                style={styles.textarea}
-                value={jsonBody}
-                onChange={e => setJsonBody(e.target.value)}
-                spellCheck={false}
-              />
+
+              {/* Spec-driven form */}
+              {formMode === 'form' && (['party_create', 'create_party', 'customer_create', 'create_customer', 'contract_create', 'create_contract'].includes(selectedOp.apiKey)) && (
+                <div style={{ padding: '12px', background: '#f8fafc', borderRadius: 6, border: '1px solid #e2e8f0', marginBottom: 8 }}>
+                  {/* Common fields */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 10 }}>
+                    {(selectedOp.apiKey.includes('party')) && <>
+                      <div><label style={{ fontSize: 11, display: 'block', marginBottom: 2 }}>Given Name *</label><input style={{ width: '100%', padding: '4px 8px', fontSize: 12 }} value={specFormValues.givenName || ''} onChange={e => setSpecFormValues(p => ({ ...p, givenName: e.target.value }))} /></div>
+                      <div><label style={{ fontSize: 11, display: 'block', marginBottom: 2 }}>Family Name *</label><input style={{ width: '100%', padding: '4px 8px', fontSize: 12 }} value={specFormValues.familyName || ''} onChange={e => setSpecFormValues(p => ({ ...p, familyName: e.target.value }))} /></div>
+                    </>}
+                    <div><label style={{ fontSize: 11, display: 'block', marginBottom: 2 }}>MSISDN *</label><input style={{ width: '100%', padding: '4px 8px', fontSize: 12 }} value={specFormValues.msisdn || ''} onChange={e => setSpecFormValues(p => ({ ...p, msisdn: e.target.value }))} placeholder="e.g. 46701234567" /></div>
+                    <div><label style={{ fontSize: 11, display: 'block', marginBottom: 2 }}>External ID</label><input style={{ width: '100%', padding: '4px 8px', fontSize: 12, background: '#f0f9ff' }} value={specFormValues.externalId || ''} onChange={e => setSpecFormValues(p => ({ ...p, externalId: e.target.value }))} placeholder="Auto-generated if empty" /></div>
+                  </div>
+
+                  {/* Spec selection */}
+                  <div style={{ marginBottom: 10 }}>
+                    <label style={{ fontSize: 11, display: 'block', marginBottom: 2, fontWeight: 600 }}>
+                      {selectedOp.apiKey.includes('party') ? 'Party' : selectedOp.apiKey.includes('customer') ? 'Customer' : 'Contract'} Specification
+                    </label>
+                    <select style={{ width: '100%', padding: '4px 8px', fontSize: 12 }} value={selectedSpec} onChange={e => setSelectedSpec(e.target.value)}>
+                      <option value="">-- Select Spec --</option>
+                      {(selectedOp.apiKey.includes('party') ? specsCache?.partySpecifications :
+                        selectedOp.apiKey.includes('customer') ? specsCache?.customerSpecifications :
+                        specsCache?.contractSpecifications || [])?.map((s: any) => (
+                        <option key={s.id || s.externalId} value={s.externalId}>{s.name} ({s.externalId})</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Customer-specific fields */}
+                  {selectedOp.apiKey.includes('customer') && (
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 10 }}>
+                      <div><label style={{ fontSize: 11, display: 'block', marginBottom: 2 }}>Party External ID</label><input style={{ width: '100%', padding: '4px 8px', fontSize: 12 }} value={specFormValues.partyExternalId || ''} onChange={e => setSpecFormValues(p => ({ ...p, partyExternalId: e.target.value }))} placeholder="extID-party-<msisdn>" /></div>
+                      <div><label style={{ fontSize: 11, display: 'block', marginBottom: 2 }}>BA Spec</label>
+                        <select style={{ width: '100%', padding: '4px 8px', fontSize: 12 }} value={specFormValues.baSpec || ''} onChange={e => setSpecFormValues(p => ({ ...p, baSpec: e.target.value }))}>
+                          <option value="">-- Select BA Spec --</option>
+                          {(specsCache?.billingAccountSpecifications || []).map((s: any) => <option key={s.externalId} value={s.externalId}>{s.name} ({s.externalId})</option>)}
+                        </select>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Contract-specific fields */}
+                  {selectedOp.apiKey.includes('contract') && (
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 10 }}>
+                      <div><label style={{ fontSize: 11, display: 'block', marginBottom: 2 }}>Product Offering</label>
+                        <select style={{ width: '100%', padding: '4px 8px', fontSize: 12 }} value={specFormValues.poExternalId || ''} onChange={e => setSpecFormValues(p => ({ ...p, poExternalId: e.target.value }))}>
+                          <option value="">-- Select PO --</option>
+                          {(specsCache?.productOfferings || []).map((s: any) => <option key={s.externalId} value={s.externalId}>{s.name} ({s.externalId})</option>)}
+                        </select>
+                      </div>
+                      <div><label style={{ fontSize: 11, display: 'block', marginBottom: 2 }}>BA External ID</label><input style={{ width: '100%', padding: '4px 8px', fontSize: 12 }} value={specFormValues.baExternalId || ''} onChange={e => setSpecFormValues(p => ({ ...p, baExternalId: e.target.value }))} placeholder="extID_BA-<msisdn>" /></div>
+                    </div>
+                  )}
+
+                  {/* Spec characteristics */}
+                  {getSpecChars().length > 0 && (
+                    <div style={{ marginTop: 8, padding: '8px', background: '#fff', borderRadius: 4, border: '1px solid #e5e7eb' }}>
+                      <div style={{ fontSize: 11, fontWeight: 600, marginBottom: 6, color: '#555' }}>Characteristics ({getSpecChars().length})</div>
+                      {getSpecChars().map((c: any) => (
+                        <div key={c.externalId} style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 4 }}>
+                          <span style={{ fontSize: 11, minWidth: 180, color: c.valueRegulator === 'mustBePersonalized' ? '#c60' : '#555' }}>
+                            {c.name || c.externalId} {c.valueRegulator === 'mustBePersonalized' && '*'}
+                          </span>
+                          {c.possibleValues?.length > 0 ? (
+                            <select style={{ flex: 1, padding: '3px 6px', fontSize: 11 }} value={specFormValues[`char_${c.externalId}`] || ''} onChange={e => setSpecFormValues(p => ({ ...p, [`char_${c.externalId}`]: e.target.value }))}>
+                              <option value="">-- Select --</option>
+                              {c.possibleValues.map((pv: any) => <option key={pv.value} value={pv.value}>{pv.name || pv.value}</option>)}
+                            </select>
+                          ) : (
+                            <input style={{ flex: 1, padding: '3px 6px', fontSize: 11 }} value={specFormValues[`char_${c.externalId}`] || ''} onChange={e => setSpecFormValues(p => ({ ...p, [`char_${c.externalId}`]: e.target.value }))} placeholder={c.defaultValue || c.valueType || ''} />
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Form mode but not a spec-driven operation - show hint */}
+              {formMode === 'form' && !(['party_create', 'create_party', 'customer_create', 'create_customer', 'contract_create', 'create_contract'].includes(selectedOp.apiKey)) && (
+                <div style={{ padding: '12px', background: '#fefce8', borderRadius: 6, border: '1px solid #fde047', marginBottom: 8, fontSize: 12, color: '#854d0e' }}>
+                  Spec-driven form not available for this operation. Use "📋 Load Template" in JSON mode for a pre-filled body structure.
+                </div>
+              )}
+
+              {/* JSON textarea */}
+              {formMode === 'json' && (
+                <textarea
+                  style={styles.textarea}
+                  value={jsonBody}
+                  onChange={e => setJsonBody(e.target.value)}
+                  spellCheck={false}
+                />
+              )}
             </div>
           )}
 

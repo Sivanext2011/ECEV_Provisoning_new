@@ -1,4 +1,4 @@
-import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
+import { jsx as _jsx, jsxs as _jsxs, Fragment as _Fragment } from "react/jsx-runtime";
 import React, { useState } from 'react';
 const API = '/api/v1';
 // Execution helpers
@@ -449,6 +449,9 @@ export const OperationsPanel = () => {
     const [loading, setLoading] = useState(false);
     const [statusCode, setStatusCode] = useState(null);
     const [specsCache, setSpecsCache] = useState(null);
+    const [formMode, setFormMode] = useState('form');
+    const [specFormValues, setSpecFormValues] = useState({});
+    const [selectedSpec, setSelectedSpec] = useState('');
     // Auto-load specs on mount for templates
     React.useEffect(() => {
         fetch(`${API}/specs`).then(r => r.ok ? r.json() : null).then(setSpecsCache).catch(() => { });
@@ -638,6 +641,91 @@ export const OperationsPanel = () => {
             default: return { _comment: 'Fill in the request body for ' + apiKey };
         }
     };
+    // Build JSON body from spec-driven form
+    const buildBodyFromForm = (apiKey) => {
+        const v = specFormValues;
+        const ts = new Date().toISOString().replace(/\.\d{3}Z/, '.000Z');
+        if (apiKey === 'party_create' || apiKey === 'create_party') {
+            const body = {
+                externalId: v.externalId || `extID-party-${v.msisdn || ''}`,
+                status: [{ status: v.status || 'PartyActive' }],
+            };
+            if (v.givenName)
+                body.givenName = v.givenName;
+            if (v.familyName)
+                body.familyName = v.familyName;
+            if (selectedSpec)
+                body.individualSpecification = { externalId: selectedSpec };
+            if (v.msisdn) {
+                body.contactMedium = [
+                    { externalId: `cm_SMS_${v.msisdn}`, contactMediumSpecExternalId: v.cmSpec || '', characteristic: [{ charSpecExternalId: 'communicationId', value: [{ value: v.msisdn }] }, { charSpecExternalId: 'channelType', value: [{ value: 'SMS' }] }] },
+                ];
+            }
+            // Add characteristics
+            const chars = getSpecChars();
+            const charEntries = chars.filter((c) => v[`char_${c.externalId}`]);
+            if (charEntries.length)
+                body.characteristic = charEntries.map((c) => ({ charSpecExternalId: c.externalId, value: [{ value: v[`char_${c.externalId}`] }] }));
+            return body;
+        }
+        if (apiKey === 'customer_create' || apiKey === 'create_customer') {
+            const body = {
+                externalId: v.externalId || `extID-customer-${v.msisdn || ''}`,
+                engagedParty: { externalId: v.partyExternalId || `extID-party-${v.msisdn || ''}`, '@referredType': 'Individual' },
+                status: [{ status: v.status || 'CustomerActive' }],
+            };
+            if (selectedSpec)
+                body.customerSpecification = { externalId: selectedSpec };
+            if (v.baSpec) {
+                body.account = [{ externalId: v.baExternalId || `extID_BA-${v.msisdn || ''}`, billingAccountSpecExternalId: v.baSpec, status: [{ status: 'BillingAccountActive' }] }];
+            }
+            if (v.msisdn) {
+                body.contactMediumAssociation = [{ contactRole: 'Notification', language: 'en', contactMediumExternalId: `cm_SMS_${v.msisdn}`, enabled: true }];
+            }
+            const chars = getSpecChars();
+            const charEntries = chars.filter((c) => v[`char_${c.externalId}`]);
+            if (charEntries.length)
+                body.characteristic = charEntries.map((c) => ({ charSpecExternalId: c.externalId, value: [{ value: v[`char_${c.externalId}`] }] }));
+            return body;
+        }
+        if (apiKey === 'contract_create' || apiKey === 'create_contract') {
+            const body = {
+                externalId: v.externalId || `extID-contract-${v.msisdn || ''}`,
+                status: [{ status: v.status || 'Active' }],
+                homeTimeZone: [{ timeZone: v.timeZone || 'Europe/Stockholm' }],
+            };
+            if (selectedSpec)
+                body.contractSpecification = { externalId: selectedSpec };
+            if (v.poExternalId) {
+                body.product = [{
+                        productOfferingExternalId: v.poExternalId,
+                        externalId: `${v.poExternalId}-${v.msisdn || 'new'}`,
+                        correlationId: '1', name: v.poExternalId,
+                        status: [{ status: 'ProductCreated' }],
+                        billingAccountReference: { externalId: v.baExternalId || `extID_BA-${v.msisdn || ''}` },
+                        baRefForBillCycleAlignedRecurrence: { externalId: v.baExternalId || `extID_BA-${v.msisdn || ''}` },
+                    }];
+            }
+            if (v.msisdn) {
+                body.resource = [{ resourceNumber: v.msisdn, externalId: `RS_MSISDN-${v.msisdn}`, resourceSpecificationExternalId: 'RS_MSISDN', productCorrelationId: ['1'] }];
+                body.contactMediumAssociation = [{ contactRole: 'Notification', language: 'en', contactMediumExternalId: `cm_SMS_${v.msisdn}`, enabled: true }];
+            }
+            const chars = getSpecChars();
+            const charEntries = chars.filter((c) => v[`char_${c.externalId}`]);
+            if (charEntries.length)
+                body.characteristic = charEntries.map((c) => ({ charSpecExternalId: c.externalId, value: [{ value: v[`char_${c.externalId}`] }] }));
+            return body;
+        }
+        return null;
+    };
+    // Get characteristics for the selected spec
+    const getSpecChars = () => {
+        if (!specsCache || !selectedSpec)
+            return [];
+        const allSpecs = [...(specsCache.partySpecifications || []), ...(specsCache.customerSpecifications || []), ...(specsCache.contractSpecifications || [])];
+        const spec = allSpecs.find((s) => s.externalId === selectedSpec);
+        return (spec?.characteristics || []).filter((c) => c.externalId && (c.valueRegulator === 'mustBePersonalized' || c.valueRegulator === 'canBePersonalized'));
+    };
     const currentSystem = systemTabs[activeSystem];
     const currentSubTab = currentSystem.subTabs[activeSubTab] || currentSystem.subTabs[0];
     const handleSystemChange = (idx) => {
@@ -659,6 +747,11 @@ export const OperationsPanel = () => {
         setJsonBody('{\n  \n}');
         setResult(null);
         setStatusCode(null);
+        setSpecFormValues({});
+        setSelectedSpec('');
+        // Auto-set form mode for spec-driven operations
+        const specDrivenOps = ['party_create', 'create_party', 'customer_create', 'create_customer', 'contract_create', 'create_contract'];
+        setFormMode(specDrivenOps.includes(op.apiKey) ? 'form' : 'json');
     };
     const handleFieldChange = (name, value) => {
         setFieldValues(prev => ({ ...prev, [name]: value }));
@@ -698,13 +791,23 @@ export const OperationsPanel = () => {
                 // POST/PATCH/DELETE/PUT with possible body
                 let body = undefined;
                 if (selectedOp.hasJsonBody) {
-                    try {
-                        body = JSON.parse(jsonBody);
+                    if (formMode === 'form') {
+                        body = buildBodyFromForm(selectedOp.apiKey);
+                        if (!body) {
+                            setResult('ERROR: Could not generate body from form. Switch to JSON mode.');
+                            setLoading(false);
+                            return;
+                        }
                     }
-                    catch {
-                        setResult('ERROR: Invalid JSON body');
-                        setLoading(false);
-                        return;
+                    else {
+                        try {
+                            body = JSON.parse(jsonBody);
+                        }
+                        catch {
+                            setResult('ERROR: Invalid JSON body');
+                            setLoading(false);
+                            return;
+                        }
                     }
                 }
                 response = await exec(selectedOp.apiKey, pathParams, body, queryParams);
@@ -726,11 +829,18 @@ export const OperationsPanel = () => {
             setLoading(false);
         }
     };
-    return (_jsxs("div", { style: styles.container, children: [_jsx("div", { style: styles.topTabsRow, children: systemTabs.map((tab, idx) => (_jsx("button", { style: { ...styles.topTab, ...(activeSystem === idx ? styles.topTabActive : {}) }, onClick: () => handleSystemChange(idx), children: tab.name }, tab.name))) }), _jsx("div", { style: styles.subTabsRow, children: currentSystem.subTabs.map((sub, idx) => (_jsx("button", { style: { ...styles.subTab, ...(activeSubTab === idx ? styles.subTabActive : {}) }, onClick: () => handleSubTabChange(idx), children: sub.name }, sub.name))) }), _jsx("div", { style: styles.opsGrid, children: currentSubTab.operations.map(op => (_jsxs("div", { style: { ...styles.opCard, ...(selectedOp?.id === op.id ? styles.opCardActive : {}) }, onClick: () => handleSelectOp(op), children: [_jsx("span", { style: { ...styles.methodBadge, background: methodColors[op.method] }, children: op.method }), _jsx("span", { children: op.name })] }, op.id))) }), selectedOp && (_jsxs("div", { style: styles.formContainer, children: [_jsxs("div", { style: styles.formTitle, children: [_jsx("span", { style: { ...styles.methodBadge, background: methodColors[selectedOp.method], marginRight: '10px' }, children: selectedOp.method }), selectedOp.name, _jsxs("span", { style: { marginLeft: '12px', fontSize: '12px', color: '#888', fontWeight: 400 }, children: ["API Key: ", selectedOp.apiKey] })] }), selectedOp.fields.map(f => (_jsxs("div", { style: styles.fieldRow, children: [_jsxs("label", { style: styles.fieldLabel, children: [f.label, " ", f.required && _jsx("span", { style: { color: '#d32f2f' }, children: "*" }), _jsxs("span", { style: { color: '#999', fontWeight: 400, marginLeft: '6px' }, children: ["(", f.type, ")"] })] }), _jsx("input", { style: styles.fieldInput, value: fieldValues[f.name] || '', onChange: e => handleFieldChange(f.name, e.target.value), placeholder: `Enter ${f.label}` })] }, f.name))), selectedOp.hasJsonBody && (_jsxs("div", { style: styles.fieldRow, children: [_jsxs("div", { style: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }, children: [_jsx("label", { style: styles.fieldLabel, children: "Request Body (JSON)" }), _jsx("button", { onClick: () => {
+    return (_jsxs("div", { style: styles.container, children: [_jsx("div", { style: styles.topTabsRow, children: systemTabs.map((tab, idx) => (_jsx("button", { style: { ...styles.topTab, ...(activeSystem === idx ? styles.topTabActive : {}) }, onClick: () => handleSystemChange(idx), children: tab.name }, tab.name))) }), _jsx("div", { style: styles.subTabsRow, children: currentSystem.subTabs.map((sub, idx) => (_jsx("button", { style: { ...styles.subTab, ...(activeSubTab === idx ? styles.subTabActive : {}) }, onClick: () => handleSubTabChange(idx), children: sub.name }, sub.name))) }), _jsx("div", { style: styles.opsGrid, children: currentSubTab.operations.map(op => (_jsxs("div", { style: { ...styles.opCard, ...(selectedOp?.id === op.id ? styles.opCardActive : {}) }, onClick: () => handleSelectOp(op), children: [_jsx("span", { style: { ...styles.methodBadge, background: methodColors[op.method] }, children: op.method }), _jsx("span", { children: op.name })] }, op.id))) }), selectedOp && (_jsxs("div", { style: styles.formContainer, children: [_jsxs("div", { style: styles.formTitle, children: [_jsx("span", { style: { ...styles.methodBadge, background: methodColors[selectedOp.method], marginRight: '10px' }, children: selectedOp.method }), selectedOp.name, _jsxs("span", { style: { marginLeft: '12px', fontSize: '12px', color: '#888', fontWeight: 400 }, children: ["API Key: ", selectedOp.apiKey] })] }), selectedOp.fields.map(f => (_jsxs("div", { style: styles.fieldRow, children: [_jsxs("label", { style: styles.fieldLabel, children: [f.label, " ", f.required && _jsx("span", { style: { color: '#d32f2f' }, children: "*" }), _jsxs("span", { style: { color: '#999', fontWeight: 400, marginLeft: '6px' }, children: ["(", f.type, ")"] })] }), _jsx("input", { style: styles.fieldInput, value: fieldValues[f.name] || '', onChange: e => handleFieldChange(f.name, e.target.value), placeholder: `Enter ${f.label}` })] }, f.name))), selectedOp.hasJsonBody && (_jsxs("div", { style: styles.fieldRow, children: [_jsxs("div", { style: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }, children: [_jsx("button", { onClick: () => setFormMode('form'), style: { fontSize: 11, padding: '4px 12px', background: formMode === 'form' ? '#1d4ed8' : '#f3f4f6', color: formMode === 'form' ? '#fff' : '#333', border: '1px solid #ddd', borderRadius: 4, cursor: 'pointer', fontWeight: formMode === 'form' ? 600 : 400 }, children: "\uD83E\uDDD9 Form" }), _jsx("button", { onClick: () => setFormMode('json'), style: { fontSize: 11, padding: '4px 12px', background: formMode === 'json' ? '#1d4ed8' : '#f3f4f6', color: formMode === 'json' ? '#fff' : '#333', border: '1px solid #ddd', borderRadius: 4, cursor: 'pointer', fontWeight: formMode === 'json' ? 600 : 400 }, children: "\uD83D\uDCDD JSON" }), formMode === 'form' && (_jsx("button", { onClick: () => {
+                                            const body = buildBodyFromForm(selectedOp.apiKey);
+                                            if (body)
+                                                setJsonBody(JSON.stringify(body, null, 2));
+                                            setFormMode('json');
+                                        }, style: { fontSize: 10, padding: '3px 10px', background: '#059669', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer' }, children: "Generate JSON \u2192" })), formMode === 'json' && (_jsx("button", { onClick: () => {
                                             const tpl = getTemplate(selectedOp.apiKey, fieldValues);
                                             if (tpl)
                                                 setJsonBody(JSON.stringify(tpl, null, 2));
-                                        }, style: { fontSize: 10, padding: '2px 8px', background: '#dbeafe', color: '#1d4ed8', border: '1px solid #93c5fd', borderRadius: 4, cursor: 'pointer' }, children: "\uD83D\uDCCB Load Template" })] }), _jsx("textarea", { style: styles.textarea, value: jsonBody, onChange: e => setJsonBody(e.target.value), spellCheck: false })] })), _jsx("button", { style: { ...styles.execBtn, opacity: loading ? 0.6 : 1 }, onClick: handleExecute, disabled: loading, children: loading ? 'Executing...' : 'Execute' }), loading && _jsx("p", { style: styles.loading, children: "Sending request..." }), result !== null && (_jsxs("div", { style: styles.resultContainer, children: [statusCode !== null && (_jsxs("span", { style: {
+                                        }, style: { fontSize: 10, padding: '3px 10px', background: '#dbeafe', color: '#1d4ed8', border: '1px solid #93c5fd', borderRadius: 4, cursor: 'pointer' }, children: "\uD83D\uDCCB Load Template" }))] }), formMode === 'form' && (['party_create', 'create_party', 'customer_create', 'create_customer', 'contract_create', 'create_contract'].includes(selectedOp.apiKey)) && (_jsxs("div", { style: { padding: '12px', background: '#f8fafc', borderRadius: 6, border: '1px solid #e2e8f0', marginBottom: 8 }, children: [_jsxs("div", { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 10 }, children: [(selectedOp.apiKey.includes('party')) && _jsxs(_Fragment, { children: [_jsxs("div", { children: [_jsx("label", { style: { fontSize: 11, display: 'block', marginBottom: 2 }, children: "Given Name *" }), _jsx("input", { style: { width: '100%', padding: '4px 8px', fontSize: 12 }, value: specFormValues.givenName || '', onChange: e => setSpecFormValues(p => ({ ...p, givenName: e.target.value })) })] }), _jsxs("div", { children: [_jsx("label", { style: { fontSize: 11, display: 'block', marginBottom: 2 }, children: "Family Name *" }), _jsx("input", { style: { width: '100%', padding: '4px 8px', fontSize: 12 }, value: specFormValues.familyName || '', onChange: e => setSpecFormValues(p => ({ ...p, familyName: e.target.value })) })] })] }), _jsxs("div", { children: [_jsx("label", { style: { fontSize: 11, display: 'block', marginBottom: 2 }, children: "MSISDN *" }), _jsx("input", { style: { width: '100%', padding: '4px 8px', fontSize: 12 }, value: specFormValues.msisdn || '', onChange: e => setSpecFormValues(p => ({ ...p, msisdn: e.target.value })), placeholder: "e.g. 46701234567" })] }), _jsxs("div", { children: [_jsx("label", { style: { fontSize: 11, display: 'block', marginBottom: 2 }, children: "External ID" }), _jsx("input", { style: { width: '100%', padding: '4px 8px', fontSize: 12, background: '#f0f9ff' }, value: specFormValues.externalId || '', onChange: e => setSpecFormValues(p => ({ ...p, externalId: e.target.value })), placeholder: "Auto-generated if empty" })] })] }), _jsxs("div", { style: { marginBottom: 10 }, children: [_jsxs("label", { style: { fontSize: 11, display: 'block', marginBottom: 2, fontWeight: 600 }, children: [selectedOp.apiKey.includes('party') ? 'Party' : selectedOp.apiKey.includes('customer') ? 'Customer' : 'Contract', " Specification"] }), _jsxs("select", { style: { width: '100%', padding: '4px 8px', fontSize: 12 }, value: selectedSpec, onChange: e => setSelectedSpec(e.target.value), children: [_jsx("option", { value: "", children: "-- Select Spec --" }), (selectedOp.apiKey.includes('party') ? specsCache?.partySpecifications :
+                                                        selectedOp.apiKey.includes('customer') ? specsCache?.customerSpecifications :
+                                                            specsCache?.contractSpecifications || [])?.map((s) => (_jsxs("option", { value: s.externalId, children: [s.name, " (", s.externalId, ")"] }, s.id || s.externalId)))] })] }), selectedOp.apiKey.includes('customer') && (_jsxs("div", { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 10 }, children: [_jsxs("div", { children: [_jsx("label", { style: { fontSize: 11, display: 'block', marginBottom: 2 }, children: "Party External ID" }), _jsx("input", { style: { width: '100%', padding: '4px 8px', fontSize: 12 }, value: specFormValues.partyExternalId || '', onChange: e => setSpecFormValues(p => ({ ...p, partyExternalId: e.target.value })), placeholder: "extID-party-<msisdn>" })] }), _jsxs("div", { children: [_jsx("label", { style: { fontSize: 11, display: 'block', marginBottom: 2 }, children: "BA Spec" }), _jsxs("select", { style: { width: '100%', padding: '4px 8px', fontSize: 12 }, value: specFormValues.baSpec || '', onChange: e => setSpecFormValues(p => ({ ...p, baSpec: e.target.value })), children: [_jsx("option", { value: "", children: "-- Select BA Spec --" }), (specsCache?.billingAccountSpecifications || []).map((s) => _jsxs("option", { value: s.externalId, children: [s.name, " (", s.externalId, ")"] }, s.externalId))] })] })] })), selectedOp.apiKey.includes('contract') && (_jsxs("div", { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 10 }, children: [_jsxs("div", { children: [_jsx("label", { style: { fontSize: 11, display: 'block', marginBottom: 2 }, children: "Product Offering" }), _jsxs("select", { style: { width: '100%', padding: '4px 8px', fontSize: 12 }, value: specFormValues.poExternalId || '', onChange: e => setSpecFormValues(p => ({ ...p, poExternalId: e.target.value })), children: [_jsx("option", { value: "", children: "-- Select PO --" }), (specsCache?.productOfferings || []).map((s) => _jsxs("option", { value: s.externalId, children: [s.name, " (", s.externalId, ")"] }, s.externalId))] })] }), _jsxs("div", { children: [_jsx("label", { style: { fontSize: 11, display: 'block', marginBottom: 2 }, children: "BA External ID" }), _jsx("input", { style: { width: '100%', padding: '4px 8px', fontSize: 12 }, value: specFormValues.baExternalId || '', onChange: e => setSpecFormValues(p => ({ ...p, baExternalId: e.target.value })), placeholder: "extID_BA-<msisdn>" })] })] })), getSpecChars().length > 0 && (_jsxs("div", { style: { marginTop: 8, padding: '8px', background: '#fff', borderRadius: 4, border: '1px solid #e5e7eb' }, children: [_jsxs("div", { style: { fontSize: 11, fontWeight: 600, marginBottom: 6, color: '#555' }, children: ["Characteristics (", getSpecChars().length, ")"] }), getSpecChars().map((c) => (_jsxs("div", { style: { display: 'flex', gap: 8, alignItems: 'center', marginBottom: 4 }, children: [_jsxs("span", { style: { fontSize: 11, minWidth: 180, color: c.valueRegulator === 'mustBePersonalized' ? '#c60' : '#555' }, children: [c.name || c.externalId, " ", c.valueRegulator === 'mustBePersonalized' && '*'] }), c.possibleValues?.length > 0 ? (_jsxs("select", { style: { flex: 1, padding: '3px 6px', fontSize: 11 }, value: specFormValues[`char_${c.externalId}`] || '', onChange: e => setSpecFormValues(p => ({ ...p, [`char_${c.externalId}`]: e.target.value })), children: [_jsx("option", { value: "", children: "-- Select --" }), c.possibleValues.map((pv) => _jsx("option", { value: pv.value, children: pv.name || pv.value }, pv.value))] })) : (_jsx("input", { style: { flex: 1, padding: '3px 6px', fontSize: 11 }, value: specFormValues[`char_${c.externalId}`] || '', onChange: e => setSpecFormValues(p => ({ ...p, [`char_${c.externalId}`]: e.target.value })), placeholder: c.defaultValue || c.valueType || '' }))] }, c.externalId)))] }))] })), formMode === 'form' && !(['party_create', 'create_party', 'customer_create', 'create_customer', 'contract_create', 'create_contract'].includes(selectedOp.apiKey)) && (_jsx("div", { style: { padding: '12px', background: '#fefce8', borderRadius: 6, border: '1px solid #fde047', marginBottom: 8, fontSize: 12, color: '#854d0e' }, children: "Spec-driven form not available for this operation. Use \"\uD83D\uDCCB Load Template\" in JSON mode for a pre-filled body structure." })), formMode === 'json' && (_jsx("textarea", { style: styles.textarea, value: jsonBody, onChange: e => setJsonBody(e.target.value), spellCheck: false }))] })), _jsx("button", { style: { ...styles.execBtn, opacity: loading ? 0.6 : 1 }, onClick: handleExecute, disabled: loading, children: loading ? 'Executing...' : 'Execute' }), loading && _jsx("p", { style: styles.loading, children: "Sending request..." }), result !== null && (_jsxs("div", { style: styles.resultContainer, children: [statusCode !== null && (_jsxs("span", { style: {
                                     ...styles.statusBadge,
                                     background: statusCode >= 200 && statusCode < 300 ? '#4caf50' : statusCode >= 400 ? '#d32f2f' : '#f57c00',
                                     color: '#fff',
