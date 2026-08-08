@@ -1139,7 +1139,22 @@ export function CRMView() {
       </div>
       {error && <p style={{ color: 'red' }}>{error}</p>}
       {actionMsg && <p style={{ color: 'green', fontSize: 12, background: '#f0fff0', padding: 8, borderRadius: 4 }}>{actionMsg}</p>}
-      {actionErr && <p style={{ color: 'red', fontSize: 12, background: '#fff0f0', padding: 8, borderRadius: 4, wordBreak: 'break-all' }}>❌ {actionErr}</p>}
+      {actionErr && (() => {
+        // Parse BSSF error messages for better display
+        let errDisplay = actionErr
+        try {
+          const parsed = JSON.parse(actionErr)
+          if (parsed.messages) {
+            errDisplay = parsed.messages.map((m: any) => `[${m.code || m.action || ''}] ${m.message || ''} ${m.details || ''}`).join('\n')
+          } else if (parsed.detail) {
+            try { const inner = JSON.parse(parsed.detail); errDisplay = inner.messages ? inner.messages.map((m: any) => `[${m.code || ''}] ${m.details || m.message || ''}`).join('\n') : parsed.detail } catch { errDisplay = parsed.detail }
+          }
+        } catch {
+          // Try parsing as nested JSON string
+          try { const inner = JSON.parse(actionErr.replace(/^[^{]*/, '').replace(/[^}]*$/, '')); if (inner.messages) errDisplay = inner.messages.map((m: any) => `[${m.code || m.action || ''}] ${m.details || m.message}`).join('\n') } catch { /* keep original */ }
+        }
+        return <pre style={{ color: '#dc2626', fontSize: 12, background: '#fef2f2', padding: 10, borderRadius: 4, border: '1px solid #fecaca', whiteSpace: 'pre-wrap', wordBreak: 'break-word', margin: '8px 0' }}>❌ {errDisplay}</pre>
+      })()}
 
       {/* Main Grid - Party/Customer left, Contract/Balance right */}
       {(c || cu || p0) && (
