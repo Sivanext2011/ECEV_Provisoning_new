@@ -74,33 +74,35 @@ class TraceService:
             env = os.environ.copy()
             env["HOME"] = self._session_home
 
-            # bamctl login requires a TTY for cert trust prompt
-            # Use 'script' to create a pseudo-TTY and pipe 'yes' for auto-accept
-            login_cmd = f"{BAMCTL_PATH} login -u {username} -p {pass_file.name} -t {iam_url}"
-            script_cmd = ["script", "-qc", login_cmd, "/dev/null"]
+            # bamctl needs interactive notice acceptance - use 'yes |' pipe via shell
+            login_cmd = f'yes | {BAMCTL_PATH} login -u {username} -p {pass_file.name} -t {iam_url}'
 
-            process = await asyncio.create_subprocess_exec(
-                *script_cmd,
-                stdin=asyncio.subprocess.PIPE,
+            process = await asyncio.create_subprocess_shell(
+                login_cmd,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
                 env=env,
             )
-            # Send yes multiple times for cert trust + any other prompts
-            stdout, stderr = await process.communicate(input=b"yes\nyes\nyes\n")
+            stdout, stderr = await process.communicate()
             
             out_text = stdout.decode("utf-8", errors="replace")
             err_text = stderr.decode("utf-8", errors="replace")
             
-            # Login is successful if return code is 0, or if output contains success indicators
-            if process.returncode == 0 or "logged in" in out_text.lower() or "login successful" in out_text.lower() or "token" in out_text.lower():
+            # Check if token file was created (definitive success indicator)
+            token_path = Path(self._session_home) / ".bamctl" / "token"
+            if token_path.exists():
+                self._logged_in = True
+                return {"status": "success", "message": "Login successful"}
+            
+            # Also check output for success indicators
+            if process.returncode == 0 or "logged in" in out_text.lower() or "login successful" in out_text.lower():
                 self._logged_in = True
                 return {"status": "success", "message": "Login successful", "stdout": out_text[:200]}
             
             # Return detailed error for debugging
             return {
                 "status": "failed", 
-                "error": err_text[:300] or out_text[:300],
+                "error": err_text[:500] or out_text[:500],
                 "returncode": process.returncode,
                 "stdout": out_text[:500],
                 "stderr": err_text[:500],
