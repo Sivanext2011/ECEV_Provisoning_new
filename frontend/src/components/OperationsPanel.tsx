@@ -518,6 +518,140 @@ export const OperationsPanel: React.FC = () => {
   const [result, setResult] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [statusCode, setStatusCode] = useState<number | null>(null)
+  const [specsCache, setSpecsCache] = useState<any>(null)
+
+  // Template generator for common operations
+  const getTemplate = (apiKey: string, fields: Record<string, string>): any => {
+    const ts = new Date().toISOString().replace(/\.\d{3}Z/, '.000Z')
+    switch (apiKey) {
+      case 'create_party': return {
+        externalId: fields.partyExternalId || 'extID-party-<msisdn>',
+        givenName: '<givenName>',
+        familyName: '<familyName>',
+        status: [{ status: 'PartyActive' }],
+        individualSpecification: { externalId: (specsCache?.partySpecifications?.[0]?.externalId) || '<partySpecExternalId>' },
+        contactMedium: [
+          { externalId: 'cm_SMS_<msisdn>', contactMediumSpecExternalId: '<cmSpecExtId>', characteristic: [{ charSpecExternalId: 'communicationId', value: [{ value: '<msisdn>' }] }, { charSpecExternalId: 'channelType', value: [{ value: 'SMS' }] }] }
+        ]
+      }
+      case 'create_customer': return {
+        externalId: fields.customerExternalId || 'extID-customer-<msisdn>',
+        engagedParty: { externalId: '<partyExternalId>', '@referredType': 'Individual' },
+        status: [{ status: 'CustomerActive' }],
+        customerSpecification: { externalId: (specsCache?.customerSpecifications?.[0]?.externalId) || '<custSpecExternalId>' },
+        account: [{
+          externalId: 'extID_BA-<msisdn>',
+          billingAccountSpecExternalId: (specsCache?.billingAccountSpecifications?.[0]?.externalId) || '<baSpecExternalId>',
+          status: [{ status: 'BillingAccountActive' }],
+        }],
+        contactMediumAssociation: [{ contactRole: 'Notification', language: 'en', contactMediumExternalId: 'cm_SMS_<msisdn>', enabled: true }]
+      }
+      case 'create_contract': return {
+        externalId: 'extID-contract-<msisdn>',
+        contractSpecification: { externalId: (specsCache?.contractSpecifications?.[0]?.externalId) || '<contractSpecExternalId>' },
+        status: [{ status: 'Active' }],
+        homeTimeZone: [{ timeZone: 'Europe/Stockholm' }],
+        product: [{
+          productOfferingExternalId: '<poExternalId>',
+          externalId: '<poExternalId>-<msisdn>',
+          correlationId: '1',
+          name: '<productName>',
+          status: [{ status: 'ProductCreated' }],
+          billingAccountReference: { externalId: 'extID_BA-<msisdn>' },
+          baRefForBillCycleAlignedRecurrence: { externalId: 'extID_BA-<msisdn>' },
+        }],
+        resource: [{ resourceNumber: '<msisdn>', externalId: 'RS_MSISDN-<msisdn>', resourceSpecificationExternalId: 'RS_MSISDN', productCorrelationId: ['1'] }],
+        contactMediumAssociation: [{ contactRole: 'Notification', language: 'en', contactMediumExternalId: 'cm_SMS_<msisdn>', enabled: true }]
+      }
+      case 'create_party_role': return {
+        externalId: 'PR_<customerExternalId>',
+        name: 'ContractOwner',
+        engagedParty: { externalId: '<partyExternalId>', '@referredType': 'Individual' },
+        status: [{ status: 'Active', validFor: { startDateTime: ts } }],
+        partyRoleSpecification: { externalId: (specsCache?.partyRoleSpecifications?.[0]?.externalId) || '<prSpecExternalId>' }
+      }
+      case 'create_agreement_by_party_external_id': return {
+        externalId: 'AGR_<msisdn>',
+        validFor: { startDateTime: ts, endDateTime: '2099-12-31T00:00:00.000Z' },
+        status: [{ status: 'Active', validFor: { startDateTime: ts } }],
+      }
+      case 'balance_topup': return {
+        triggerTime: ts,
+        relatedParty: { externalId: '<customerExternalId>', '@referredType': 'Customer' },
+        contractExternalId: '<contractExternalId>',
+        communicationIdType: 'E.164',
+        communicationId: '<msisdn>',
+        amount: { number: 0, decimalPlaces: 0 },
+        unitOfMeasure: 'byte',
+      }
+      case 'product_bucket_adjustment': return {
+        relatedParty: { externalId: '<customerExternalId>', '@referredType': 'Customer' },
+        contractExternalId: '<contractExternalId>',
+        communicationIdType: 'E.164',
+        communicationId: '<msisdn>',
+        productExternalId: '<productExternalId>',
+        bucketSpecExternalId: '<bucketSpecExternalId>',
+        action: 'Relative',
+        amount: { number: 0, decimalPlaces: 0 },
+        unitOfMeasure: 'byte',
+        validFor: { startDateTime: ts, endDateTime: '2026-12-31T23:59:59.000Z' },
+      }
+      case 'billing_account_bucket_adjustment': return {
+        relatedParty: { externalId: '<customerExternalId>', '@referredType': 'Customer' },
+        contractExternalId: '<contractExternalId>',
+        communicationIdType: 'E.164',
+        communicationId: '<msisdn>',
+        billingAccountExternalId: '<baExternalId>',
+        bucketSpecExternalId: '<bucketSpecExternalId>',
+        action: 'Relative',
+        amount: { number: 0, decimalPlaces: 0 },
+        unitOfMeasure: 'byte',
+      }
+      case 'swap_logical_resource': return {
+        customerExternalId: '<customerExternalId>',
+        contractExternalId: '<contractExternalId>',
+        resource: [{ resourceSpecificationExternalId: 'RS_MSISDN', oldResourceNumber: '<oldMsisdn>', newResourceNumber: '<newMsisdn>' }]
+      }
+      case 'replace_product': return {
+        customerExternalId: '<customerExternalId>',
+        contractExternalId: '<contractExternalId>',
+        currentProductExternalId: '<currentProductExternalId>',
+        newProductOfferingExternalId: '<newPOExternalId>',
+      }
+      case 'update_contract': case 'update_contract_by_id': return {
+        status: [{ status: 'Active' }],
+        product: [{ externalId: '<productExternalId>', status: [{ status: 'ProductActive' }] }]
+      }
+      case 'update_party': return {
+        givenName: '<newGivenName>',
+        familyName: '<newFamilyName>',
+      }
+      case 'update_customer': return {
+        status: [{ status: 'CustomerActive' }],
+      }
+      case 'consumer_list_modify': return {
+        product: [{ externalId: '<providerProductExternalId>', sharingProvider: { consumerList: [{ externalId: 'ConsumerEntry-<consumerMsisdn>', consumerCustomerExternalId: '<consumerCustExtId>', consumerContractExternalId: '<consumerContractExtId>' }] } }]
+      }
+      case 'change_subscription_status': return {
+        customerExternalId: '<customerExternalId>',
+        contractExternalId: '<contractExternalId>',
+        communicationId: '<msisdn>',
+        communicationIdType: 'E.164',
+        status: [{ status: 'Active' }]
+      }
+      case 'send_communication_message': return {
+        communicationId: '<msisdn>',
+        communicationIdType: 'E.164',
+        message: '<message text>',
+      }
+      case 'create_organization_party': return {
+        externalId: 'extID-org-<name>',
+        tradingName: '<Organization Name>',
+        status: [{ status: 'PartyActive' }],
+      }
+      default: return { _comment: 'Fill in the request body for ' + apiKey }
+    }
+  }
 
   const currentSystem = systemTabs[activeSystem]
   const currentSubTab = currentSystem.subTabs[activeSubTab] || currentSystem.subTabs[0]
@@ -685,7 +819,19 @@ export const OperationsPanel: React.FC = () => {
           {/* JSON body textarea */}
           {selectedOp.hasJsonBody && (
             <div style={styles.fieldRow}>
-              <label style={styles.fieldLabel}>Request Body (JSON)</label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                <label style={styles.fieldLabel}>Request Body (JSON)</label>
+                <button onClick={() => {
+                  const tpl = getTemplate(selectedOp.apiKey, fieldValues)
+                  if (tpl) setJsonBody(JSON.stringify(tpl, null, 2))
+                }} style={{ fontSize: 10, padding: '2px 8px', background: '#dbeafe', color: '#1d4ed8', border: '1px solid #93c5fd', borderRadius: 4, cursor: 'pointer' }}>
+                  📋 Load Template
+                </button>
+                <button onClick={() => { fetch(`${API}/specs`).then(r => r.ok ? r.json() : null).then(s => { if (s) setSpecsCache(s) }) }}
+                  style={{ fontSize: 10, padding: '2px 8px', background: '#ecfdf5', color: '#059669', border: '1px solid #a7f3d0', borderRadius: 4, cursor: 'pointer' }}>
+                  🔄 Load Specs
+                </button>
+              </div>
               <textarea
                 style={styles.textarea}
                 value={jsonBody}
