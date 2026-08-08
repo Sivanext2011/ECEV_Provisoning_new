@@ -1597,23 +1597,74 @@ export function CRMView() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
                       <span style={{ fontSize: 11, fontWeight: 600 }}>Characteristics</span>
                       <button onClick={() => setNewProductChars(prev => [...prev, { charSpecExternalId: '', value: '' }])}
-                        style={{ fontSize: 10, padding: '1px 6px', background: '#eee', border: '1px solid #ccc', borderRadius: 3, cursor: 'pointer' }}>+ Add</button>
+                        style={{ fontSize: 10, padding: '1px 6px', background: '#eee', border: '1px solid #ccc', borderRadius: 3, cursor: 'pointer' }}>+ Custom</button>
                     </div>
-                    {newProductChars.map((ch, i) => (
-                      <div key={i} style={{ display: 'flex', gap: 6, marginBottom: 4, alignItems: 'center' }}>
+                    {/* Spec-driven characteristics from PO */}
+                    {(() => {
+                      const po = poList.find((p: any) => p.externalId === newPO)
+                      const chars = po?.characteristics || []
+                      const personalizable = chars.filter((c: any) => c.valueRegulator === 'mustBePersonalized' || c.valueRegulator === 'canBePersonalized' || c.valueRegulator === 'selection')
+                      return personalizable.length > 0 ? personalizable.map((c: any) => {
+                        const charExtId = c.externalId || c.id
+                        const idx = newProductChars.findIndex(ch => ch.charSpecExternalId === charExtId)
+                        const val = idx >= 0 ? newProductChars[idx].value : ''
+                        const possVals = c.possibleValues || []
+                        const isMust = c.valueRegulator === 'mustBePersonalized'
+                        const unit = c.unitOfMeasure || ''
+                        return (
+                          <div key={charExtId} style={{ marginBottom: 6 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 2 }}>
+                              <span style={{ fontSize: 11 }}>{c.name || charExtId}</span>
+                              {isMust && <span style={{ fontSize: 9, background: '#c60', color: '#fff', borderRadius: 3, padding: '0 4px' }}>required</span>}
+                              {!isMust && <span style={{ fontSize: 9, background: '#0a7', color: '#fff', borderRadius: 3, padding: '0 4px' }}>optional</span>}
+                              {unit && <span style={{ fontSize: 9, color: '#888' }}>[{unit}]</span>}
+                            </div>
+                            {possVals.length > 0 ? (
+                              <select style={{ width: '100%', padding: '3px 6px', fontSize: 11 }} value={val}
+                                onChange={e => {
+                                  const updated = [...newProductChars]
+                                  if (idx >= 0) { updated[idx].value = e.target.value } else { updated.push({ charSpecExternalId: charExtId, value: e.target.value }) }
+                                  setNewProductChars(updated)
+                                }}>
+                                <option value="">-- Select --</option>
+                                {possVals.map((pv: any) => <option key={pv.value} value={pv.value}>{pv.name || pv.value}{pv.default ? ' ✓' : ''}</option>)}
+                              </select>
+                            ) : (
+                              <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                                <input style={{ flex: 1, padding: '3px 6px', fontSize: 11 }} placeholder={c.defaultValue || `Enter ${c.name || charExtId}`}
+                                  value={val} onChange={e => {
+                                    const updated = [...newProductChars]
+                                    if (idx >= 0) { updated[idx].value = e.target.value } else { updated.push({ charSpecExternalId: charExtId, value: e.target.value }) }
+                                    setNewProductChars(updated)
+                                  }} />
+                                {unit && <span style={{ fontSize: 10, color: '#888' }}>{unit}</span>}
+                              </div>
+                            )}
+                          </div>
+                        )
+                      }) : null
+                    })()}
+                    {/* Custom characteristics (manual add) */}
+                    {newProductChars.filter(ch => {
+                      const po = poList.find((p: any) => p.externalId === newPO)
+                      const specChars = (po?.characteristics || []).map((c: any) => c.externalId || c.id)
+                      return !specChars.includes(ch.charSpecExternalId)
+                    }).map((ch, i) => (
+                      <div key={`custom-${i}`} style={{ display: 'flex', gap: 6, marginBottom: 4, alignItems: 'center' }}>
                         <input style={{ flex: 1, padding: '3px 6px', fontSize: 11 }} placeholder="charSpecExternalId"
                           value={ch.charSpecExternalId} onChange={e => {
-                            const updated = [...newProductChars]; updated[i].charSpecExternalId = e.target.value; setNewProductChars(updated)
+                            const allIdx = newProductChars.indexOf(ch)
+                            const updated = [...newProductChars]; updated[allIdx].charSpecExternalId = e.target.value; setNewProductChars(updated)
                           }} />
                         <input style={{ flex: 1, padding: '3px 6px', fontSize: 11 }} placeholder="value"
                           value={ch.value} onChange={e => {
-                            const updated = [...newProductChars]; updated[i].value = e.target.value; setNewProductChars(updated)
+                            const allIdx = newProductChars.indexOf(ch)
+                            const updated = [...newProductChars]; updated[allIdx].value = e.target.value; setNewProductChars(updated)
                           }} />
-                        <button onClick={() => setNewProductChars(prev => prev.filter((_, j) => j !== i))}
+                        <button onClick={() => setNewProductChars(prev => prev.filter(p => p !== ch))}
                           style={{ fontSize: 10, color: 'red', background: 'none', border: 'none', cursor: 'pointer' }}>✕</button>
                       </div>
                     ))}
-                    {newProductChars.length === 0 && <div style={{ fontSize: 11, color: '#999' }}>No characteristics configured for this PO</div>}
                   </div>
 
                   {/* Resources */}
