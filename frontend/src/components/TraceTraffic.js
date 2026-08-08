@@ -222,8 +222,32 @@ export const TraceTraffic = () => {
     const fetchStatus = useCallback(async () => {
         try {
             const res = await fetch(`${API}/status`);
-            if (res.ok)
-                setStatus(await res.json());
+            if (res.ok) {
+                const data = await res.json();
+                setStatus(data);
+                // Load saved settings into form fields
+                const s = data.settings || {};
+                if (s.bam_fqdn && !oamDomain)
+                    setOamDomain(s.bam_fqdn);
+                if (s.bam_iam_url && !iamUrl)
+                    setIamUrl(s.bam_iam_url);
+                if (s.bam_username && !loginUser)
+                    setLoginUser(s.bam_username);
+                if (s.chf_fqdn && !chfFqdn)
+                    setChfFqdn(s.chf_fqdn);
+                if (s.chf_port && !chfPort)
+                    setChfPort(String(s.chf_port));
+                if (s.pcf_fqdn && !pcfFqdn)
+                    setPcfFqdn(s.pcf_fqdn);
+                if (s.pcf_port && !pcfPort)
+                    setPcfPort(String(s.pcf_port));
+                if (s.traffic_cert_path && !certPath)
+                    setCertPath(s.traffic_cert_path);
+                if (s.traffic_key_path && !keyPath)
+                    setKeyPath(s.traffic_key_path);
+                if (s.traffic_ca_path && !caPath)
+                    setCaPath(s.traffic_ca_path);
+            }
         }
         catch { /* silent */ }
     }, []);
@@ -350,7 +374,12 @@ export const TraceTraffic = () => {
         setError('');
         setLoading('trafficConfig');
         try {
-            await apiPost('/traffic/configure', { chf_fqdn: chfFqdn, chf_port: parseInt(chfPort), pcf_fqdn: pcfFqdn, pcf_port: parseInt(pcfPort), cert_path: certPath, key_path: keyPath, ca_path: caPath });
+            await apiPost('/traffic/configure', { chf_fqdn: chfFqdn, chf_port: parseInt(chfPort) || 443, pcf_fqdn: pcfFqdn, pcf_port: parseInt(pcfPort) || 443, cert_path: certPath, key_path: keyPath, ca_path: caPath });
+            // Also save to persistent config
+            await fetch(`${API}/settings`, {
+                method: 'PUT', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ bam_fqdn: oamDomain, bam_iam_url: iamUrl, bam_username: loginUser, chf_fqdn: chfFqdn, chf_port: parseInt(chfPort) || 443, pcf_fqdn: pcfFqdn, pcf_port: parseInt(pcfPort) || 443, traffic_cert_path: certPath, traffic_key_path: keyPath, traffic_ca_path: caPath })
+            });
             await fetchStatus();
         }
         catch (e) {

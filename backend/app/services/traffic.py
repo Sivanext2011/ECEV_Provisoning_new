@@ -18,6 +18,20 @@ class TrafficService:
         self._client: Optional[httpx.AsyncClient] = None
         self.config: dict = {}
 
+    def load_from_config(self, cfg: dict):
+        """Load traffic settings from config.json."""
+        tc = cfg.get("trace_traffic", {})
+        if tc.get("chf_fqdn"):
+            self.configure(
+                chf_fqdn=tc.get("chf_fqdn", ""),
+                chf_port=tc.get("chf_port", 443),
+                pcf_fqdn=tc.get("pcf_fqdn", ""),
+                pcf_port=tc.get("pcf_port", 443),
+                cert_path=tc.get("traffic_cert_path", ""),
+                key_path=tc.get("traffic_key_path", ""),
+                ca_path=tc.get("traffic_ca_path", ""),
+            )
+
     def configure(self, chf_fqdn: str, chf_port: int = 443,
                   pcf_fqdn: str = "", pcf_port: int = 443,
                   cert_path: str = "", key_path: str = "", ca_path: str = "",

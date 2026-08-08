@@ -2,8 +2,19 @@
 from fastapi import APIRouter, HTTPException
 from ..services.trace import trace_service
 from ..services.traffic import traffic_service
+from ..services.ericsson_client import load_config, CONFIG_PATH
+import json
+
 
 router = APIRouter(prefix="/api/v1/trace", tags=["trace-traffic"])
+
+# Load settings from config on import
+try:
+    _cfg = load_config()
+    trace_service.load_from_config(_cfg)
+    traffic_service.load_from_config(_cfg)
+except Exception:
+    pass
 
 
 # === Setup ===
@@ -11,11 +22,37 @@ router = APIRouter(prefix="/api/v1/trace", tags=["trace-traffic"])
 @router.get("/status")
 async def trace_status():
     """Check trace service status."""
+    cfg = load_config().get("trace_traffic", {})
     return {
         "bamctlExists": trace_service.bamctl_exists,
         "loggedIn": trace_service._logged_in,
         "trafficConfigured": bool(traffic_service.config.get("chf_fqdn")),
+        "settings": cfg,
     }
+
+
+@router.put("/settings")
+async def save_trace_settings(body: dict):
+    """Save trace & traffic settings to config.json."""
+    cfg = load_config()
+    cfg["trace_traffic"] = {
+        "bam_fqdn": body.get("bam_fqdn", ""),
+        "bam_iam_url": body.get("bam_iam_url", ""),
+        "bam_username": body.get("bam_username", ""),
+        "chf_fqdn": body.get("chf_fqdn", ""),
+        "chf_port": body.get("chf_port", 443),
+        "pcf_fqdn": body.get("pcf_fqdn", ""),
+        "pcf_port": body.get("pcf_port", 443),
+        "traffic_cert_path": body.get("traffic_cert_path", ""),
+        "traffic_key_path": body.get("traffic_key_path", ""),
+        "traffic_ca_path": body.get("traffic_ca_path", ""),
+    }
+    with open(CONFIG_PATH, "w") as f:
+        json.dump(cfg, f, indent=2)
+    # Reload services
+    trace_service.load_from_config(cfg)
+    traffic_service.load_from_config(cfg)
+    return {"status": "ok"}
 
 
 @router.post("/setup/download")

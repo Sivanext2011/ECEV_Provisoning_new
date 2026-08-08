@@ -26,6 +26,13 @@ class TraceService:
         self._logged_in = False
         self._session_home: Optional[str] = None
 
+    def load_from_config(self, cfg: dict):
+        """Load trace settings from config.json."""
+        tc = cfg.get("trace_traffic", {})
+        self._bam_fqdn = tc.get("bam_fqdn", "")
+        self._bam_iam_url = tc.get("bam_iam_url", "")
+        self._bam_username = tc.get("bam_username", "")
+
     @property
     def bamctl_exists(self) -> bool:
         return Path(BAMCTL_PATH).exists() and os.access(BAMCTL_PATH, os.X_OK)
