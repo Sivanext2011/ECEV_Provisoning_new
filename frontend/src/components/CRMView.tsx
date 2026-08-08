@@ -754,6 +754,7 @@ export function CRMView() {
         const providerProduct = products.find((p: any) => p.sharingProvider)
         if (!providerProduct) throw new Error('No provider product found')
         const body = {
+          triggerTime: new Date().toISOString().replace(/\.\d{3}Z/, '.000Z'),
           relatedParty: { externalId: custExtId, '@referredType': 'Customer' },
           contractExternalId: contractExtId,
           communicationId: msisdnValue || searchValue,
@@ -780,6 +781,7 @@ export function CRMView() {
           throw new Error('Lookup consumer first')
         }
         const body = {
+          triggerTime: new Date().toISOString().replace(/\.\d{3}Z/, '.000Z'),
           relatedParty: { externalId: limitConsumerCustExtId, '@referredType': 'Customer' },
           contractExternalId: limitConsumerContractExtId,
           communicationId: limitConsumerMsisdn,
@@ -1061,6 +1063,7 @@ export function CRMView() {
       setAdjLoading(true); setAdjMsg('')
       try {
         const body: any = {
+          triggerTime: new Date().toISOString().replace(/\.\d{3}Z/, '.000Z'),
           relatedParty: { externalId: custExtId, '@referredType': 'Customer' },
           contractExternalId: contractExtId,
           communicationId: msisdnValue || searchValue,

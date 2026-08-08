@@ -812,6 +812,7 @@ export function CRMView() {
                 if (!providerProduct)
                     throw new Error('No provider product found');
                 const body = {
+                    triggerTime: new Date().toISOString().replace(/\.\d{3}Z/, '.000Z'),
                     relatedParty: { externalId: custExtId, '@referredType': 'Customer' },
                     contractExternalId: contractExtId,
                     communicationId: msisdnValue || searchValue,
@@ -840,6 +841,7 @@ export function CRMView() {
                     throw new Error('Lookup consumer first');
                 }
                 const body = {
+                    triggerTime: new Date().toISOString().replace(/\.\d{3}Z/, '.000Z'),
                     relatedParty: { externalId: limitConsumerCustExtId, '@referredType': 'Customer' },
                     contractExternalId: limitConsumerContractExtId,
                     communicationId: limitConsumerMsisdn,
@@ -1201,6 +1203,7 @@ export function CRMView() {
             setAdjMsg('');
             try {
                 const body = {
+                    triggerTime: new Date().toISOString().replace(/\.\d{3}Z/, '.000Z'),
                     relatedParty: { externalId: custExtId, '@referredType': 'Customer' },
                     contractExternalId: contractExtId,
                     communicationId: msisdnValue || searchValue,
