@@ -16,7 +16,9 @@ export function CharInput({ char: c, value, onChange }: CharInputProps) {
   const charKey = c.externalId || c.id
   const hasRange = c.valueFrom !== undefined && c.valueFrom !== ''
   const isNumeric = c.valueType === 'LONG' || c.valueType === 'INTEGER' || c.valueType === 'DOUBLE' || c.valueType === 'FLOAT'
-  const isDateTime = c.valueType === 'DATE_TIME' || c.valueType === 'DATE'
+  const nameLC = (c.name || c.externalId || '').toLowerCase()
+  const isDateByName = nameLC.includes('date') || nameLC.includes('datetime') || nameLC.includes('starttime') || nameLC.includes('endtime') || nameLC.includes('expir')
+  const isDateTime = c.valueType === 'DATE_TIME' || c.valueType === 'DATE' || (c.valueType === 'STRING' && isDateByName)
   const enumPVs = possibleValues.filter((pv: any) => pv.value !== undefined || pv.name)
   const [personalize, setPersonalize] = useState(isMust || isFixed || isSelection)
 
@@ -50,9 +52,15 @@ export function CharInput({ char: c, value, onChange }: CharInputProps) {
       <input
         type={isDateTime ? 'datetime-local' : isNumeric ? 'number' : 'text'}
         style={{ flex: 1, background: (isFixed || (!personalize && isCan)) ? '#f5f5f5' : undefined }}
-        placeholder={c.defaultValue || (hasRange && isNumeric ? `${c.valueFrom}–${c.valueTo}` : `Enter ${c.name || charKey}`)}
-        value={value}
-        onChange={e => onChange(e.target.value)}
+        placeholder={c.defaultValue || (hasRange && isNumeric ? `${c.valueFrom}–${c.valueTo}` : isDateTime ? 'Select date/time' : `Enter ${c.name || charKey}`)}
+        value={isDateTime && value && value.includes('T') && value.includes('Z') ? value.slice(0, 16) : value}
+        onChange={e => {
+          if (isDateTime && e.target.value) {
+            onChange(e.target.value.length === 16 ? e.target.value + ':00.000Z' : e.target.value)
+          } else {
+            onChange(e.target.value)
+          }
+        }}
         readOnly={isFixed || (!personalize && isCan)}
         min={hasRange && isNumeric ? c.valueFrom : undefined}
         max={hasRange && isNumeric ? c.valueTo : undefined}
