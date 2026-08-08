@@ -1053,7 +1053,7 @@ export function CRMView() {
     const end = fmtDate(bucket?.validFor?.endDateTime)
 
     const [showAdj, setShowAdj] = React.useState(false)
-    const [adjAction, setAdjAction] = React.useState<'Relative' | 'Set'>('Relative')
+    const [adjAction, setAdjAction] = React.useState<'Add' | 'Subtract' | 'Set'>('Add')
     const [adjAmount, setAdjAmount] = React.useState('')
     const [adjEndDate, setAdjEndDate] = React.useState('')
     const [adjLoading, setAdjLoading] = React.useState(false)
@@ -1070,8 +1070,8 @@ export function CRMView() {
           communicationIdType: 'E.164',
           productExternalId: productExtId || bucket?._productExternalId || '',
           bucketSpecExternalId: bucket?.bucketSpecExternalId,
-          action: adjAction,
-          amount: { number: parseInt(adjAmount), decimalPlaces: 0 },
+          action: adjAction === 'Set' ? 'Set' : 'Relative',
+          amount: { number: adjAction === 'Subtract' ? -Math.abs(parseInt(adjAmount)) : Math.abs(parseInt(adjAmount)), decimalPlaces: 0 },
           unitOfMeasure: bucket?.unitOfMeasure || 'byte',
         }
         if (adjEndDate) {
@@ -1103,7 +1103,8 @@ export function CRMView() {
           <div style={{ marginTop: 6, padding: '6px 8px', background: '#fff', borderRadius: 4, border: '1px solid #fde68a' }}>
             <div style={{ display: 'flex', gap: 4, marginBottom: 4, alignItems: 'center', flexWrap: 'wrap' }}>
               <select style={{ padding: '2px 4px', fontSize: 10 }} value={adjAction} onChange={e => setAdjAction(e.target.value as any)}>
-                <option value="Relative">Add/Subtract</option>
+                <option value="Add">Add</option>
+                <option value="Subtract">Subtract</option>
                 <option value="Set">Set to</option>
               </select>
               <input type="number" style={{ width: 90, padding: '2px 4px', fontSize: 10 }} value={adjAmount} onChange={e => setAdjAmount(e.target.value)} placeholder="amount" />
