@@ -721,13 +721,13 @@ export const OperationsPanel = () => {
         // Update operations - build PATCH body from form values
         if (apiKey.includes('update') || apiKey.includes('_update')) {
             const body = {};
-            if (v.givenName && v.givenName !== fetchedEntity?.givenName)
+            if (v.givenName)
                 body.givenName = v.givenName;
-            if (v.familyName && v.familyName !== fetchedEntity?.familyName)
+            if (v.familyName)
                 body.familyName = v.familyName;
             if (v.status)
                 body.status = [{ status: v.status }];
-            // Changed characteristics
+            // Characteristics from form
             const charEntries = Object.entries(v).filter(([k, val]) => k.startsWith('char_') && val);
             if (charEntries.length) {
                 body.characteristic = charEntries.map(([k, val]) => ({ charSpecExternalId: k.replace('char_', ''), value: [{ value: val }] }));
