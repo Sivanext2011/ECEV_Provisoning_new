@@ -11,16 +11,16 @@ router = APIRouter(prefix="/api/v1/trace", tags=["trace-traffic"])
 
 
 def _derive_domains(cfg: dict) -> dict:
-    """Derive OAM/TRF domains from existing config."""
+    """Derive all URLs from existing config - no manual input needed."""
     env = cfg.get("environment", {})
     auth = cfg.get("auth", {})
-    # Extract domain from ROOT_BAE: https://bss-trf.<domain> → <domain>
+    # Extract TRF domain from ROOT_BAE: https://bss-trf.<domain> → <domain>
     root_bae = env.get("ROOT_BAE", "")
     trf_domain = ""
     m = re.match(r"https?://[^.]+\.(.+)", root_bae)
     if m:
         trf_domain = m.group(1)
-    # Extract OAM domain from token_endpoint: https://eric-sec-access-mgmt.<domain>/auth/...
+    # OAM domain from token_endpoint: https://eric-sec-access-mgmt.<domain>/auth/...
     token_ep = auth.get("token_endpoint", "")
     oam_domain = ""
     m2 = re.match(r"https?://eric-sec-access-mgmt\.([^/]+)", token_ep)
@@ -29,10 +29,11 @@ def _derive_domains(cfg: dict) -> dict:
     return {
         "oam_domain": oam_domain,
         "trf_domain": trf_domain,
-        "iam_url": f"https://eric-sec-access-mgmt.{oam_domain}" if oam_domain else "",
+        "iam_url": token_ep,  # Full token URL from auth settings
         "bam_fqdn": f"eric-bss-bam-cli.{oam_domain}" if oam_domain else "",
-        "chf_fqdn": f"eric-bss-cha-chf-httpproxy.{trf_domain}" if trf_domain else "",
-        "pcf_fqdn": f"eric-bss-cha-pcf-httpproxy.{trf_domain}" if trf_domain else "",
+        "username": auth.get("username", ""),
+        # SBI traffic (CHF + PCF) uses same FQDN
+        "sbi_fqdn": f"eric-bss-cha-access.{trf_domain}" if trf_domain else "",
     }
 
 
@@ -98,12 +99,17 @@ async def download_bamctl(body: dict):
 
 @router.post("/setup/login")
 async def trace_login(body: dict):
-    """Login bamctl."""
-    username = body.get("username", "")
-    password = body.get("password", "")
-    iam_url = body.get("iam_url", "")
+    """Login bamctl. Uses auth settings from config if not provided."""
+    cfg = load_config()
+    auth = cfg.get("auth", {})
+    derived = _derive_domains(cfg)
+    
+    username = body.get("username", "") or auth.get("username", "")
+    password = body.get("password", "") or auth.get("password", "")
+    iam_url = body.get("iam_url", "") or auth.get("token_endpoint", "")
+    
     if not username or not password or not iam_url:
-        raise HTTPException(status_code=400, detail="Provide username, password, iam_url")
+        raise HTTPException(status_code=400, detail="Credentials not found. Configure in Settings first.")
     return await trace_service.login(username, password, iam_url)
 
 
@@ -155,15 +161,21 @@ async def delete_trace(trace_id: str):
 
 @router.post("/traffic/configure")
 async def configure_traffic(body: dict):
-    """Configure traffic endpoints (CHF/PCF FQDN, certs)."""
+    """Configure traffic endpoints. Auto-derives from settings if not provided."""
+    cfg = load_config()
+    derived = _derive_domains(cfg)
+    tls = cfg.get("tls", {})
+    
+    sbi_fqdn = body.get("chf_fqdn", "") or derived.get("sbi_fqdn", "")
+    
     traffic_service.configure(
-        chf_fqdn=body.get("chf_fqdn", ""),
+        chf_fqdn=sbi_fqdn,
         chf_port=body.get("chf_port", 443),
-        pcf_fqdn=body.get("pcf_fqdn", ""),
+        pcf_fqdn=sbi_fqdn,  # Same FQDN for both CHF and PCF
         pcf_port=body.get("pcf_port", 443),
-        cert_path=body.get("cert_path", ""),
-        key_path=body.get("key_path", ""),
-        ca_path=body.get("ca_path", ""),
+        cert_path=body.get("cert_path", "") or tls.get("client_cert_path", ""),
+        key_path=body.get("key_path", "") or tls.get("client_key_path", ""),
+        ca_path=body.get("ca_path", "") or tls.get("ca_cert_path", ""),
         verify_ssl=body.get("verify_ssl", False),
     )
     return {"status": "ok", "config": traffic_service.config}
