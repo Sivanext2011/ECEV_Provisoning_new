@@ -269,14 +269,15 @@ export const TraceTraffic: React.FC = () => {
       if (res.ok) {
         const data = await res.json();
         setStatus(data);
-        // Load saved settings into form fields
+        // Load saved settings or derived defaults into form fields
         const s = data.settings || {};
-        if (s.bam_fqdn && !oamDomain) setOamDomain(s.bam_fqdn);
-        if (s.bam_iam_url && !iamUrl) setIamUrl(s.bam_iam_url);
+        const d = data.derived || {};
+        if ((s.bam_fqdn || d.bam_fqdn) && !oamDomain) setOamDomain(s.bam_fqdn || d.bam_fqdn);
+        if ((s.bam_iam_url || d.iam_url) && !iamUrl) setIamUrl(s.bam_iam_url || d.iam_url);
         if (s.bam_username && !loginUser) setLoginUser(s.bam_username);
-        if (s.chf_fqdn && !chfFqdn) setChfFqdn(s.chf_fqdn);
+        if ((s.chf_fqdn || d.chf_fqdn) && !chfFqdn) setChfFqdn(s.chf_fqdn || d.chf_fqdn);
         if (s.chf_port && !chfPort) setChfPort(String(s.chf_port));
-        if (s.pcf_fqdn && !pcfFqdn) setPcfFqdn(s.pcf_fqdn);
+        if ((s.pcf_fqdn || d.pcf_fqdn) && !pcfFqdn) setPcfFqdn(s.pcf_fqdn || d.pcf_fqdn);
         if (s.pcf_port && !pcfPort) setPcfPort(String(s.pcf_port));
         if (s.traffic_cert_path && !certPath) setCertPath(s.traffic_cert_path);
         if (s.traffic_key_path && !keyPath) setKeyPath(s.traffic_key_path);

@@ -4,9 +4,37 @@ from ..services.trace import trace_service
 from ..services.traffic import traffic_service
 from ..services.ericsson_client import load_config, CONFIG_PATH
 import json
+import re
 
 
 router = APIRouter(prefix="/api/v1/trace", tags=["trace-traffic"])
+
+
+def _derive_domains(cfg: dict) -> dict:
+    """Derive OAM/TRF domains from existing config."""
+    env = cfg.get("environment", {})
+    auth = cfg.get("auth", {})
+    # Extract domain from ROOT_BAE: https://bss-trf.<domain> → <domain>
+    root_bae = env.get("ROOT_BAE", "")
+    trf_domain = ""
+    m = re.match(r"https?://[^.]+\.(.+)", root_bae)
+    if m:
+        trf_domain = m.group(1)
+    # Extract OAM domain from token_endpoint: https://eric-sec-access-mgmt.<domain>/auth/...
+    token_ep = auth.get("token_endpoint", "")
+    oam_domain = ""
+    m2 = re.match(r"https?://eric-sec-access-mgmt\.([^/]+)", token_ep)
+    if m2:
+        oam_domain = m2.group(1)
+    return {
+        "oam_domain": oam_domain,
+        "trf_domain": trf_domain,
+        "iam_url": f"https://eric-sec-access-mgmt.{oam_domain}" if oam_domain else "",
+        "bam_fqdn": f"eric-bss-bam-cli.{oam_domain}" if oam_domain else "",
+        "chf_fqdn": f"eric-bss-cha-chf-httpproxy.{trf_domain}" if trf_domain else "",
+        "pcf_fqdn": f"eric-bss-cha-pcf-httpproxy.{trf_domain}" if trf_domain else "",
+    }
+
 
 # Load settings from config on import
 try:
@@ -22,12 +50,15 @@ except Exception:
 @router.get("/status")
 async def trace_status():
     """Check trace service status."""
-    cfg = load_config().get("trace_traffic", {})
+    cfg = load_config()
+    tc = cfg.get("trace_traffic", {})
+    derived = _derive_domains(cfg)
     return {
         "bamctlExists": trace_service.bamctl_exists,
         "loggedIn": trace_service._logged_in,
         "trafficConfigured": bool(traffic_service.config.get("chf_fqdn")),
-        "settings": cfg,
+        "settings": tc,
+        "derived": derived,
     }
 
 
