@@ -801,11 +801,12 @@ export const OperationsPanel = () => {
             selectedOp.fields.forEach(f => {
                 const val = fieldValues[f.name] || '';
                 if (val) {
-                    // Send all fields as both path and query params
-                    // Backend will use pathParams to replace {{varName}} in URL template
-                    // and queryParams as httpx params= for query string
-                    pathParams[f.name] = val;
-                    queryParams[f.name] = val;
+                    // pathField → goes into _pathParams (replaces {{varName}} in URL template)
+                    // queryField → goes into _queryParams (appended as ?key=val by httpx)
+                    if (f.type === 'query')
+                        queryParams[f.name] = val;
+                    else
+                        pathParams[f.name] = val;
                 }
             });
             let response;
