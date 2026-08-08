@@ -419,15 +419,16 @@ export function ProvisionWizard() {
                                         if (poCharEntries.length) {
                                             const poObj = poList.find((p) => p.externalId === selectedPO);
                                             const poChars = poObj?.characteristics || [];
-                                            const MEASURE_CATEGORIES = ['Data', 'Duration', 'Money', 'Voice', 'SMS', 'MMS', 'Events'];
+                                            const MEASURE_TO_UNIT = { 'Data': 'megabyte', 'Duration': 'hour', 'Money': 'euro', 'Voice': 'second' };
                                             basePlanProduct.characteristic = poCharEntries.map(([k, v]) => {
                                                 const charExtId = k.replace('_po_', '');
                                                 const specChar = poChars.find((c) => (c.externalId || c.id) === charExtId);
-                                                // Get unit from possibleValues (not measure which is the category)
-                                                let unit = specChar?.possibleValues?.[0]?.unitOfMeasure || specChar?.specCharacteristicValue?.[0]?.unitOfMeasure || specChar?.unitOfMeasure || '';
-                                                // Don't use measure categories as units
-                                                if (MEASURE_CATEGORIES.includes(unit))
-                                                    unit = '';
+                                                // Get unit: possibleValues > form override > measure-to-unit mapping
+                                                let unit = specChar?.possibleValues?.[0]?.unitOfMeasure || '';
+                                                if (!unit && formValues.contract[`_po_unit_${charExtId}`])
+                                                    unit = formValues.contract[`_po_unit_${charExtId}`];
+                                                if (!unit && specChar?.unitOfMeasure && MEASURE_TO_UNIT[specChar.unitOfMeasure])
+                                                    unit = MEASURE_TO_UNIT[specChar.unitOfMeasure];
                                                 const valObj = { value: v };
                                                 if (unit)
                                                     valObj.unitOfMeasure = unit;
