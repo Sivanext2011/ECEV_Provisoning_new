@@ -1,455 +1,545 @@
-import { jsx as _jsx, jsxs as _jsxs, Fragment as _Fragment } from "react/jsx-runtime";
+import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import { useState } from 'react';
 const API = '/api/v1';
-function StructuredForm({ formDef, values, onChange }) {
-    const set = (k, v) => onChange({ ...values, [k]: v });
-    return (_jsx("div", { style: { display: 'grid', gap: 6 }, children: formDef.map(f => (_jsxs("label", { style: { fontSize: 13 }, children: [f.label, f.required && _jsx("span", { style: { color: 'red' }, children: " *" }), f.type === 'select'
-                    ? _jsxs("select", { style: { width: '100%' }, value: values[f.key] || '', onChange: e => set(f.key, e.target.value), children: [_jsx("option", { value: "", children: "-- Select --" }), (f.options || []).map(o => _jsx("option", { value: o, children: o }, o))] })
-                    : _jsx("input", { type: f.type === 'number' ? 'number' : 'text', style: { width: '100%' }, placeholder: f.placeholder || f.label, value: values[f.key] ?? '', onChange: e => set(f.key, f.type === 'number' ? Number(e.target.value) : e.target.value) })] }, f.key))) }));
-}
-function buildBody(op, v) {
-    const amt = { number: Number(v.amount || 0), decimalPlaces: Number(v.decimalPlaces || 0) };
-    const commId = v.communicationId ? { communicationId: v.communicationId, communicationIdType: v.communicationIdType || 'E.164' } : {};
-    switch (op) {
-        case 'balance_topup': return {
-            ...(v.customerExternalId && { customerExternalId: v.customerExternalId }),
-            ...(v.contractExternalId && { contractExternalId: v.contractExternalId }),
-            ...commId, amount: amt,
-            ...(v.unitOfMeasure && { unitOfMeasure: v.unitOfMeasure }),
-        };
-        case 'balance_adj': return {
-            ...(v.customerExternalId && { relatedParty: { externalId: v.customerExternalId, '@referredType': 'Customer' } }),
-            ...(v.contractExternalId && { contractExternalId: v.contractExternalId }),
-            ...commId,
-            billingAccountAdjustments: [{ billingAccountRef: { externalId: v.billingAccountExternalId },
-                    billingAccountBuckets: [{ billingAccountBucketSpecExternalId: v.bucketSpecExternalId,
-                            action: v.action || 'Relative', amount: amt, ...(v.unitOfMeasure && { unitOfMeasure: v.unitOfMeasure }), ...(v.reason && { reason: v.reason }) }] }],
-        };
-        case 'balance_billing_adj': return {
-            ...(v.customerExternalId && { relatedParty: { externalId: v.customerExternalId, '@referredType': 'Customer' } }),
-            ...(v.contractExternalId && { contractExternalId: v.contractExternalId }),
-            billingAccountAdjustments: [{ billingAccountRef: { externalId: v.billingAccountExternalId },
-                    billingAccountBuckets: [{ billingAccountBucketSpecExternalId: v.bucketSpecExternalId,
-                            action: v.action || 'Relative', amount: amt, ...(v.unitOfMeasure && { unitOfMeasure: v.unitOfMeasure }), ...(v.reason && { reason: v.reason }) }] }],
-        };
-        case 'balance_product_adj': return {
-            ...(v.customerExternalId && { relatedParty: { externalId: v.customerExternalId, '@referredType': 'Customer' } }),
-            ...(v.contractExternalId && { contractExternalId: v.contractExternalId }),
-            ...commId,
-            productAdjustments: [{ productRef: { externalId: v.productExternalId },
-                    productBuckets: [{ bucketSpecExternalId: v.bucketSpecExternalId,
-                            action: v.action || 'Relative', amount: amt, ...(v.unitOfMeasure && { unitOfMeasure: v.unitOfMeasure }), ...(v.reason && { reason: v.reason }) }] }],
-        };
-        case 'balance_settlement_adj': return {
-            ...(v.customerExternalId && { relatedParty: { externalId: v.customerExternalId, '@referredType': 'Customer' } }),
-            ...(v.contractExternalId && { contractExternalId: v.contractExternalId }),
-            settlementAccountAdjustments: [{ settlementAccountRef: { externalId: v.settlementAccountExternalId },
-                    settlementAccountBuckets: [{ bucketSpecExternalId: v.bucketSpecExternalId,
-                            action: v.action || 'Relative', amount: amt, ...(v.unitOfMeasure && { unitOfMeasure: v.unitOfMeasure }), ...(v.reason && { reason: v.reason }) }] }],
-        };
-        case 'balance_reset_fraud': return { ...(v.customerExternalId && { customerExternalId: v.customerExternalId }), ...commId };
-        case 'swap_resource': return {
-            ...(v.customerExternalId && { customerExternalId: v.customerExternalId }),
-            ...(v.contractExternalId && { contractExternalId: v.contractExternalId }),
-            resourceType: v.resourceType || 'E.164',
-            fromResourceNumber: v.fromResourceNumber, toResourceNumber: v.toResourceNumber,
-        };
-        case 'replace_product': return {
-            customerExternalId: v.customerExternalId, contractExternalId: v.contractExternalId,
-            currentProductExternalId: v.currentProductExternalId, newProductOfferingExternalId: v.newProductOfferingExternalId,
-        };
-        case 'change_sub_status': return {
-            ...(v.customerExternalId && { customerExternalId: v.customerExternalId }),
-            ...(v.contractExternalId && { contractExternalId: v.contractExternalId }),
-            ...commId, contract: { status: [{ status: v.status }] },
-        };
-        case 'terminate_party': return { _params: { partyExternalId: v.partyExternalId }, status: [{ status: 'Terminated' }] };
-        case 'terminate_customer': return { _params: { customerExternalId: v.customerExternalId }, status: [{ status: 'CustomerTerminated' }] };
-        case 'terminate_contract': return { _params: { customerExternalId: v.customerExternalId, contractExternalId: v.contractExternalId }, status: [{ status: 'Terminated' }], product: [{ status: [{ status: 'ProductTerminated' }] }] };
-        case 'activate_contract': return { _params: { customerExternalId: v.customerExternalId, contractExternalId: v.contractExternalId }, status: [{ status: 'Active' }], product: [{ status: [{ status: 'ProductActive' }] }] };
-        case 'modify_consumer_product': return {
-            providerCustomerExternalId: v.providerCustomerExternalId, providerContractExternalId: v.providerContractExternalId,
-            providerProductExternalId: v.providerProductExternalId, consumerCustomerExternalId: v.consumerCustomerExternalId,
-            consumerContractExternalId: v.consumerContractExternalId, action: v.action || 'ADD',
-        };
-        default: return null;
-    }
-}
-const FORM_DEFS = {
-    balance_topup: [
-        { key: 'customerExternalId', label: 'Customer External ID' },
-        { key: 'contractExternalId', label: 'Contract External ID' },
-        { key: 'communicationId', label: 'MSISDN' },
-        { key: 'communicationIdType', label: 'Communication ID Type', type: 'select', options: ['E.164', 'E.212'] },
-        { key: 'amount', label: 'Amount', type: 'number', required: true },
-        { key: 'decimalPlaces', label: 'Decimal Places', type: 'number' },
-        { key: 'unitOfMeasure', label: 'Unit of Measure', placeholder: 'e.g. MB, MIN, EUR' },
-    ],
-    balance_adj: [
-        { key: 'customerExternalId', label: 'Customer External ID' },
-        { key: 'contractExternalId', label: 'Contract External ID' },
-        { key: 'communicationId', label: 'MSISDN' },
-        { key: 'communicationIdType', label: 'Communication ID Type', type: 'select', options: ['E.164', 'E.212'] },
-        { key: 'billingAccountExternalId', label: 'Billing Account External ID', required: true },
-        { key: 'bucketSpecExternalId', label: 'Bucket Spec External ID', required: true },
-        { key: 'action', label: 'Action', type: 'select', options: ['Relative', 'Set'], required: true },
-        { key: 'amount', label: 'Amount', type: 'number', required: true },
-        { key: 'decimalPlaces', label: 'Decimal Places', type: 'number' },
-        { key: 'unitOfMeasure', label: 'Unit of Measure' },
-        { key: 'reason', label: 'Reason' },
-    ],
-    balance_billing_adj: [
-        { key: 'customerExternalId', label: 'Customer External ID' },
-        { key: 'contractExternalId', label: 'Contract External ID' },
-        { key: 'billingAccountExternalId', label: 'Billing Account External ID', required: true },
-        { key: 'bucketSpecExternalId', label: 'Billing Account Bucket Spec External ID', required: true },
-        { key: 'action', label: 'Action', type: 'select', options: ['Relative', 'Set'], required: true },
-        { key: 'amount', label: 'Amount', type: 'number', required: true },
-        { key: 'decimalPlaces', label: 'Decimal Places', type: 'number' },
-        { key: 'unitOfMeasure', label: 'Unit of Measure' },
-        { key: 'reason', label: 'Reason' },
-    ],
-    balance_product_adj: [
-        { key: 'customerExternalId', label: 'Customer External ID' },
-        { key: 'contractExternalId', label: 'Contract External ID' },
-        { key: 'communicationId', label: 'MSISDN' },
-        { key: 'communicationIdType', label: 'Communication ID Type', type: 'select', options: ['E.164', 'E.212'] },
-        { key: 'productExternalId', label: 'Product External ID', required: true },
-        { key: 'bucketSpecExternalId', label: 'Bucket Spec External ID', required: true },
-        { key: 'action', label: 'Action', type: 'select', options: ['Relative', 'Set'], required: true },
-        { key: 'amount', label: 'Amount', type: 'number', required: true },
-        { key: 'decimalPlaces', label: 'Decimal Places', type: 'number' },
-        { key: 'unitOfMeasure', label: 'Unit of Measure' },
-        { key: 'reason', label: 'Reason' },
-    ],
-    balance_settlement_adj: [
-        { key: 'customerExternalId', label: 'Customer External ID' },
-        { key: 'contractExternalId', label: 'Contract External ID' },
-        { key: 'settlementAccountExternalId', label: 'Settlement Account External ID', required: true },
-        { key: 'bucketSpecExternalId', label: 'Bucket Spec External ID', required: true },
-        { key: 'action', label: 'Action', type: 'select', options: ['Relative', 'Set'], required: true },
-        { key: 'amount', label: 'Amount', type: 'number', required: true },
-        { key: 'decimalPlaces', label: 'Decimal Places', type: 'number' },
-        { key: 'unitOfMeasure', label: 'Unit of Measure' },
-        { key: 'reason', label: 'Reason' },
-    ],
-    balance_reset_fraud: [
-        { key: 'customerExternalId', label: 'Customer External ID' },
-        { key: 'communicationId', label: 'MSISDN' },
-        { key: 'communicationIdType', label: 'Communication ID Type', type: 'select', options: ['E.164', 'E.212'] },
-    ],
-    swap_resource: [
-        { key: 'customerExternalId', label: 'Customer External ID' },
-        { key: 'contractExternalId', label: 'Contract External ID' },
-        { key: 'resourceType', label: 'Resource Type', type: 'select', options: ['E.164', 'E.212'] },
-        { key: 'fromResourceNumber', label: 'From Resource Number (current)', required: true },
-        { key: 'toResourceNumber', label: 'To Resource Number (new)', required: true },
-    ],
-    replace_product: [
-        { key: 'customerExternalId', label: 'Customer External ID', required: true },
-        { key: 'contractExternalId', label: 'Contract External ID', required: true },
-        { key: 'currentProductExternalId', label: 'Current Product External ID', required: true },
-        { key: 'newProductOfferingExternalId', label: 'New Product Offering External ID', required: true },
-    ],
-    change_sub_status: [
-        { key: 'customerExternalId', label: 'Customer External ID' },
-        { key: 'contractExternalId', label: 'Contract External ID' },
-        { key: 'communicationId', label: 'MSISDN' },
-        { key: 'communicationIdType', label: 'Communication ID Type', type: 'select', options: ['E.164', 'E.212'] },
-        { key: 'status', label: 'New Contract Status', type: 'select', options: ['Active', 'Halt', 'Terminated', 'Created'], required: true },
-    ],
-    terminate_party: [{ key: 'partyExternalId', label: 'Party External ID', required: true }],
-    terminate_customer: [{ key: 'customerExternalId', label: 'Customer External ID', required: true }],
-    terminate_contract: [
-        { key: 'customerExternalId', label: 'Customer External ID', required: true },
-        { key: 'contractExternalId', label: 'Contract External ID', required: true },
-    ],
-    activate_contract: [
-        { key: 'customerExternalId', label: 'Customer External ID', required: true },
-        { key: 'contractExternalId', label: 'Contract External ID', required: true },
-    ],
-    modify_consumer_product: [
-        { key: 'providerCustomerExternalId', label: 'Provider Customer External ID', required: true },
-        { key: 'providerContractExternalId', label: 'Provider Contract External ID', required: true },
-        { key: 'providerProductExternalId', label: 'Provider Product External ID', required: true },
-        { key: 'consumerCustomerExternalId', label: 'Consumer Customer External ID', required: true },
-        { key: 'consumerContractExternalId', label: 'Consumer Contract External ID', required: true },
-        { key: 'action', label: 'Action', type: 'select', options: ['ADD', 'REMOVE'], required: true },
-    ],
+// Execution helpers
+const exec = async (apiKey, params, body, queryParams) => {
+    const payload = body || {};
+    if (Object.keys(params).length)
+        payload._pathParams = params;
+    if (queryParams && Object.keys(queryParams).length)
+        payload._queryParams = queryParams;
+    const r = await fetch(`${API}/execute/${apiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    });
+    return r;
 };
-const operations = {
-    read_party_ext: { label: 'Get Party - ExternalId', method: 'GET', path: '/party', fields: ['externalId'], queryParams: ['externalId'] },
-    read_party_id: { label: 'Get Party - Id', method: 'GET', path: '/party', fields: ['id'], queryParams: ['id'] },
-    delete_party_ext: { label: 'Delete Party - ExternalId', method: 'DELETE', path: '/party/{externalId}', fields: ['externalId'] },
-    delete_party_id: { label: 'Delete Party - Id', method: 'DELETE', path: '/party/{id}?by=id', fields: ['id'] },
-    read_customer_ext: { label: 'Get Customer - ExternalId', method: 'GET', path: '/customer', fields: ['externalId'], queryParams: ['externalId'] },
-    read_customer_id: { label: 'Get Customer - Id', method: 'GET', path: '/customer', fields: ['id'], queryParams: ['id'] },
-    read_customer_msisdn: { label: 'Get Customer - MSISDN', method: 'GET', path: '/customer', fields: ['msisdn'], queryParams: ['msisdn'] },
-    delete_customer_ext: { label: 'Delete Customer - ExternalId', method: 'DELETE', path: '/customer/{externalId}', fields: ['externalId'] },
-    read_contract_ext: { label: 'Get Contract - ExternalId', method: 'GET', path: '/contract', fields: ['customerExternalId', 'contractExternalId'], queryParams: ['customerExternalId', 'contractExternalId'] },
-    read_contract_id: { label: 'Get Contract - Id', method: 'GET', path: '/contract', fields: ['customerId', 'contractId'], queryParams: ['customerId', 'contractId'] },
-    read_contract_msisdn: { label: 'Get Contract - MSISDN', method: 'GET', path: '/contract', fields: ['msisdn'], queryParams: ['msisdn'] },
-    delete_contract_ext: { label: 'Delete Contract - ExternalId', method: 'DELETE', path: '/contract', fields: ['customerExternalId', 'contractExternalId'], queryParams: ['customerExternalId', 'contractExternalId'] },
-    delete_contract_msisdn: { label: 'Delete Contract - MSISDN', method: 'DELETE', path: '/contract', fields: ['msisdn'], queryParams: ['msisdn'] },
-    balance_customer: { label: 'Balance Enquiry - Customer', method: 'GET', path: '/balance', fields: ['customerExternalId'], queryParams: ['customerExternalId'] },
-    balance_msisdn: { label: 'Balance Enquiry - MSISDN', method: 'GET', path: '/balance', fields: ['msisdn'], queryParams: ['msisdn'] },
-    balance_adj: { label: 'Balance Adjustment', method: 'POST', path: '/balance/adjust', fields: [] },
-    swap_resource: { label: 'Swap Logical Resource (MSISDN/IMSI)', method: 'POST', path: '/resource/swap', fields: [] },
-    replace_product: { label: 'Replace Product', method: 'POST', path: '/product/replace', fields: [] },
-    eligible_consumers: { label: 'Get Eligible Consumers', method: 'GET', path: '/sharing/eligible-consumers', fields: ['customerExternalId'], queryParams: ['customerExternalId'] },
-    recurrence: { label: 'Recurrence Enquiry - MSISDN', method: 'GET', path: '/recurrence', fields: ['communicationId'], queryParams: ['communicationId'] },
-    terminate_party: { label: 'Terminate Party Cascade', method: 'POST', path: '/execute/terminate_party_cascade', fields: [] },
-    terminate_customer: { label: 'Terminate Customer Cascade', method: 'POST', path: '/execute/terminate_customer_cascade', fields: [] },
-    terminate_contract: { label: 'Terminate Contract Cascade', method: 'POST', path: '/execute/terminate_contract_cascade', fields: [] },
-    activate_contract: { label: 'Activate Contract', method: 'POST', path: '/execute/activate_contract', fields: ['customerExternalId', 'contractExternalId'] },
-    read_customer_imsi: { label: 'Get Customer - IMSI', method: 'GET', path: '/execute/get_customer_by_imsi', fields: ['imsi'] },
-    read_contract_imsi: { label: 'Get Contract - IMSI', method: 'GET', path: '/execute/get_contract_by_imsi', fields: ['imsi'] },
-    read_contract_msisdn_product: { label: 'Get Contract - MSISDN + Product', method: 'GET', path: '/execute/get_contract_by_msisdn_product', fields: ['msisdn', 'productExternalId'] },
-    balance_imsi: { label: 'Balance Enquiry - IMSI', method: 'GET', path: '/execute/balance_enquiry_imsi', fields: ['imsi'] },
-    balance_contract: { label: 'Balance Enquiry - Contract', method: 'GET', path: '/execute/balance_enquiry_contract', fields: ['customerExternalId', 'contractExternalId'] },
-    balance_bucket: { label: 'Balance Enquiry - MSISDN + Bucket', method: 'GET', path: '/execute/balance_enquiry_msisdn_bucket', fields: ['msisdn', 'bucketSpecExternalId'] },
-    delete_user_ext: { label: 'Delete User - ExternalId', method: 'GET', path: '/execute/delete_user_by_external_id', fields: ['userExternalId'] },
-    get_user_id: { label: 'Get User - Id', method: 'GET', path: '/execute/get_user_by_id', fields: ['userId'] },
-    cpm_translate_msisdn: { label: 'CPM ID Translation - MSISDN', method: 'GET', path: '/execute/cpm_id_translation_msisdn', fields: ['msisdn'] },
-    cpm_translate_imsi: { label: 'CPM ID Translation - IMSI', method: 'GET', path: '/execute/cpm_id_translation_imsi', fields: ['imsi'] },
-    cpm_comm_identity: { label: 'CPM Communication Identity', method: 'GET', path: '/execute/cpm_communication_identity', fields: ['msisdn'] },
-    mass_create_job: { label: 'Mass Device - Create Job', method: 'POST', path: '/execute/mass_device_create_job', fields: [] },
-    mass_start_job: { label: 'Mass Device - Start Job', method: 'POST', path: '/execute/mass_device_start_job', fields: ['jobId'] },
-    mass_stop_job: { label: 'Mass Device - Stop Job', method: 'POST', path: '/execute/mass_device_stop_job', fields: ['jobId'] },
-    mass_restart_job: { label: 'Mass Device - Restart Job', method: 'POST', path: '/execute/mass_device_restart_job', fields: ['jobId'] },
-    mass_delete_job: { label: 'Mass Device - Delete Job', method: 'DELETE', path: '/execute/mass_device_delete_job', fields: ['jobId'] },
-    mass_job_status: { label: 'Mass Device - Job Status', method: 'GET', path: '/execute/mass_device_job_status', fields: ['jobId'] },
-    mass_job_result: { label: 'Mass Device - Job Result', method: 'GET', path: '/execute/mass_device_job_result', fields: ['jobId'] },
-    mass_list_jobs: { label: 'Mass Device - List Jobs', method: 'GET', path: '/execute/mass_device_list_jobs', fields: [] },
-    rmca_list_po: { label: 'RMCA - List Product Offerings', method: 'GET', path: '/execute/rmca_list_product_offerings', fields: [] },
-    rmca_read_po: { label: 'RMCA - Read Product Offering', method: 'GET', path: '/execute/rmca_read_product_offering', fields: ['specExternalId'] },
-    rmca_create_po: { label: 'RMCA - Create Product Offering', method: 'POST', path: '/execute/rmca_create_product_offering', fields: [] },
-    rmca_read_party_spec: { label: 'RMCA - Read Party Spec', method: 'GET', path: '/execute/rmca_entity_read_party_spec', fields: ['specExternalId'] },
-    rmca_read_contract_spec: { label: 'RMCA - Read Contract Spec', method: 'GET', path: '/execute/rmca_entity_read_contract_spec', fields: ['specExternalId'] },
-    rmca_read_cms: { label: 'RMCA - Read Contact Medium Spec', method: 'GET', path: '/execute/rmca_entity_read_contact_medium_spec', fields: ['specExternalId'] },
-    spec_contract: { label: 'Read Contract Specification', method: 'GET', path: '/spec/contract', fields: ['externalId'], queryParams: ['externalId'] },
-    spec_product: { label: 'Read Product Specification', method: 'GET', path: '/spec/product', fields: ['externalId'], queryParams: ['externalId'] },
-    spec_offering: { label: 'Read Product Offering', method: 'GET', path: '/spec/productOffering', fields: ['externalId'], queryParams: ['externalId'] },
-    spec_cfss: { label: 'Read Customer Facing Service Spec', method: 'GET', path: '/spec/customerFacingService', fields: ['externalId'], queryParams: ['externalId'] },
-    spec_bucket: { label: 'Read Bucket Specification', method: 'GET', path: '/spec/bucket', fields: ['externalId'], queryParams: ['externalId'] },
-    spec_billing: { label: 'Read Billing Account Spec', method: 'GET', path: '/spec/billing_account', fields: ['externalId'], queryParams: ['externalId'] },
-    get_settlement_account: { label: 'Get Settlement Account', method: 'GET', path: '/account/settlement', fields: ['customerExternalId'], queryParams: ['customerExternalId'] },
-    create_settlement_account: { label: 'Create Settlement Account', method: 'POST', path: '/account/settlement', fields: [] },
-    get_agreement: { label: 'Get Agreement', method: 'GET', path: '/agreement', fields: ['partyExternalId', 'agreementExternalId'], queryParams: ['partyExternalId', 'agreementExternalId'] },
-    create_agreement: { label: 'Create Agreement', method: 'POST', path: '/agreement/partyExternalId/{partyExternalId}', fields: ['partyExternalId'] },
-    update_agreement: { label: 'Update Agreement', method: 'PATCH', path: '/agreement/partyExternalId/{partyExternalId}/{agreementExternalId}', fields: ['partyExternalId', 'agreementExternalId'] },
-    delete_agreement: { label: 'Delete Agreement', method: 'DELETE', path: '/agreement/partyExternalId/{partyExternalId}/{agreementExternalId}', fields: ['partyExternalId', 'agreementExternalId'] },
-    balance_topup_details: { label: 'Balance TopUp Details', method: 'GET', path: '/balance/topupDetails', fields: ['communicationId'], queryParams: ['communicationId'] },
-    balance_topup: { label: 'Balance TopUp', method: 'POST', path: '/balance/topup', fields: [] },
-    balance_reset_fraud: { label: 'Reset Balance Fraud Counter', method: 'POST', path: '/balance/resetFraudCounter', fields: [] },
-    balance_billing_adj: { label: 'Billing Account Bucket Adjustment', method: 'POST', path: '/balance/billingAccountAdjustment', fields: [] },
-    balance_product_adj: { label: 'Product Bucket Adjustment', method: 'POST', path: '/balance/productAdjustment', fields: [] },
-    balance_settlement_adj: { label: 'Settlement Account Bucket Adjustment', method: 'POST', path: '/balance/settlementAccountAdjustment', fields: [] },
-    get_comm_identity: { label: 'Get Communication Identity', method: 'GET', path: '/communicationIdentity', fields: ['communicationId'], queryParams: ['communicationId'] },
-    get_customer_bill: { label: 'Get Customer Bill', method: 'GET', path: '/bill/customerBill', fields: ['customerExternalId'], queryParams: ['customerExternalId'] },
-    get_bill_applied_rate: { label: 'Get Applied Billing Rate', method: 'GET', path: '/bill/appliedBillingRate', fields: ['customerExternalId'], queryParams: ['customerExternalId'] },
-    get_bill_contract_view: { label: 'Get Bill Contract View', method: 'GET', path: '/bill/contractView', fields: ['customerExternalId'], queryParams: ['customerExternalId'] },
-    get_bill_on_demand: { label: 'Get Bill On Demand', method: 'GET', path: '/bill/onDemand', fields: ['customerExternalId'], queryParams: ['customerExternalId'] },
-    get_bill_summary: { label: 'Get Bill Summary', method: 'GET', path: '/bill/summary', fields: ['customerExternalId'], queryParams: ['customerExternalId'] },
-    get_unbilled_charge: { label: 'Get Unbilled Charge', method: 'GET', path: '/bill/unbilledCharge', fields: ['customerExternalId'], queryParams: ['customerExternalId'] },
-    get_financial_account: { label: 'Get Financial Customer Account', method: 'GET', path: '/financial/customerAccount', fields: ['customerExternalId'], queryParams: ['customerExternalId'] },
-    get_financial_header: { label: 'Get Financial Header', method: 'GET', path: '/financial/header', fields: ['customerExternalId'], queryParams: ['customerExternalId'] },
-    get_financial_tx: { label: 'Get Financial Transaction', method: 'GET', path: '/financial/transaction', fields: ['customerExternalId'], queryParams: ['customerExternalId'] },
-    get_payment_instruction: { label: 'Get Payment Instruction', method: 'GET', path: '/financial/paymentInstruction', fields: ['customerExternalId'], queryParams: ['customerExternalId'] },
-    create_financial_task: { label: 'Create Financial Task', method: 'POST', path: '/financial/task', fields: [] },
-    get_org_party: { label: 'Get Organization Party', method: 'GET', path: '/organizationParty', fields: ['externalId'], queryParams: ['externalId'] },
-    create_org_party: { label: 'Create Organization Party', method: 'POST', path: '/organizationParty', fields: [] },
-    update_org_party: { label: 'Update Organization Party', method: 'PATCH', path: '/organizationParty/externalId/{organizationPartyExternalId}', fields: ['organizationPartyExternalId'] },
-    get_partner_contract: { label: 'Get Partner Contract', method: 'GET', path: '/partnerSettlement/contract', fields: ['partyRoleExternalId'], queryParams: ['partyRoleExternalId'] },
-    create_partner_contract: { label: 'Create Partner Contract', method: 'POST', path: '/partnerSettlement/partyRoleExternalId/{partyRoleExternalId}/contract', fields: ['partyRoleExternalId'] },
-    get_involvement_group: { label: 'Get Party Role Involvement Group', method: 'GET', path: '/partnerSettlement/involvementGroup', fields: ['partyRoleInvolvementGroupRef'], queryParams: ['partyRoleInvolvementGroupRef'] },
-    create_involvement_group: { label: 'Create Party Role Involvement Group', method: 'POST', path: '/partnerSettlement/involvementGroup', fields: [] },
-    get_settlement_note: { label: 'Get Partner Settlement Note', method: 'GET', path: '/partnerSettling/note', fields: ['partyRoleExternalId'], queryParams: ['partyRoleExternalId'] },
-    get_unsettled_charge: { label: 'Get Unsettled Charge', method: 'GET', path: '/partnerSettling/unsettledCharge', fields: ['partyRoleExternalId'], queryParams: ['partyRoleExternalId'] },
-    create_settlement_note_demand: { label: 'Create Settlement Note On Demand', method: 'POST', path: '/partnerSettling/noteOnDemand', fields: [] },
-    send_message: { label: 'Send Communication Message', method: 'POST', path: '/communication/send', fields: [] },
-    get_party_role: { label: 'Get Party Role', method: 'GET', path: '/partyRole', fields: ['externalId'], queryParams: ['externalId'] },
-    create_party_role: { label: 'Create Party Role', method: 'POST', path: '/partyRole', fields: [] },
-    update_party_role: { label: 'Update Party Role', method: 'PATCH', path: '/partyRole/externalId/{partyRoleExternalId}', fields: ['partyRoleExternalId'] },
-    catalog_get_po: { label: 'Catalog - Get Product Offering', method: 'GET', path: '/catalog/productOffering', fields: ['externalId'], queryParams: ['externalId'] },
-    catalog_create_po: { label: 'Catalog - Create Product Offering', method: 'POST', path: '/catalog/productOffering', fields: [] },
-    catalog_update_po: { label: 'Catalog - Update Product Offering', method: 'PATCH', path: '/catalog/productOffering/externalId/{externalId}/version/{version}', fields: ['externalId', 'version'] },
-    purchase_rate_deduct: { label: 'Purchase - Rate and Deduct', method: 'POST', path: '/purchase/rateAndDeduct', fields: [] },
-    purchase_rate_reserve: { label: 'Purchase - Rate and Reserve', method: 'POST', path: '/purchase/rateAndReserve', fields: [] },
-    purchase_cancel_res: { label: 'Purchase - Cancel Reservation', method: 'POST', path: '/purchase/cancelReservation', fields: [] },
-    purchase_basket_deduct: { label: 'Purchase - Basket Rate and Deduct', method: 'POST', path: '/purchase/basketRateAndDeduct', fields: [] },
-    purchase_basket_reserve: { label: 'Purchase - Basket Rate and Reserve', method: 'POST', path: '/purchase/basketRateAndReserve', fields: [] },
-    purchase_basket_execute: { label: 'Purchase - Basket Rate and Execute', method: 'POST', path: '/purchase/basketRateAndExecute', fields: [] },
-    purchase_basket_advice: { label: 'Purchase - Basket Rate and Advice', method: 'POST', path: '/purchase/basketRateAndAdvice', fields: [] },
-    purchase_cancel_basket: { label: 'Purchase - Cancel Basket Reservation', method: 'POST', path: '/purchase/cancelBasketReservation', fields: [] },
-    create_policy_session: { label: 'Create Policy Session', method: 'POST', path: '/session/createPolicySession', fields: [] },
-    move_charging_session: { label: 'Move Charging Session', method: 'POST', path: '/session/moveChargingSession', fields: [] },
-    spec_individual: { label: 'Spec - Individual', method: 'GET', path: '/spec/individual', fields: ['externalId'], queryParams: ['externalId'] },
-    spec_customer: { label: 'Spec - Customer', method: 'GET', path: '/spec/customer', fields: ['externalId'], queryParams: ['externalId'] },
-    spec_contact_medium: { label: 'Spec - Contact Medium', method: 'GET', path: '/spec/contactMedium', fields: ['externalId'], queryParams: ['externalId'] },
-    spec_billing_cycle: { label: 'Spec - Billing Cycle', method: 'GET', path: '/spec/billingCycle', fields: ['externalId'], queryParams: ['externalId'] },
-    spec_party_role: { label: 'Spec - Party Role', method: 'GET', path: '/spec/partyRole', fields: ['externalId'], queryParams: ['externalId'] },
-    spec_schedule: { label: 'Spec - Schedule Definition', method: 'GET', path: '/spec/scheduleDefinition', fields: ['externalId'], queryParams: ['externalId'] },
-    spec_sharing_provider: { label: 'Spec - Sharing Provider', method: 'GET', path: '/spec/sharingProvider', fields: ['externalId'], queryParams: ['externalId'] },
-    spec_tag: { label: 'Spec - Tag', method: 'GET', path: '/spec/tag', fields: ['externalId'], queryParams: ['externalId'] },
-    spec_agreement_spec: { label: 'Spec - Agreement', method: 'GET', path: '/spec/agreement', fields: ['externalId'], queryParams: ['externalId'] },
-    spec_generic_setting: { label: 'Spec - Generic Business Setting', method: 'GET', path: '/spec/genericBusinessSetting', fields: ['externalId'], queryParams: ['externalId'] },
-    get_consumer_product: { label: 'Get Consumer Product', method: 'GET', path: '/subscription/consumerProduct', fields: ['communicationId'], queryParams: ['communicationId'] },
-    get_inherited_contracts: { label: 'Get Inherited Contract List', method: 'GET', path: '/subscription/inheritedContractList', fields: ['customerExternalId'], queryParams: ['customerExternalId'] },
-    change_sub_status: { label: 'Change Subscription Status', method: 'POST', path: '/subscription/changeStatus', fields: [] },
-    modify_consumer_product: { label: 'Modify Consumer Product', method: 'POST', path: '/subscription/consumerProduct/modify', fields: [] },
-    modify_provider_product: { label: 'Modify Provider Product', method: 'PATCH', path: '/subscription/providerProduct/modify', fields: [] },
-    create_entity_adj: { label: 'Test - Create Entity Adjustment', method: 'POST', path: '/test/entityAdjustment/externalId/{customerExternalId}', fields: ['customerExternalId'] },
-    get_entity_adj: { label: 'Test - Get Entity Adjustment', method: 'GET', path: '/test/entityAdjustment', fields: ['customerExternalId'], queryParams: ['customerExternalId'] },
-    update_user: { label: 'Update User', method: 'PATCH', path: '/user/externalId/{userExternalId}', fields: ['userExternalId'] },
+const execGet = async (apiKey, queryParams) => {
+    const payload = { _queryParams: queryParams };
+    const r = await fetch(`${API}/execute/${apiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    });
+    return r;
 };
-const CATEGORIES = [
-    { key: 'party', label: 'Party', ops: ['read_party_ext', 'read_party_id', 'delete_party_ext', 'delete_party_id'] },
-    { key: 'customer', label: 'Customer', ops: ['read_customer_ext', 'read_customer_id', 'read_customer_msisdn', 'read_customer_imsi', 'delete_customer_ext'] },
-    { key: 'contract', label: 'Contract', ops: ['read_contract_ext', 'read_contract_id', 'read_contract_msisdn', 'read_contract_imsi', 'read_contract_msisdn_product', 'delete_contract_ext', 'delete_contract_msisdn'] },
-    { key: 'balance', label: 'Balance', ops: ['balance_customer', 'balance_msisdn', 'balance_imsi', 'balance_contract', 'balance_bucket', 'balance_topup', 'balance_topup_details', 'balance_adj', 'balance_billing_adj', 'balance_product_adj', 'balance_settlement_adj', 'balance_reset_fraud'] },
-    { key: 'product', label: 'Product', ops: ['replace_product', 'swap_resource', 'get_consumer_product', 'get_inherited_contracts', 'modify_consumer_product', 'modify_provider_product', 'eligible_consumers', 'recurrence'] },
-    { key: 'lifecycle', label: 'Lifecycle', ops: ['terminate_party', 'terminate_customer', 'terminate_contract', 'activate_contract', 'change_sub_status'] },
-    { key: 'financial', label: 'Financial', ops: ['get_customer_bill', 'get_bill_applied_rate', 'get_bill_contract_view', 'get_bill_on_demand', 'get_bill_summary', 'get_unbilled_charge', 'get_financial_account', 'get_financial_header', 'get_financial_tx', 'get_payment_instruction', 'create_financial_task', 'get_settlement_account', 'create_settlement_account', 'get_agreement', 'create_agreement', 'update_agreement', 'delete_agreement'] },
-    { key: 'catalog', label: 'Catalog/Spec', ops: ['spec_contract', 'spec_product', 'spec_offering', 'spec_cfss', 'spec_bucket', 'spec_billing', 'spec_individual', 'spec_customer', 'spec_contact_medium', 'spec_billing_cycle', 'spec_party_role', 'spec_schedule', 'spec_sharing_provider', 'spec_tag', 'spec_agreement_spec', 'spec_generic_setting', 'catalog_get_po', 'catalog_create_po', 'catalog_update_po', 'rmca_list_po', 'rmca_read_po', 'rmca_create_po', 'rmca_read_party_spec', 'rmca_read_contract_spec', 'rmca_read_cms'] },
-    { key: 'partner', label: 'Partner', ops: ['get_partner_contract', 'create_partner_contract', 'get_involvement_group', 'create_involvement_group', 'get_settlement_note', 'get_unsettled_charge', 'create_settlement_note_demand', 'get_party_role', 'create_party_role', 'update_party_role'] },
-    { key: 'purchase', label: 'Purchase', ops: ['purchase_rate_deduct', 'purchase_rate_reserve', 'purchase_cancel_res', 'purchase_basket_deduct', 'purchase_basket_reserve', 'purchase_basket_execute', 'purchase_basket_advice', 'purchase_cancel_basket'] },
-    { key: 'other', label: 'Other', ops: ['create_policy_session', 'move_charging_session', 'mass_create_job', 'mass_start_job', 'mass_stop_job', 'mass_restart_job', 'mass_delete_job', 'mass_job_status', 'mass_job_result', 'mass_list_jobs', 'cpm_translate_msisdn', 'cpm_translate_imsi', 'cpm_comm_identity', 'get_comm_identity', 'send_message', 'get_org_party', 'create_org_party', 'update_org_party', 'delete_user_ext', 'get_user_id', 'update_user', 'create_entity_adj', 'get_entity_adj'] },
+// Helper to create field definitions
+const pathField = (name, label, required = true) => ({ name, label: label || name, type: 'path', required });
+const queryField = (name, label, required = false) => ({ name, label: label || name, type: 'query', required });
+// ============ BSSF OPERATIONS ============
+const bssfPartyOps = [
+    { id: 'party_create', name: 'Create Party', method: 'POST', apiKey: 'party_create', fields: [], hasJsonBody: true },
+    { id: 'party_get', name: 'Get Party', method: 'GET', apiKey: 'party_get', fields: [pathField('partyId', 'Party ID')] },
+    { id: 'party_update', name: 'Update Party', method: 'PATCH', apiKey: 'party_update', fields: [pathField('partyId', 'Party ID')], hasJsonBody: true },
+    { id: 'party_delete', name: 'Delete Party', method: 'DELETE', apiKey: 'party_delete', fields: [pathField('partyId', 'Party ID')] },
+    { id: 'party_move', name: 'Move Party', method: 'POST', apiKey: 'party_move', fields: [pathField('partyId', 'Party ID')], hasJsonBody: true },
 ];
-function getMethodColor(method) {
-    switch (method) {
-        case 'GET': return { bg: '#e8f5e9', text: '#2e7d32' };
-        case 'POST': return { bg: '#e3f2fd', text: '#1565c0' };
-        case 'DELETE': return { bg: '#fce4ec', text: '#c62828' };
-        case 'PATCH': return { bg: '#fff3e0', text: '#e65100' };
-        case 'PUT': return { bg: '#f3e5f5', text: '#6a1b9a' };
-        default: return { bg: '#f5f5f5', text: '#333' };
+const bssfCustomerOps = [
+    { id: 'customer_create', name: 'Create Customer', method: 'POST', apiKey: 'customer_create', fields: [], hasJsonBody: true },
+    { id: 'customer_get', name: 'Get Customer', method: 'GET', apiKey: 'customer_get', fields: [pathField('customerId', 'Customer ID')] },
+    { id: 'customer_update', name: 'Update Customer', method: 'PATCH', apiKey: 'customer_update', fields: [pathField('customerId', 'Customer ID')], hasJsonBody: true },
+    { id: 'customer_delete', name: 'Delete Customer', method: 'DELETE', apiKey: 'customer_delete', fields: [pathField('customerId', 'Customer ID')] },
+];
+const bssfContractOps = [
+    { id: 'contract_create', name: 'Create Contract', method: 'POST', apiKey: 'contract_create', fields: [], hasJsonBody: true },
+    { id: 'contract_get', name: 'Get Contract', method: 'GET', apiKey: 'contract_get', fields: [pathField('contractId', 'Contract ID')] },
+    { id: 'contract_update', name: 'Update Contract', method: 'PATCH', apiKey: 'contract_update', fields: [pathField('contractId', 'Contract ID')], hasJsonBody: true },
+    { id: 'contract_delete', name: 'Delete Contract', method: 'DELETE', apiKey: 'contract_delete', fields: [pathField('contractId', 'Contract ID')] },
+    { id: 'contract_terminate', name: 'Terminate Contract', method: 'POST', apiKey: 'contract_terminate', fields: [pathField('contractId', 'Contract ID')], hasJsonBody: true },
+    { id: 'contract_activate', name: 'Activate Contract', method: 'POST', apiKey: 'contract_activate', fields: [pathField('contractId', 'Contract ID')], hasJsonBody: true },
+];
+const bssfSubscriptionOps = [
+    { id: 'subscription_change_status', name: 'Change Status', method: 'POST', apiKey: 'subscription_change_status', fields: [pathField('contractId', 'Contract ID')], hasJsonBody: true },
+    { id: 'consumer_list_modify', name: 'Consumer List Modify', method: 'POST', apiKey: 'consumer_list_modify', fields: [pathField('contractId', 'Contract ID')], hasJsonBody: true },
+    { id: 'consumer_list_terminate', name: 'Consumer List Terminate', method: 'POST', apiKey: 'consumer_list_terminate', fields: [pathField('contractId', 'Contract ID')], hasJsonBody: true },
+    { id: 'modify_consumer_product', name: 'Modify Consumer Product', method: 'POST', apiKey: 'modify_consumer_product', fields: [pathField('contractId', 'Contract ID')], hasJsonBody: true },
+    { id: 'modify_provider_product', name: 'Modify Provider Product', method: 'POST', apiKey: 'modify_provider_product', fields: [pathField('contractId', 'Contract ID')], hasJsonBody: true },
+    { id: 'get_consumer_product', name: 'Get Consumer Product', method: 'GET', apiKey: 'get_consumer_product', fields: [pathField('contractId', 'Contract ID')] },
+    { id: 'get_inherited_contracts', name: 'Get Inherited Contracts', method: 'GET', apiKey: 'get_inherited_contracts', fields: [pathField('contractId', 'Contract ID')] },
+    { id: 'eligible_consumers', name: 'Eligible Consumers', method: 'GET', apiKey: 'eligible_consumers', fields: [pathField('contractId', 'Contract ID')] },
+];
+const bssfBalanceOps = [
+    { id: 'balance_enquiry_msisdn', name: 'Enquiry by MSISDN', method: 'GET', apiKey: 'balance_enquiry_msisdn', fields: [queryField('msisdn', 'MSISDN', true)] },
+    { id: 'balance_enquiry_imsi', name: 'Enquiry by IMSI', method: 'GET', apiKey: 'balance_enquiry_imsi', fields: [queryField('imsi', 'IMSI', true)] },
+    { id: 'balance_enquiry_customer', name: 'Enquiry by Customer', method: 'GET', apiKey: 'balance_enquiry_customer', fields: [queryField('customerId', 'Customer ID', true)] },
+    { id: 'balance_enquiry_contract', name: 'Enquiry by Contract', method: 'GET', apiKey: 'balance_enquiry_contract', fields: [queryField('contractId', 'Contract ID', true)] },
+    { id: 'balance_enquiry_bucket', name: 'Enquiry by Bucket', method: 'GET', apiKey: 'balance_enquiry_bucket', fields: [queryField('bucketId', 'Bucket ID', true)] },
+    { id: 'balance_topup', name: 'Topup', method: 'POST', apiKey: 'balance_topup', fields: [], hasJsonBody: true },
+    { id: 'balance_product_adjustment', name: 'Product Adjustment', method: 'POST', apiKey: 'balance_product_adjustment', fields: [], hasJsonBody: true },
+    { id: 'balance_billing_account_adjustment', name: 'Billing Account Adjustment', method: 'POST', apiKey: 'balance_billing_account_adjustment', fields: [], hasJsonBody: true },
+    { id: 'balance_settlement_adjustment', name: 'Settlement Adjustment', method: 'POST', apiKey: 'balance_settlement_adjustment', fields: [], hasJsonBody: true },
+    { id: 'balance_reset_fraud', name: 'Reset Fraud', method: 'POST', apiKey: 'balance_reset_fraud', fields: [], hasJsonBody: true },
+    { id: 'balance_topup_details', name: 'Topup Details', method: 'GET', apiKey: 'balance_topup_details', fields: [queryField('contractId', 'Contract ID', true)] },
+];
+const bssfFinancialOps = [
+    { id: 'financial_customer_bill', name: 'Customer Bill', method: 'GET', apiKey: 'financial_customer_bill', fields: [queryField('customerId', 'Customer ID', true)] },
+    { id: 'financial_applied_rate', name: 'Applied Rate', method: 'GET', apiKey: 'financial_applied_rate', fields: [queryField('contractId', 'Contract ID', true)] },
+    { id: 'financial_contract_view', name: 'Contract View', method: 'GET', apiKey: 'financial_contract_view', fields: [queryField('contractId', 'Contract ID', true)] },
+    { id: 'financial_on_demand', name: 'On Demand', method: 'POST', apiKey: 'financial_on_demand', fields: [], hasJsonBody: true },
+    { id: 'financial_summary', name: 'Summary', method: 'GET', apiKey: 'financial_summary', fields: [queryField('customerId', 'Customer ID', true)] },
+    { id: 'financial_unbilled_charge', name: 'Unbilled Charge', method: 'GET', apiKey: 'financial_unbilled_charge', fields: [queryField('contractId', 'Contract ID', true)] },
+    { id: 'financial_customer_account', name: 'Customer Account', method: 'GET', apiKey: 'financial_customer_account', fields: [queryField('customerId', 'Customer ID', true)] },
+    { id: 'financial_header', name: 'Header', method: 'GET', apiKey: 'financial_header', fields: [queryField('customerId', 'Customer ID', true)] },
+    { id: 'financial_transaction', name: 'Transaction', method: 'GET', apiKey: 'financial_transaction', fields: [queryField('customerId', 'Customer ID', true)] },
+    { id: 'financial_payment_instruction', name: 'Payment Instruction', method: 'POST', apiKey: 'financial_payment_instruction', fields: [], hasJsonBody: true },
+    { id: 'financial_create_task', name: 'Create Task', method: 'POST', apiKey: 'financial_create_task', fields: [], hasJsonBody: true },
+];
+const bssfAgreementOps = [
+    { id: 'agreement_get', name: 'Get Agreement', method: 'GET', apiKey: 'agreement_get', fields: [pathField('agreementId', 'Agreement ID')] },
+    { id: 'agreement_create', name: 'Create Agreement', method: 'POST', apiKey: 'agreement_create', fields: [], hasJsonBody: true },
+    { id: 'agreement_update', name: 'Update Agreement', method: 'PATCH', apiKey: 'agreement_update', fields: [pathField('agreementId', 'Agreement ID')], hasJsonBody: true },
+    { id: 'agreement_delete', name: 'Delete Agreement', method: 'DELETE', apiKey: 'agreement_delete', fields: [pathField('agreementId', 'Agreement ID')] },
+];
+const bssfPartyRoleOps = [
+    { id: 'partyrole_get', name: 'Get Party Role', method: 'GET', apiKey: 'partyrole_get', fields: [pathField('partyRoleId', 'Party Role ID')] },
+    { id: 'partyrole_create', name: 'Create Party Role', method: 'POST', apiKey: 'partyrole_create', fields: [], hasJsonBody: true },
+    { id: 'partyrole_update_id', name: 'Update by ID', method: 'PATCH', apiKey: 'partyrole_update_id', fields: [pathField('partyRoleId', 'Party Role ID')], hasJsonBody: true },
+    { id: 'partyrole_update_extid', name: 'Update by ExtID', method: 'PATCH', apiKey: 'partyrole_update_extid', fields: [pathField('externalId', 'External ID')], hasJsonBody: true },
+];
+const bssfOrganizationOps = [
+    { id: 'organization_get', name: 'Get Organization', method: 'GET', apiKey: 'organization_get', fields: [pathField('organizationId', 'Organization ID')] },
+    { id: 'organization_create', name: 'Create Organization', method: 'POST', apiKey: 'organization_create', fields: [], hasJsonBody: true },
+    { id: 'organization_update', name: 'Update Organization', method: 'PATCH', apiKey: 'organization_update', fields: [pathField('organizationId', 'Organization ID')], hasJsonBody: true },
+    { id: 'organization_change_status_cascading', name: 'Change Status Cascading', method: 'POST', apiKey: 'organization_change_status_cascading', fields: [pathField('organizationId', 'Organization ID')], hasJsonBody: true },
+];
+const bssfPartnerOps = [
+    { id: 'partner_get_contract', name: 'Get Partner Contract', method: 'GET', apiKey: 'partner_get_contract', fields: [pathField('contractId', 'Contract ID')] },
+    { id: 'partner_create_contract', name: 'Create Partner Contract', method: 'POST', apiKey: 'partner_create_contract', fields: [], hasJsonBody: true },
+    { id: 'partner_involvement_group', name: 'Involvement Group', method: 'GET', apiKey: 'partner_involvement_group', fields: [queryField('contractId', 'Contract ID', true)] },
+    { id: 'partner_settlement_note', name: 'Settlement Note', method: 'GET', apiKey: 'partner_settlement_note', fields: [queryField('contractId', 'Contract ID', true)] },
+    { id: 'partner_unsettled_charge', name: 'Unsettled Charge', method: 'GET', apiKey: 'partner_unsettled_charge', fields: [queryField('contractId', 'Contract ID', true)] },
+    { id: 'partner_applied_rate', name: 'Applied Rate', method: 'GET', apiKey: 'partner_applied_rate', fields: [queryField('contractId', 'Contract ID', true)] },
+    { id: 'partner_note_on_demand', name: 'Note On Demand', method: 'POST', apiKey: 'partner_note_on_demand', fields: [], hasJsonBody: true },
+    { id: 'partner_contract_view', name: 'Contract View', method: 'GET', apiKey: 'partner_contract_view', fields: [queryField('contractId', 'Contract ID', true)] },
+    { id: 'partner_summary', name: 'Summary', method: 'GET', apiKey: 'partner_summary', fields: [queryField('contractId', 'Contract ID', true)] },
+];
+const bssfResourceProductOps = [
+    { id: 'swap_resource', name: 'Swap Resource', method: 'POST', apiKey: 'swap_resource', fields: [pathField('contractId', 'Contract ID')], hasJsonBody: true },
+    { id: 'replace_product', name: 'Replace Product', method: 'POST', apiKey: 'replace_product', fields: [pathField('contractId', 'Contract ID')], hasJsonBody: true },
+];
+const bssfPurchaseOps = [
+    { id: 'purchase_rate_deduct', name: 'Rate and Deduct', method: 'POST', apiKey: 'purchase_rate_deduct', fields: [], hasJsonBody: true },
+    { id: 'purchase_rate_reserve', name: 'Rate and Reserve', method: 'POST', apiKey: 'purchase_rate_reserve', fields: [], hasJsonBody: true },
+    { id: 'purchase_cancel_reservation', name: 'Cancel Reservation', method: 'POST', apiKey: 'purchase_cancel_reservation', fields: [], hasJsonBody: true },
+    { id: 'basket_rate_deduct', name: 'Basket Rate and Deduct', method: 'POST', apiKey: 'basket_rate_deduct', fields: [], hasJsonBody: true },
+    { id: 'basket_rate_reserve', name: 'Basket Rate and Reserve', method: 'POST', apiKey: 'basket_rate_reserve', fields: [], hasJsonBody: true },
+    { id: 'basket_execute', name: 'Basket Execute', method: 'POST', apiKey: 'basket_execute', fields: [], hasJsonBody: true },
+    { id: 'basket_advice', name: 'Basket Advice', method: 'POST', apiKey: 'basket_advice', fields: [], hasJsonBody: true },
+    { id: 'basket_cancel', name: 'Cancel Basket', method: 'POST', apiKey: 'basket_cancel', fields: [], hasJsonBody: true },
+];
+const bssfSessionOps = [
+    { id: 'create_policy_session', name: 'Create Policy Session', method: 'POST', apiKey: 'create_policy_session', fields: [], hasJsonBody: true },
+    { id: 'move_charging_session', name: 'Move Charging Session', method: 'POST', apiKey: 'move_charging_session', fields: [], hasJsonBody: true },
+];
+const bssfUserOps = [
+    { id: 'user_get', name: 'Get User', method: 'GET', apiKey: 'user_get', fields: [pathField('userId', 'User ID')] },
+    { id: 'user_create', name: 'Create User', method: 'POST', apiKey: 'user_create', fields: [], hasJsonBody: true },
+    { id: 'user_update', name: 'Update User', method: 'PATCH', apiKey: 'user_update', fields: [pathField('userId', 'User ID')], hasJsonBody: true },
+    { id: 'user_delete', name: 'Delete User', method: 'DELETE', apiKey: 'user_delete', fields: [pathField('userId', 'User ID')] },
+];
+const bssfRecurrenceOps = [
+    { id: 'recurrence_enquiry', name: 'Recurrence Enquiry', method: 'GET', apiKey: 'recurrence_enquiry', fields: [queryField('contractId', 'Contract ID', true)] },
+    { id: 'recurrence_create_job', name: 'Create Recurrence Job', method: 'POST', apiKey: 'recurrence_create_job', fields: [], hasJsonBody: true },
+];
+const bssfTestOps = [
+    { id: 'create_entity_adjustment', name: 'Create Entity Adjustment', method: 'POST', apiKey: 'create_entity_adjustment', fields: [], hasJsonBody: true },
+    { id: 'get_entity_adjustment', name: 'Get Entity Adjustment', method: 'GET', apiKey: 'get_entity_adjustment', fields: [queryField('entityId', 'Entity ID', true)] },
+];
+const bssfCommunicationOps = [
+    { id: 'send_message', name: 'Send Message', method: 'POST', apiKey: 'send_message', fields: [], hasJsonBody: true },
+    { id: 'get_communication_identity', name: 'Get Communication Identity', method: 'GET', apiKey: 'get_communication_identity', fields: [queryField('identityId', 'Identity ID', true)] },
+];
+// Spec Enquiry - all spec_ APIs
+const specNames = [
+    'individual', 'customer', 'contract', 'product', 'productOffering', 'productOfferingPrice',
+    'billingCycle', 'billingAccount', 'contactMedium', 'communicationIdentifier', 'partyRole',
+    'agreementItem', 'agreement', 'bucket', 'bucketDetermination', 'characteristicSet',
+    'commonDimension', 'commonDimensionSpec', 'customerFacingService', 'customerList', 'entityList',
+    'genericBusinessSetting', 'globalList', 'globalListData', 'organization', 'priceTaxCategory',
+    'productPriorityList', 'referenceDataList', 'resource', 'rfss', 'scheduleDefinition',
+    'settlementAccount', 'sharingProvider', 'tag', 'taxCodeDetail', 'taxConfiguration',
+    'taxExemption', 'taxPackage', 'taxRuleTemplate'
+];
+const bssfSpecEnquiryOps = specNames.map(spec => ({
+    id: `spec_${spec}`,
+    name: `spec_${spec}`,
+    method: 'GET',
+    apiKey: `spec_${spec}`,
+    fields: [queryField('specId', `${spec} Spec ID`)],
+}));
+// ============ RMCA OPERATIONS ============
+const rmcaProductOfferingOps = [
+    { id: 'rmca_product_offering_list', name: 'List Product Offerings', method: 'GET', apiKey: 'rmca_product_offering_list', fields: [] },
+    { id: 'rmca_product_offering_read', name: 'Read Product Offering', method: 'GET', apiKey: 'rmca_product_offering_read', fields: [pathField('productOfferingId', 'Product Offering ID')] },
+    { id: 'rmca_product_offering_create', name: 'Create Product Offering', method: 'POST', apiKey: 'rmca_product_offering_create', fields: [], hasJsonBody: true },
+];
+const rmcaSpecReadOps = [
+    { id: 'rmca_party_spec', name: 'Party Spec', method: 'GET', apiKey: 'rmca_party_spec', fields: [queryField('specId', 'Spec ID')] },
+    { id: 'rmca_contract_spec', name: 'Contract Spec', method: 'GET', apiKey: 'rmca_contract_spec', fields: [queryField('specId', 'Spec ID')] },
+    { id: 'rmca_contact_medium_spec', name: 'Contact Medium Spec', method: 'GET', apiKey: 'rmca_contact_medium_spec', fields: [queryField('specId', 'Spec ID')] },
+];
+const rmcaExportImportOps = [
+    { id: 'rmca_export', name: 'RMCA Export', method: 'POST', apiKey: 'rmca_export', fields: [], hasJsonBody: true },
+    { id: 'rmca_import', name: 'RMCA Import', method: 'POST', apiKey: 'rmca_import', fields: [], hasJsonBody: true },
+];
+const rmcaGlobalListOps = [
+    { id: 'rmca_global_list_create', name: 'Create Global List', method: 'POST', apiKey: 'rmca_global_list_create', fields: [], hasJsonBody: true },
+    { id: 'rmca_global_list_read', name: 'Read Global List', method: 'GET', apiKey: 'rmca_global_list_read', fields: [pathField('listId', 'List ID')] },
+    { id: 'rmca_global_list_spec_read', name: 'Spec Read', method: 'GET', apiKey: 'rmca_global_list_spec_read', fields: [queryField('specId', 'Spec ID')] },
+];
+// ============ CPM OPERATIONS ============
+const cpmIdTranslationOps = [
+    { id: 'cpm_id_translation_msisdn', name: 'ID Translation MSISDN', method: 'GET', apiKey: 'cpm_id_translation_msisdn', fields: [queryField('msisdn', 'MSISDN', true)] },
+    { id: 'cpm_id_translation_imsi', name: 'ID Translation IMSI', method: 'GET', apiKey: 'cpm_id_translation_imsi', fields: [queryField('imsi', 'IMSI', true)] },
+];
+const cpmCommunicationIdentityOps = [
+    { id: 'cpm_communication_identity', name: 'Communication Identity', method: 'GET', apiKey: 'cpm_communication_identity', fields: [queryField('identityValue', 'Identity Value', true)] },
+];
+const cpmMassDeviceOps = [
+    { id: 'cpm_mass_device_create_job', name: 'Create Job', method: 'POST', apiKey: 'cpm_mass_device_create_job', fields: [], hasJsonBody: true },
+    { id: 'cpm_mass_device_start_job', name: 'Start Job', method: 'POST', apiKey: 'cpm_mass_device_start_job', fields: [pathField('jobId', 'Job ID')] },
+    { id: 'cpm_mass_device_stop_job', name: 'Stop Job', method: 'POST', apiKey: 'cpm_mass_device_stop_job', fields: [pathField('jobId', 'Job ID')] },
+    { id: 'cpm_mass_device_restart_job', name: 'Restart Job', method: 'POST', apiKey: 'cpm_mass_device_restart_job', fields: [pathField('jobId', 'Job ID')] },
+    { id: 'cpm_mass_device_delete_job', name: 'Delete Job', method: 'DELETE', apiKey: 'cpm_mass_device_delete_job', fields: [pathField('jobId', 'Job ID')] },
+    { id: 'cpm_mass_device_job_status', name: 'Job Status', method: 'GET', apiKey: 'cpm_mass_device_job_status', fields: [pathField('jobId', 'Job ID')] },
+    { id: 'cpm_mass_device_job_result', name: 'Job Result', method: 'GET', apiKey: 'cpm_mass_device_job_result', fields: [pathField('jobId', 'Job ID')] },
+    { id: 'cpm_mass_device_list_jobs', name: 'List Jobs', method: 'GET', apiKey: 'cpm_mass_device_list_jobs', fields: [] },
+];
+// ============ CATALOG OPERATIONS ============
+const catalogProductOfferingOps = [
+    { id: 'catalog_product_offering_get', name: 'Get Product Offering', method: 'GET', apiKey: 'catalog_product_offering_get', fields: [pathField('productOfferingId', 'Product Offering ID')] },
+    { id: 'catalog_product_offering_create', name: 'Create Product Offering', method: 'POST', apiKey: 'catalog_product_offering_create', fields: [], hasJsonBody: true },
+    { id: 'catalog_product_offering_update_id', name: 'Update by ID', method: 'PATCH', apiKey: 'catalog_product_offering_update_id', fields: [pathField('productOfferingId', 'Product Offering ID')], hasJsonBody: true },
+    { id: 'catalog_product_offering_update_extid', name: 'Update by ExtID', method: 'PATCH', apiKey: 'catalog_product_offering_update_extid', fields: [pathField('externalId', 'External ID')], hasJsonBody: true },
+];
+// ============ TAB STRUCTURE ============
+const systemTabs = [
+    {
+        name: 'BSSF',
+        subTabs: [
+            { name: 'Party', operations: bssfPartyOps },
+            { name: 'Customer', operations: bssfCustomerOps },
+            { name: 'Contract', operations: bssfContractOps },
+            { name: 'Subscription', operations: bssfSubscriptionOps },
+            { name: 'Balance', operations: bssfBalanceOps },
+            { name: 'Financial', operations: bssfFinancialOps },
+            { name: 'Agreement', operations: bssfAgreementOps },
+            { name: 'Party Role', operations: bssfPartyRoleOps },
+            { name: 'Organization', operations: bssfOrganizationOps },
+            { name: 'Partner', operations: bssfPartnerOps },
+            { name: 'Resource & Product', operations: bssfResourceProductOps },
+            { name: 'Purchase', operations: bssfPurchaseOps },
+            { name: 'Session', operations: bssfSessionOps },
+            { name: 'User', operations: bssfUserOps },
+            { name: 'Spec Enquiry', operations: bssfSpecEnquiryOps },
+            { name: 'Recurrence', operations: bssfRecurrenceOps },
+            { name: 'Test', operations: bssfTestOps },
+            { name: 'Communication', operations: bssfCommunicationOps },
+        ]
+    },
+    {
+        name: 'RMCA',
+        subTabs: [
+            { name: 'Product Offering', operations: rmcaProductOfferingOps },
+            { name: 'Spec Read', operations: rmcaSpecReadOps },
+            { name: 'Export/Import', operations: rmcaExportImportOps },
+            { name: 'Global List', operations: rmcaGlobalListOps },
+        ]
+    },
+    {
+        name: 'CPM',
+        subTabs: [
+            { name: 'ID Translation', operations: cpmIdTranslationOps },
+            { name: 'Communication Identity', operations: cpmCommunicationIdentityOps },
+            { name: 'Mass Device', operations: cpmMassDeviceOps },
+        ]
+    },
+    {
+        name: 'Catalog',
+        subTabs: [
+            { name: 'Product Offering', operations: catalogProductOfferingOps },
+        ]
+    },
+];
+// ============ STYLES ============
+const styles = {
+    container: {
+        padding: '24px',
+        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        maxWidth: '1400px',
+        margin: '0 auto',
+    },
+    topTabsRow: {
+        display: 'flex',
+        gap: '12px',
+        marginBottom: '20px',
+        flexWrap: 'wrap',
+    },
+    topTab: {
+        padding: '12px 28px',
+        borderRadius: '24px',
+        border: '2px solid #e0e0e0',
+        background: '#fff',
+        cursor: 'pointer',
+        fontSize: '15px',
+        fontWeight: 600,
+        transition: 'all 0.2s',
+        color: '#555',
+    },
+    topTabActive: {
+        background: '#1976d2',
+        color: '#fff',
+        border: '2px solid #1976d2',
+    },
+    subTabsRow: {
+        display: 'flex',
+        gap: '8px',
+        marginBottom: '16px',
+        flexWrap: 'wrap',
+        borderBottom: '1px solid #e0e0e0',
+        paddingBottom: '12px',
+    },
+    subTab: {
+        padding: '6px 16px',
+        borderRadius: '16px',
+        border: '1px solid #ddd',
+        background: '#fafafa',
+        cursor: 'pointer',
+        fontSize: '13px',
+        fontWeight: 500,
+        color: '#666',
+        transition: 'all 0.2s',
+    },
+    subTabActive: {
+        background: '#e3f2fd',
+        color: '#1565c0',
+        border: '1px solid #90caf9',
+    },
+    opsGrid: {
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
+        gap: '10px',
+        marginBottom: '20px',
+    },
+    opCard: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px',
+        padding: '10px 14px',
+        borderRadius: '8px',
+        border: '1px solid #e0e0e0',
+        background: '#fff',
+        cursor: 'pointer',
+        transition: 'all 0.15s',
+        fontSize: '13px',
+        fontWeight: 500,
+    },
+    opCardActive: {
+        border: '1px solid #1976d2',
+        background: '#e3f2fd',
+        boxShadow: '0 2px 8px rgba(25,118,210,0.15)',
+    },
+    methodBadge: {
+        padding: '2px 7px',
+        borderRadius: '4px',
+        fontSize: '10px',
+        fontWeight: 700,
+        letterSpacing: '0.5px',
+        color: '#fff',
+        flexShrink: 0,
+    },
+    formContainer: {
+        background: '#f8f9fa',
+        borderRadius: '12px',
+        border: '1px solid #e0e0e0',
+        padding: '20px',
+        marginBottom: '20px',
+    },
+    formTitle: {
+        fontSize: '16px',
+        fontWeight: 600,
+        marginBottom: '16px',
+        color: '#333',
+    },
+    fieldRow: {
+        marginBottom: '12px',
+    },
+    fieldLabel: {
+        display: 'block',
+        fontSize: '12px',
+        fontWeight: 600,
+        color: '#555',
+        marginBottom: '4px',
+    },
+    fieldInput: {
+        width: '100%',
+        padding: '8px 12px',
+        borderRadius: '6px',
+        border: '1px solid #ccc',
+        fontSize: '14px',
+        boxSizing: 'border-box',
+    },
+    textarea: {
+        width: '100%',
+        minHeight: '150px',
+        padding: '10px 12px',
+        borderRadius: '6px',
+        border: '1px solid #ccc',
+        fontSize: '13px',
+        fontFamily: '"Fira Code", "Consolas", monospace',
+        boxSizing: 'border-box',
+        resize: 'vertical',
+    },
+    execBtn: {
+        padding: '10px 24px',
+        borderRadius: '6px',
+        border: 'none',
+        background: '#1976d2',
+        color: '#fff',
+        fontSize: '14px',
+        fontWeight: 600,
+        cursor: 'pointer',
+        marginTop: '8px',
+    },
+    resultContainer: {
+        background: '#1e1e1e',
+        borderRadius: '8px',
+        padding: '16px',
+        marginTop: '16px',
+        maxHeight: '400px',
+        overflow: 'auto',
+    },
+    resultText: {
+        color: '#d4d4d4',
+        fontSize: '12px',
+        fontFamily: '"Fira Code", "Consolas", monospace',
+        whiteSpace: 'pre-wrap',
+        margin: 0,
+    },
+    statusBadge: {
+        display: 'inline-block',
+        padding: '2px 8px',
+        borderRadius: '4px',
+        fontSize: '11px',
+        fontWeight: 600,
+        marginBottom: '8px',
+    },
+    loading: {
+        color: '#90caf9',
+        fontSize: '13px',
+        fontStyle: 'italic',
     }
-}
-export function OperationsPanel() {
-    const [activeTab, setActiveTab] = useState('party');
-    const [op, setOp] = useState(null);
-    const [params, setParams] = useState({});
-    const [formVals, setFormVals] = useState({});
-    const [body, setBody] = useState('');
+};
+const methodColors = {
+    GET: '#4caf50',
+    POST: '#1976d2',
+    PATCH: '#f57c00',
+    DELETE: '#d32f2f',
+    PUT: '#7b1fa2',
+};
+// ============ COMPONENT ============
+export const OperationsPanel = () => {
+    const [activeSystem, setActiveSystem] = useState(0);
+    const [activeSubTab, setActiveSubTab] = useState(0);
+    const [selectedOp, setSelectedOp] = useState(null);
+    const [fieldValues, setFieldValues] = useState({});
+    const [jsonBody, setJsonBody] = useState('{\n  \n}');
     const [result, setResult] = useState(null);
-    const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
-    const [showJson, setShowJson] = useState(false);
-    const selectOp = (key) => {
-        setOp(key);
-        setParams({});
-        setFormVals({});
-        setBody('');
+    const [statusCode, setStatusCode] = useState(null);
+    const currentSystem = systemTabs[activeSystem];
+    const currentSubTab = currentSystem.subTabs[activeSubTab] || currentSystem.subTabs[0];
+    const handleSystemChange = (idx) => {
+        setActiveSystem(idx);
+        setActiveSubTab(0);
+        setSelectedOp(null);
         setResult(null);
-        setError('');
-        setShowJson(false);
+        setStatusCode(null);
     };
-    const exec = async () => {
-        if (!op)
+    const handleSubTabChange = (idx) => {
+        setActiveSubTab(idx);
+        setSelectedOp(null);
+        setResult(null);
+        setStatusCode(null);
+    };
+    const handleSelectOp = (op) => {
+        setSelectedOp(op);
+        setFieldValues({});
+        setJsonBody('{\n  \n}');
+        setResult(null);
+        setStatusCode(null);
+    };
+    const handleFieldChange = (name, value) => {
+        setFieldValues(prev => ({ ...prev, [name]: value }));
+    };
+    const handleExecute = async () => {
+        if (!selectedOp)
             return;
         setLoading(true);
-        setError('');
         setResult(null);
-        const cfg = operations[op];
-        let url = `${API}${cfg.path}`;
-        for (const f of cfg.fields)
-            url = url.replace(`{${f}}`, params[f] || '');
-        if (cfg.queryParams?.length) {
-            const qp = cfg.queryParams.filter(f => params[f]).map(f => `${f}=${encodeURIComponent(params[f])}`).join('&');
-            if (qp)
-                url += `?${qp}`;
-        }
+        setStatusCode(null);
         try {
-            const opts = { method: cfg.method, headers: { 'Content-Type': 'application/json' } };
-            const structured = buildBody(op, formVals);
-            if (url.includes('/execute/')) {
-                opts.method = 'POST';
-                const execBody = structured || (body ? JSON.parse(body) : {});
-                execBody._params = { ...params };
-                opts.body = JSON.stringify(execBody);
-            }
-            else if (cfg.method === 'POST' || cfg.method === 'PUT' || cfg.method === 'PATCH') {
-                if (structured) {
-                    const { _params, ...rest } = structured;
-                    if (_params) {
-                        url = `${API}/execute/${op}`;
-                        opts.method = 'POST';
-                    }
-                    opts.body = JSON.stringify(_params ? { ...rest, _params } : rest);
+            const pathParams = {};
+            const queryParams = {};
+            selectedOp.fields.forEach(f => {
+                const val = fieldValues[f.name] || '';
+                if (f.type === 'path')
+                    pathParams[f.name] = val;
+                else if (f.type === 'query')
+                    queryParams[f.name] = val;
+            });
+            // Remove empty query params
+            Object.keys(queryParams).forEach(k => {
+                if (!queryParams[k])
+                    delete queryParams[k];
+            });
+            let response;
+            if (selectedOp.method === 'GET' && !selectedOp.hasJsonBody) {
+                // GET with possible query params
+                if (Object.keys(pathParams).length > 0) {
+                    response = await exec(selectedOp.apiKey, pathParams, undefined, queryParams);
                 }
                 else {
-                    opts.body = body || '{}';
+                    response = await execGet(selectedOp.apiKey, queryParams);
                 }
             }
-            const r = await fetch(url, opts);
-            const text = await r.text();
-            let data;
+            else {
+                // POST/PATCH/DELETE/PUT with possible body
+                let body = undefined;
+                if (selectedOp.hasJsonBody) {
+                    try {
+                        body = JSON.parse(jsonBody);
+                    }
+                    catch {
+                        setResult('ERROR: Invalid JSON body');
+                        setLoading(false);
+                        return;
+                    }
+                }
+                response = await exec(selectedOp.apiKey, pathParams, body, queryParams);
+            }
+            setStatusCode(response.status);
+            const text = await response.text();
             try {
-                data = JSON.parse(text);
+                const json = JSON.parse(text);
+                setResult(JSON.stringify(json, null, 2));
             }
             catch {
-                data = { raw: text };
+                setResult(text);
             }
-            if (!r.ok)
-                throw new Error(data.detail || data.raw || `HTTP ${r.status}`);
-            setResult(data);
         }
-        catch (e) {
-            setError(e.message);
+        catch (err) {
+            setResult(`ERROR: ${err.message || 'Request failed'}`);
         }
-        setLoading(false);
+        finally {
+            setLoading(false);
+        }
     };
-    const cfg = op ? operations[op] : null;
-    const formDef = op ? FORM_DEFS[op] : null;
-    const builtBody = formDef ? buildBody(op, formVals) : null;
-    const activeCategory = CATEGORIES.find(c => c.key === activeTab);
-    return (_jsxs("div", { style: { fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }, children: [_jsx("h2", { style: { margin: '0 0 16px 0', fontSize: 20, fontWeight: 600, color: '#1a1a2e' }, children: "Operations" }), _jsx("div", { style: { display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 20, paddingBottom: 12, borderBottom: '1px solid #e8e8e8' }, children: CATEGORIES.map(cat => (_jsxs("button", { onClick: () => { setActiveTab(cat.key); setOp(null); setResult(null); setError(''); }, style: {
-                        padding: '6px 14px',
-                        fontSize: 12,
-                        fontWeight: activeTab === cat.key ? 600 : 400,
-                        border: activeTab === cat.key ? '1px solid #4361ee' : '1px solid #ddd',
-                        borderRadius: 20,
-                        background: activeTab === cat.key ? '#4361ee' : '#fff',
-                        color: activeTab === cat.key ? '#fff' : '#555',
-                        cursor: 'pointer',
-                        transition: 'all 0.15s ease',
-                    }, children: [cat.label, _jsxs("span", { style: { marginLeft: 5, fontSize: 10, opacity: 0.7 }, children: ["(", cat.ops.length, ")"] })] }, cat.key))) }), activeCategory && (_jsx("div", { style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 10, marginBottom: 20 }, children: activeCategory.ops.map(opKey => {
-                    const opDef = operations[opKey];
-                    if (!opDef)
-                        return null;
-                    const mc = getMethodColor(opDef.method);
-                    const isSelected = op === opKey;
-                    return (_jsxs("button", { onClick: () => selectOp(opKey), style: {
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 10,
-                            padding: '10px 14px',
-                            border: isSelected ? '2px solid #4361ee' : '1px solid #e0e0e0',
-                            borderRadius: 8,
-                            background: isSelected ? '#f0f4ff' : '#fff',
-                            cursor: 'pointer',
-                            textAlign: 'left',
-                            transition: 'all 0.12s ease',
-                            boxShadow: isSelected ? '0 2px 8px rgba(67,97,238,0.15)' : '0 1px 3px rgba(0,0,0,0.04)',
-                        }, children: [_jsx("span", { style: {
-                                    padding: '3px 7px',
-                                    fontSize: 10,
-                                    fontWeight: 700,
-                                    borderRadius: 4,
-                                    background: mc.bg,
-                                    color: mc.text,
-                                    fontFamily: 'monospace',
-                                    minWidth: 46,
-                                    textAlign: 'center',
-                                    flexShrink: 0,
-                                }, children: opDef.method }), _jsx("span", { style: { fontSize: 12, color: '#333', lineHeight: 1.3 }, children: opDef.label })] }, opKey));
-                }) })), op && cfg && (_jsxs("div", { style: { border: '1px solid #e0e0e0', borderRadius: 10, padding: 20, background: '#fafbfc', marginBottom: 16 }, children: [_jsxs("div", { style: { display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }, children: [_jsx("span", { style: {
-                                    padding: '3px 8px', fontSize: 11, fontWeight: 700, borderRadius: 4,
-                                    background: getMethodColor(cfg.method).bg, color: getMethodColor(cfg.method).text, fontFamily: 'monospace'
-                                }, children: cfg.method }), _jsx("span", { style: { fontSize: 14, fontWeight: 600, color: '#1a1a2e' }, children: cfg.label }), _jsx("span", { style: { fontSize: 11, color: '#888', marginLeft: 'auto', fontFamily: 'monospace' }, children: cfg.path })] }), _jsxs("div", { style: { display: 'grid', gap: 8, maxWidth: 480, marginBottom: 12 }, children: [cfg.fields.map(f => (_jsx("input", { placeholder: f, style: { padding: '8px 12px', border: '1px solid #ddd', borderRadius: 6, fontSize: 13, outline: 'none' }, value: params[f] || '', onChange: e => setParams({ ...params, [f]: e.target.value }) }, f))), formDef ? (_jsxs(_Fragment, { children: [_jsx(StructuredForm, { formDef: formDef, values: formVals, onChange: setFormVals }), _jsxs("button", { type: "button", style: { fontSize: 11, padding: '4px 10px', background: '#eee', border: '1px solid #ddd', borderRadius: 4, width: 'fit-content', cursor: 'pointer' }, onClick: () => setShowJson(s => !s), children: [showJson ? 'Hide' : 'Preview', " JSON"] }), showJson && builtBody && (_jsx("pre", { style: { fontSize: 11, background: '#f0f0f0', padding: 10, borderRadius: 6, maxHeight: 200, overflow: 'auto', border: '1px solid #e0e0e0' }, children: JSON.stringify(builtBody, null, 2) }))] })) : (cfg.method === 'POST' || cfg.method === 'PUT' || cfg.method === 'PATCH') && (_jsx("textarea", { placeholder: "JSON body", rows: 6, style: { fontFamily: 'monospace', fontSize: 12, padding: '8px 12px', border: '1px solid #ddd', borderRadius: 6, resize: 'vertical' }, value: body, onChange: e => setBody(e.target.value) }))] }), _jsx("button", { onClick: exec, disabled: loading, style: {
-                            padding: '9px 22px', fontSize: 13, fontWeight: 600, border: 'none', borderRadius: 6,
-                            background: loading ? '#94a3b8' : '#4361ee', color: '#fff', cursor: loading ? 'not-allowed' : 'pointer',
-                            transition: 'background 0.15s ease',
-                        }, children: loading ? 'Executing...' : 'Execute' })] })), error && _jsx("div", { style: { padding: '10px 14px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, color: '#b91c1c', fontSize: 13, wordBreak: 'break-all', marginBottom: 12 }, children: error }), result && (_jsx("pre", { style: { background: '#f8fafc', border: '1px solid #e2e8f0', padding: 14, borderRadius: 8, maxHeight: 400, overflow: 'auto', fontSize: 12, lineHeight: 1.5 }, children: JSON.stringify(result, null, 2) }))] }));
-}
+    return (_jsxs("div", { style: styles.container, children: [_jsx("div", { style: styles.topTabsRow, children: systemTabs.map((tab, idx) => (_jsx("button", { style: { ...styles.topTab, ...(activeSystem === idx ? styles.topTabActive : {}) }, onClick: () => handleSystemChange(idx), children: tab.name }, tab.name))) }), _jsx("div", { style: styles.subTabsRow, children: currentSystem.subTabs.map((sub, idx) => (_jsx("button", { style: { ...styles.subTab, ...(activeSubTab === idx ? styles.subTabActive : {}) }, onClick: () => handleSubTabChange(idx), children: sub.name }, sub.name))) }), _jsx("div", { style: styles.opsGrid, children: currentSubTab.operations.map(op => (_jsxs("div", { style: { ...styles.opCard, ...(selectedOp?.id === op.id ? styles.opCardActive : {}) }, onClick: () => handleSelectOp(op), children: [_jsx("span", { style: { ...styles.methodBadge, background: methodColors[op.method] }, children: op.method }), _jsx("span", { children: op.name })] }, op.id))) }), selectedOp && (_jsxs("div", { style: styles.formContainer, children: [_jsxs("div", { style: styles.formTitle, children: [_jsx("span", { style: { ...styles.methodBadge, background: methodColors[selectedOp.method], marginRight: '10px' }, children: selectedOp.method }), selectedOp.name, _jsxs("span", { style: { marginLeft: '12px', fontSize: '12px', color: '#888', fontWeight: 400 }, children: ["API Key: ", selectedOp.apiKey] })] }), selectedOp.fields.map(f => (_jsxs("div", { style: styles.fieldRow, children: [_jsxs("label", { style: styles.fieldLabel, children: [f.label, " ", f.required && _jsx("span", { style: { color: '#d32f2f' }, children: "*" }), _jsxs("span", { style: { color: '#999', fontWeight: 400, marginLeft: '6px' }, children: ["(", f.type, ")"] })] }), _jsx("input", { style: styles.fieldInput, value: fieldValues[f.name] || '', onChange: e => handleFieldChange(f.name, e.target.value), placeholder: `Enter ${f.label}` })] }, f.name))), selectedOp.hasJsonBody && (_jsxs("div", { style: styles.fieldRow, children: [_jsx("label", { style: styles.fieldLabel, children: "Request Body (JSON)" }), _jsx("textarea", { style: styles.textarea, value: jsonBody, onChange: e => setJsonBody(e.target.value), spellCheck: false })] })), _jsx("button", { style: { ...styles.execBtn, opacity: loading ? 0.6 : 1 }, onClick: handleExecute, disabled: loading, children: loading ? 'Executing...' : 'Execute' }), loading && _jsx("p", { style: styles.loading, children: "Sending request..." }), result !== null && (_jsxs("div", { style: styles.resultContainer, children: [statusCode !== null && (_jsxs("span", { style: {
+                                    ...styles.statusBadge,
+                                    background: statusCode >= 200 && statusCode < 300 ? '#4caf50' : statusCode >= 400 ? '#d32f2f' : '#f57c00',
+                                    color: '#fff',
+                                }, children: ["HTTP ", statusCode] })), _jsx("pre", { style: styles.resultText, children: result })] }))] }))] }));
+};
+export default OperationsPanel;
