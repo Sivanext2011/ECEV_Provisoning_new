@@ -74,11 +74,17 @@ class TraceService:
             env = os.environ.copy()
             env["HOME"] = self._session_home
 
-            # bamctl needs interactive notice acceptance - use 'yes |' pipe via shell
-            login_cmd = f'yes | {BAMCTL_PATH} login -u {username} -p {pass_file.name} -t {iam_url}'
+            # Ensure token URL has full path
+            token_url = iam_url
+            if not token_url.endswith("/token"):
+                token_url = token_url.rstrip("/") + "/auth/realms/master/protocol/openid-connect/token"
 
-            process = await asyncio.create_subprocess_shell(
-                login_cmd,
+            # Use -s to skip legal notice (non-interactive)
+            cmd = [BAMCTL_PATH, "login", "-u", username, "-p", pass_file.name, "-t", token_url, "-s"]
+            logger.info(f"Executing: {' '.join(cmd)}")
+
+            process = await asyncio.create_subprocess_exec(
+                *cmd,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
                 env=env,
@@ -90,16 +96,14 @@ class TraceService:
             
             # Check if token file was created (definitive success indicator)
             token_path = Path(self._session_home) / ".bamctl" / "token"
-            if token_path.exists():
+            if token_path.exists() and token_path.stat().st_size > 0:
                 self._logged_in = True
                 return {"status": "success", "message": "Login successful"}
             
-            # Also check output for success indicators
-            if process.returncode == 0 or "logged in" in out_text.lower() or "login successful" in out_text.lower():
+            if process.returncode == 0:
                 self._logged_in = True
                 return {"status": "success", "message": "Login successful", "stdout": out_text[:200]}
             
-            # Return detailed error for debugging
             return {
                 "status": "failed", 
                 "error": err_text[:500] or out_text[:500],
