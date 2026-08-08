@@ -366,7 +366,7 @@ export function ProvisionWizard() {
                   <option value="">-- None --</option>
                   {poList.map((p: any) => <option key={p.id} value={p.externalId}>{p.name} ({p.externalId})</option>)}
                 </select>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10 }}><input type="checkbox" checked={entry.baRef} onChange={e => { const u = [...additionalPOs]; u[idx].baRef = e.target.checked; setAdditionalPOs(u) }} />BA</label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10 }}><input type="checkbox" checked={entry.baRef} onChange={e => { const u = [...additionalPOs]; u[idx].baRef = e.target.checked; u[idx].baRefRecurrence = e.target.checked; setAdditionalPOs(u) }} />BA</label>
                 {additionalPOs.length > 1 && <button type="button" onClick={() => setAdditionalPOs(additionalPOs.filter((_, i) => i !== idx))} style={{ fontSize: 11 }}>✕</button>}
               </div>
               {entry.poExtId && addOnMust.length > 0 && <div style={{ marginBottom: 4 }}>{addOnMust.map((c: any) => <CharInput key={c.id} char={c} value={entry.formVals[c.externalId || c.id] || ''} onChange={v => { const u = [...additionalPOs]; u[idx].formVals = { ...u[idx].formVals, [c.externalId || c.id]: v }; setAdditionalPOs(u) }} />)}</div>}
