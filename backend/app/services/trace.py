@@ -74,21 +74,26 @@ class TraceService:
             env = os.environ.copy()
             env["HOME"] = self._session_home
 
+            # bamctl login requires a TTY for cert trust prompt
+            # Use 'script' to create a pseudo-TTY and pipe 'yes' for auto-accept
+            login_cmd = f"{BAMCTL_PATH} login -u {username} -p {pass_file.name} -t {iam_url}"
+            script_cmd = ["script", "-qc", login_cmd, "/dev/null"]
+
             process = await asyncio.create_subprocess_exec(
-                BAMCTL_PATH, "login", "-u", username, "-p", pass_file.name, "-t", iam_url,
+                *script_cmd,
                 stdin=asyncio.subprocess.PIPE,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
                 env=env,
             )
-            # Send multiple "yes" to accept any cert trust prompts
+            # Send yes multiple times for cert trust + any other prompts
             stdout, stderr = await process.communicate(input=b"yes\nyes\nyes\n")
             
             out_text = stdout.decode("utf-8", errors="replace")
             err_text = stderr.decode("utf-8", errors="replace")
             
             # Login is successful if return code is 0, or if output contains success indicators
-            if process.returncode == 0 or "logged in" in out_text.lower() or "token" in out_text.lower():
+            if process.returncode == 0 or "logged in" in out_text.lower() or "login successful" in out_text.lower() or "token" in out_text.lower():
                 self._logged_in = True
                 return {"status": "success", "message": "Login successful", "stdout": out_text[:200]}
             
