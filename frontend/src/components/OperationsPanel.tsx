@@ -520,6 +520,11 @@ export const OperationsPanel: React.FC = () => {
   const [statusCode, setStatusCode] = useState<number | null>(null)
   const [specsCache, setSpecsCache] = useState<any>(null)
 
+  // Auto-load specs on mount for templates
+  React.useEffect(() => {
+    fetch(`${API}/specs`).then(r => r.ok ? r.json() : null).then(setSpecsCache).catch(() => {})
+  }, [])
+
   // Template generator for common operations
   const getTemplate = (apiKey: string, fields: Record<string, string>): any => {
     const ts = new Date().toISOString().replace(/\.\d{3}Z/, '.000Z')
@@ -858,10 +863,6 @@ export const OperationsPanel: React.FC = () => {
                   if (tpl) setJsonBody(JSON.stringify(tpl, null, 2))
                 }} style={{ fontSize: 10, padding: '2px 8px', background: '#dbeafe', color: '#1d4ed8', border: '1px solid #93c5fd', borderRadius: 4, cursor: 'pointer' }}>
                   📋 Load Template
-                </button>
-                <button onClick={() => { fetch(`${API}/specs`).then(r => r.ok ? r.json() : null).then(s => { if (s) setSpecsCache(s) }) }}
-                  style={{ fontSize: 10, padding: '2px 8px', background: '#ecfdf5', color: '#059669', border: '1px solid #a7f3d0', borderRadius: 4, cursor: 'pointer' }}>
-                  🔄 Load Specs
                 </button>
               </div>
               <textarea

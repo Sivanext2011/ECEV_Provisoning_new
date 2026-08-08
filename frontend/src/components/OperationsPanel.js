@@ -1,5 +1,5 @@
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
-import { useState } from 'react';
+import React, { useState } from 'react';
 const API = '/api/v1';
 // Execution helpers
 const exec = async (apiKey, params, body, queryParams) => {
@@ -449,6 +449,10 @@ export const OperationsPanel = () => {
     const [loading, setLoading] = useState(false);
     const [statusCode, setStatusCode] = useState(null);
     const [specsCache, setSpecsCache] = useState(null);
+    // Auto-load specs on mount for templates
+    React.useEffect(() => {
+        fetch(`${API}/specs`).then(r => r.ok ? r.json() : null).then(setSpecsCache).catch(() => { });
+    }, []);
     // Template generator for common operations
     const getTemplate = (apiKey, fields) => {
         const ts = new Date().toISOString().replace(/\.\d{3}Z/, '.000Z');
@@ -726,8 +730,7 @@ export const OperationsPanel = () => {
                                             const tpl = getTemplate(selectedOp.apiKey, fieldValues);
                                             if (tpl)
                                                 setJsonBody(JSON.stringify(tpl, null, 2));
-                                        }, style: { fontSize: 10, padding: '2px 8px', background: '#dbeafe', color: '#1d4ed8', border: '1px solid #93c5fd', borderRadius: 4, cursor: 'pointer' }, children: "\uD83D\uDCCB Load Template" }), _jsx("button", { onClick: () => { fetch(`${API}/specs`).then(r => r.ok ? r.json() : null).then(s => { if (s)
-                                            setSpecsCache(s); }); }, style: { fontSize: 10, padding: '2px 8px', background: '#ecfdf5', color: '#059669', border: '1px solid #a7f3d0', borderRadius: 4, cursor: 'pointer' }, children: "\uD83D\uDD04 Load Specs" })] }), _jsx("textarea", { style: styles.textarea, value: jsonBody, onChange: e => setJsonBody(e.target.value), spellCheck: false })] })), _jsx("button", { style: { ...styles.execBtn, opacity: loading ? 0.6 : 1 }, onClick: handleExecute, disabled: loading, children: loading ? 'Executing...' : 'Execute' }), loading && _jsx("p", { style: styles.loading, children: "Sending request..." }), result !== null && (_jsxs("div", { style: styles.resultContainer, children: [statusCode !== null && (_jsxs("span", { style: {
+                                        }, style: { fontSize: 10, padding: '2px 8px', background: '#dbeafe', color: '#1d4ed8', border: '1px solid #93c5fd', borderRadius: 4, cursor: 'pointer' }, children: "\uD83D\uDCCB Load Template" })] }), _jsx("textarea", { style: styles.textarea, value: jsonBody, onChange: e => setJsonBody(e.target.value), spellCheck: false })] })), _jsx("button", { style: { ...styles.execBtn, opacity: loading ? 0.6 : 1 }, onClick: handleExecute, disabled: loading, children: loading ? 'Executing...' : 'Execute' }), loading && _jsx("p", { style: styles.loading, children: "Sending request..." }), result !== null && (_jsxs("div", { style: styles.resultContainer, children: [statusCode !== null && (_jsxs("span", { style: {
                                     ...styles.statusBadge,
                                     background: statusCode >= 200 && statusCode < 300 ? '#4caf50' : statusCode >= 400 ? '#d32f2f' : '#f57c00',
                                     color: '#fff',
