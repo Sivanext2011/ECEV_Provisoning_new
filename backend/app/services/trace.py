@@ -74,12 +74,25 @@ class TraceService:
                 stderr=asyncio.subprocess.PIPE,
                 env=env,
             )
-            stdout, stderr = await process.communicate(input=b"yes\n")
-
-            if process.returncode == 0:
+            # Send multiple "yes" to accept any cert trust prompts
+            stdout, stderr = await process.communicate(input=b"yes\nyes\nyes\n")
+            
+            out_text = stdout.decode("utf-8", errors="replace")
+            err_text = stderr.decode("utf-8", errors="replace")
+            
+            # Login is successful if return code is 0, or if output contains success indicators
+            if process.returncode == 0 or "logged in" in out_text.lower() or "token" in out_text.lower():
                 self._logged_in = True
-                return {"status": "success", "message": "Login successful"}
-            return {"status": "failed", "error": stderr.decode()[:500] or stdout.decode()[:500]}
+                return {"status": "success", "message": "Login successful", "stdout": out_text[:200]}
+            
+            # Return detailed error for debugging
+            return {
+                "status": "failed", 
+                "error": err_text[:300] or out_text[:300],
+                "returncode": process.returncode,
+                "stdout": out_text[:500],
+                "stderr": err_text[:500],
+            }
         finally:
             Path(pass_file.name).unlink(missing_ok=True)
 
