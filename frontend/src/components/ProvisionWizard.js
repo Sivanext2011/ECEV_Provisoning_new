@@ -416,8 +416,19 @@ export function ProvisionWizard() {
                                             basePlanProduct.baRefForBillCycleAlignedRecurrence = { externalId: baExtId };
                                         const poCharEntries = Object.entries(formValues.contract)
                                             .filter(([k, v]) => k.startsWith('_po_') && v && v.trim());
-                                        if (poCharEntries.length)
-                                            basePlanProduct.characteristic = poCharEntries.map(([k, v]) => ({ charSpecExternalId: k.replace('_po_', ''), value: [{ value: v }] }));
+                                        if (poCharEntries.length) {
+                                            const poObj = poList.find((p) => p.externalId === selectedPO);
+                                            const poChars = poObj?.characteristics || [];
+                                            basePlanProduct.characteristic = poCharEntries.map(([k, v]) => {
+                                                const charExtId = k.replace('_po_', '');
+                                                const specChar = poChars.find((c) => (c.externalId || c.id) === charExtId);
+                                                const unit = specChar?.unitOfMeasure || specChar?.possibleValues?.[0]?.unitOfMeasure || '';
+                                                const valObj = { value: v };
+                                                if (unit)
+                                                    valObj.unitOfMeasure = unit;
+                                                return { charSpecExternalId: charExtId, value: [valObj] };
+                                            });
+                                        }
                                         // POP personalization
                                         const priceEntries = (!popEnabled ? [] : popPersonalization)
                                             .filter((pop) => popSelected[pop.popId])
@@ -475,8 +486,18 @@ export function ProvisionWizard() {
                                         if (entry.baRefRecurrence)
                                             addOn.baRefForBillCycleAlignedRecurrence = { externalId: baExtId };
                                         const addOnChars = Object.entries(entry.formVals).filter(([, v]) => v?.trim());
-                                        if (addOnChars.length)
-                                            addOn.characteristic = addOnChars.map(([k, v]) => ({ charSpecExternalId: k, value: [{ value: v }] }));
+                                        if (addOnChars.length) {
+                                            const addOnPoObj = poList.find((p) => p.externalId === entry.poExtId);
+                                            const addOnPoChars = addOnPoObj?.characteristics || [];
+                                            addOn.characteristic = addOnChars.map(([k, v]) => {
+                                                const specChar = addOnPoChars.find((c) => (c.externalId || c.id) === k);
+                                                const unit = specChar?.unitOfMeasure || specChar?.possibleValues?.[0]?.unitOfMeasure || '';
+                                                const valObj = { value: v };
+                                                if (unit)
+                                                    valObj.unitOfMeasure = unit;
+                                                return { charSpecExternalId: k, value: [valObj] };
+                                            });
+                                        }
                                         // POP personalization for add-on
                                         if (entry.popEnabled && entry.popData.length > 0) {
                                             const addOnPriceEntries = entry.popData
