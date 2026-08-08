@@ -67,17 +67,17 @@ const bssfSubscriptionOps = [
     { id: 'eligible_consumers', name: 'Eligible Consumers', method: 'GET', apiKey: 'eligible_consumers', fields: [pathField('contractId', 'Contract ID')] },
 ];
 const bssfBalanceOps = [
-    { id: 'balance_enquiry_msisdn', name: 'Enquiry by MSISDN', method: 'GET', apiKey: 'balance_enquiry_msisdn', fields: [queryField('msisdn', 'MSISDN', true)] },
-    { id: 'balance_enquiry_imsi', name: 'Enquiry by IMSI', method: 'GET', apiKey: 'balance_enquiry_imsi', fields: [queryField('imsi', 'IMSI', true)] },
-    { id: 'balance_enquiry_customer', name: 'Enquiry by Customer', method: 'GET', apiKey: 'balance_enquiry_customer', fields: [queryField('customerId', 'Customer ID', true)] },
-    { id: 'balance_enquiry_contract', name: 'Enquiry by Contract', method: 'GET', apiKey: 'balance_enquiry_contract', fields: [queryField('contractId', 'Contract ID', true)] },
-    { id: 'balance_enquiry_bucket', name: 'Enquiry by Bucket', method: 'GET', apiKey: 'balance_enquiry_bucket', fields: [queryField('bucketId', 'Bucket ID', true)] },
+    { id: 'balance_enquiry_msisdn', name: 'Enquiry by MSISDN', method: 'GET', apiKey: 'balance_enquiry_msisdn', fields: [pathField('msisdn', 'MSISDN')] },
+    { id: 'balance_enquiry_imsi', name: 'Enquiry by IMSI', method: 'GET', apiKey: 'balance_enquiry_imsi', fields: [pathField('imsi', 'IMSI')] },
+    { id: 'balance_enquiry_customer', name: 'Enquiry by Customer', method: 'GET', apiKey: 'balance_enquiry', fields: [pathField('customerExternalId', 'Customer External ID')] },
+    { id: 'balance_enquiry_contract', name: 'Enquiry by Contract', method: 'GET', apiKey: 'balance_enquiry_contract', fields: [pathField('customerExternalId', 'Customer External ID'), pathField('contractExternalId', 'Contract External ID')] },
+    { id: 'balance_enquiry_bucket', name: 'Enquiry by MSISDN + Bucket', method: 'GET', apiKey: 'balance_enquiry_msisdn_bucket', fields: [pathField('msisdn', 'MSISDN'), pathField('bucketSpecExternalId', 'Bucket Spec External ID')] },
     { id: 'balance_topup', name: 'Topup', method: 'POST', apiKey: 'balance_topup', fields: [], hasJsonBody: true },
-    { id: 'balance_product_adjustment', name: 'Product Adjustment', method: 'POST', apiKey: 'balance_product_adjustment', fields: [], hasJsonBody: true },
-    { id: 'balance_billing_account_adjustment', name: 'Billing Account Adjustment', method: 'POST', apiKey: 'balance_billing_account_adjustment', fields: [], hasJsonBody: true },
-    { id: 'balance_settlement_adjustment', name: 'Settlement Adjustment', method: 'POST', apiKey: 'balance_settlement_adjustment', fields: [], hasJsonBody: true },
-    { id: 'balance_reset_fraud', name: 'Reset Fraud', method: 'POST', apiKey: 'balance_reset_fraud', fields: [], hasJsonBody: true },
-    { id: 'balance_topup_details', name: 'Topup Details', method: 'GET', apiKey: 'balance_topup_details', fields: [queryField('contractId', 'Contract ID', true)] },
+    { id: 'balance_product_adjustment', name: 'Product Bucket Adjustment', method: 'POST', apiKey: 'product_bucket_adjustment', fields: [], hasJsonBody: true },
+    { id: 'balance_billing_account_adjustment', name: 'Billing Account Bucket Adjustment', method: 'POST', apiKey: 'billing_account_bucket_adjustment', fields: [], hasJsonBody: true },
+    { id: 'balance_settlement_adjustment', name: 'Settlement Account Adjustment', method: 'POST', apiKey: 'settlement_account_bucket_adjustment', fields: [], hasJsonBody: true },
+    { id: 'balance_reset_fraud', name: 'Reset Fraud Counter', method: 'POST', apiKey: 'reset_balance_topup_fraud_counter', fields: [], hasJsonBody: true },
+    { id: 'balance_topup_details', name: 'Topup Details', method: 'GET', apiKey: 'get_balance_topup_details', fields: [queryField('communicationId', 'MSISDN', true), queryField('communicationIdType', 'ID Type (E.164)')] },
 ];
 const bssfFinancialOps = [
     { id: 'financial_customer_bill', name: 'Customer Bill', method: 'GET', apiKey: 'financial_customer_bill', fields: [queryField('customerId', 'Customer ID', true)] },
