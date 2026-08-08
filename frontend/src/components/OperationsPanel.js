@@ -29,25 +29,32 @@ const pathField = (name, label, required = true) => ({ name, label: label || nam
 const queryField = (name, label, required = false) => ({ name, label: label || name, type: 'query', required });
 // ============ BSSF OPERATIONS ============
 const bssfPartyOps = [
-    { id: 'party_create', name: 'Create Party', method: 'POST', apiKey: 'party_create', fields: [], hasJsonBody: true },
-    { id: 'party_get', name: 'Get Party', method: 'GET', apiKey: 'party_get', fields: [pathField('partyId', 'Party ID')] },
-    { id: 'party_update', name: 'Update Party', method: 'PATCH', apiKey: 'party_update', fields: [pathField('partyId', 'Party ID')], hasJsonBody: true },
-    { id: 'party_delete', name: 'Delete Party', method: 'DELETE', apiKey: 'party_delete', fields: [pathField('partyId', 'Party ID')] },
-    { id: 'party_move', name: 'Move Party', method: 'POST', apiKey: 'party_move', fields: [pathField('partyId', 'Party ID')], hasJsonBody: true },
+    { id: 'party_create', name: 'Create Party', method: 'POST', apiKey: 'create_party', fields: [], hasJsonBody: true },
+    { id: 'party_get_ext', name: 'Get Party (External ID)', method: 'GET', apiKey: 'get_party_by_external_id', fields: [queryField('partyExternalId', 'Party External ID')] },
+    { id: 'party_get_id', name: 'Get Party (ID)', method: 'GET', apiKey: 'get_party_by_id', fields: [queryField('partyId', 'Party ID')] },
+    { id: 'party_update', name: 'Update Party', method: 'PATCH', apiKey: 'update_party', fields: [pathField('partyExternalId', 'Party External ID')], hasJsonBody: true },
+    { id: 'party_delete_ext', name: 'Delete Party (External ID)', method: 'DELETE', apiKey: 'delete_party_by_external_id', fields: [pathField('partyExternalId', 'Party External ID')] },
+    { id: 'party_delete_id', name: 'Delete Party (ID)', method: 'DELETE', apiKey: 'delete_party_by_id', fields: [pathField('partyId', 'Party ID')] },
+    { id: 'party_move', name: 'Move Party', method: 'POST', apiKey: 'move_party', fields: [], hasJsonBody: true },
 ];
 const bssfCustomerOps = [
-    { id: 'customer_create', name: 'Create Customer', method: 'POST', apiKey: 'customer_create', fields: [], hasJsonBody: true },
-    { id: 'customer_get', name: 'Get Customer', method: 'GET', apiKey: 'customer_get', fields: [pathField('customerId', 'Customer ID')] },
-    { id: 'customer_update', name: 'Update Customer', method: 'PATCH', apiKey: 'customer_update', fields: [pathField('customerId', 'Customer ID')], hasJsonBody: true },
-    { id: 'customer_delete', name: 'Delete Customer', method: 'DELETE', apiKey: 'customer_delete', fields: [pathField('customerId', 'Customer ID')] },
+    { id: 'customer_create', name: 'Create Customer', method: 'POST', apiKey: 'create_customer', fields: [], hasJsonBody: true },
+    { id: 'customer_get_ext', name: 'Get Customer (External ID)', method: 'GET', apiKey: 'get_customer_by_external_id', fields: [queryField('customerExternalId', 'Customer External ID')] },
+    { id: 'customer_get_id', name: 'Get Customer (ID)', method: 'GET', apiKey: 'get_customer_by_id', fields: [queryField('customerId', 'Customer ID')] },
+    { id: 'customer_get_msisdn', name: 'Get Customer (MSISDN)', method: 'GET', apiKey: 'get_customer_by_msisdn', fields: [queryField('msisdn', 'MSISDN')] },
+    { id: 'customer_update', name: 'Update Customer', method: 'PATCH', apiKey: 'update_customer', fields: [pathField('customerExternalId', 'Customer External ID')], hasJsonBody: true },
+    { id: 'customer_delete_ext', name: 'Delete Customer (External ID)', method: 'DELETE', apiKey: 'delete_customer_by_external_id', fields: [pathField('customerExternalId', 'Customer External ID')] },
+    { id: 'customer_delete_id', name: 'Delete Customer (ID)', method: 'DELETE', apiKey: 'delete_customer_by_id', fields: [pathField('customerId', 'Customer ID')] },
 ];
 const bssfContractOps = [
-    { id: 'contract_create', name: 'Create Contract', method: 'POST', apiKey: 'contract_create', fields: [], hasJsonBody: true },
-    { id: 'contract_get', name: 'Get Contract', method: 'GET', apiKey: 'contract_get', fields: [pathField('contractId', 'Contract ID')] },
-    { id: 'contract_update', name: 'Update Contract', method: 'PATCH', apiKey: 'contract_update', fields: [pathField('contractId', 'Contract ID')], hasJsonBody: true },
-    { id: 'contract_delete', name: 'Delete Contract', method: 'DELETE', apiKey: 'contract_delete', fields: [pathField('contractId', 'Contract ID')] },
-    { id: 'contract_terminate', name: 'Terminate Contract', method: 'POST', apiKey: 'contract_terminate', fields: [pathField('contractId', 'Contract ID')], hasJsonBody: true },
-    { id: 'contract_activate', name: 'Activate Contract', method: 'POST', apiKey: 'contract_activate', fields: [pathField('contractId', 'Contract ID')], hasJsonBody: true },
+    { id: 'contract_create', name: 'Create Contract', method: 'POST', apiKey: 'create_contract', fields: [pathField('customerExternalId', 'Customer External ID')], hasJsonBody: true },
+    { id: 'contract_get_msisdn', name: 'Get Contract (MSISDN)', method: 'GET', apiKey: 'get_contract_by_msisdn', fields: [queryField('msisdn', 'MSISDN')] },
+    { id: 'contract_get_ext', name: 'Get Contract (External ID)', method: 'GET', apiKey: 'get_contract_by_external_id', fields: [queryField('customerExternalId', 'Customer External ID'), queryField('contractExternalId', 'Contract External ID')] },
+    { id: 'contract_update', name: 'Update Contract', method: 'PATCH', apiKey: 'update_contract', fields: [pathField('customerExternalId', 'Customer External ID'), pathField('contractExternalId', 'Contract External ID')], hasJsonBody: true },
+    { id: 'contract_delete_ext', name: 'Delete Contract (External ID)', method: 'DELETE', apiKey: 'delete_contract_by_external_id', fields: [pathField('customerExternalId', 'Customer External ID'), pathField('contractExternalId', 'Contract External ID')] },
+    { id: 'contract_delete_msisdn', name: 'Delete Contract (MSISDN)', method: 'DELETE', apiKey: 'delete_contract_by_msisdn', fields: [pathField('msisdn', 'MSISDN')] },
+    { id: 'contract_terminate', name: 'Terminate Contract Cascade', method: 'PATCH', apiKey: 'terminate_contract_cascade', fields: [pathField('customerExternalId', 'Customer External ID'), pathField('contractExternalId', 'Contract External ID')], hasJsonBody: true },
+    { id: 'contract_activate', name: 'Activate Contract', method: 'PATCH', apiKey: 'activate_contract', fields: [pathField('customerExternalId', 'Customer External ID'), pathField('contractExternalId', 'Contract External ID')], hasJsonBody: true },
 ];
 const bssfSubscriptionOps = [
     { id: 'subscription_change_status', name: 'Change Status', method: 'POST', apiKey: 'subscription_change_status', fields: [pathField('contractId', 'Contract ID')], hasJsonBody: true },
