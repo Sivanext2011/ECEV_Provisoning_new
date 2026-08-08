@@ -419,10 +419,15 @@ export function ProvisionWizard() {
                                         if (poCharEntries.length) {
                                             const poObj = poList.find((p) => p.externalId === selectedPO);
                                             const poChars = poObj?.characteristics || [];
+                                            const MEASURE_CATEGORIES = ['Data', 'Duration', 'Money', 'Voice', 'SMS', 'MMS', 'Events'];
                                             basePlanProduct.characteristic = poCharEntries.map(([k, v]) => {
                                                 const charExtId = k.replace('_po_', '');
                                                 const specChar = poChars.find((c) => (c.externalId || c.id) === charExtId);
-                                                const unit = specChar?.unitOfMeasure || specChar?.possibleValues?.[0]?.unitOfMeasure || '';
+                                                // Get unit from possibleValues (not measure which is the category)
+                                                let unit = specChar?.possibleValues?.[0]?.unitOfMeasure || specChar?.specCharacteristicValue?.[0]?.unitOfMeasure || specChar?.unitOfMeasure || '';
+                                                // Don't use measure categories as units
+                                                if (MEASURE_CATEGORIES.includes(unit))
+                                                    unit = '';
                                                 const valObj = { value: v };
                                                 if (unit)
                                                     valObj.unitOfMeasure = unit;
@@ -489,9 +494,12 @@ export function ProvisionWizard() {
                                         if (addOnChars.length) {
                                             const addOnPoObj = poList.find((p) => p.externalId === entry.poExtId);
                                             const addOnPoChars = addOnPoObj?.characteristics || [];
+                                            const MEASURE_CATEGORIES = ['Data', 'Duration', 'Money', 'Voice', 'SMS', 'MMS', 'Events'];
                                             addOn.characteristic = addOnChars.map(([k, v]) => {
                                                 const specChar = addOnPoChars.find((c) => (c.externalId || c.id) === k);
-                                                const unit = specChar?.unitOfMeasure || specChar?.possibleValues?.[0]?.unitOfMeasure || '';
+                                                let unit = specChar?.possibleValues?.[0]?.unitOfMeasure || specChar?.specCharacteristicValue?.[0]?.unitOfMeasure || specChar?.unitOfMeasure || '';
+                                                if (MEASURE_CATEGORIES.includes(unit))
+                                                    unit = '';
                                                 const valObj = { value: v };
                                                 if (unit)
                                                     valObj.unitOfMeasure = unit;
