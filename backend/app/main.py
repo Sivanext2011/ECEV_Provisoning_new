@@ -7,6 +7,7 @@ from pathlib import Path
 
 from .routers.provisioning import router as provisioning_router
 from .routers.bssf_apis import router as bssf_router
+from .routers.trace_traffic import router as trace_router
 from .services.database import init_db
 from .services.ericsson_client import ericsson_client
 
@@ -44,6 +45,7 @@ app.add_middleware(
 
 app.include_router(provisioning_router)
 app.include_router(bssf_router)
+app.include_router(trace_router)
 
 
 @app.get("/health")

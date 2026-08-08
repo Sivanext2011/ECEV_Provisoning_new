@@ -6,12 +6,14 @@ import { OperationsPanel } from './components/OperationsPanel'
 import { POPublishPanel } from './components/POPublishPanel'
 import { SettingsPanel } from './components/SettingsPanel'
 import { ApiLogsPanel } from './components/ApiLogsPanel'
+import { TraceTraffic } from './components/TraceTraffic'
 
 const tabs = [
   { key: 'provision', label: 'Provision Subscriber', icon: '⚡' },
   { key: '360', label: '360° View', icon: '🔍' },
   { key: 'catalog', label: 'Catalog', icon: '📋' },
   { key: 'operations', label: 'Operations', icon: '⚙️' },
+  { key: 'trace', label: 'Trace & Traffic', icon: '📡' },
   { key: 'publish', label: 'PO Publish', icon: '📤' },
   { key: 'settings', label: 'Settings', icon: '🛠️' },
   { key: 'logs', label: 'API Logs', icon: '📊' },
@@ -165,6 +167,8 @@ function App() {
         return <CatalogPanel />
       case 'operations':
         return <OperationsPanel />
+      case 'trace':
+        return <TraceTraffic />
       case 'publish':
         return <POPublishPanel />
       case 'settings':
