@@ -522,6 +522,8 @@ export const OperationsPanel: React.FC = () => {
   const [formMode, setFormMode] = useState<'json' | 'form'>('form')
   const [specFormValues, setSpecFormValues] = useState<Record<string, string>>({})
   const [selectedSpec, setSelectedSpec] = useState('')
+  const [fetchedEntity, setFetchedEntity] = useState<any>(null)
+  const [fetchLoading, setFetchLoading] = useState(false)
 
   // Auto-load specs on mount for templates
   React.useEffect(() => {
@@ -760,6 +762,23 @@ export const OperationsPanel: React.FC = () => {
       if (charEntries.length) body.characteristic = charEntries.map((c: any) => ({ charSpecExternalId: c.externalId, value: [{ value: v[`char_${c.externalId}`] }] }))
       return body
     }
+    // Update operations - build PATCH body from form values
+    if (apiKey.includes('update') || apiKey.includes('_update')) {
+      const body: any = {}
+      if (v.givenName && v.givenName !== fetchedEntity?.givenName) body.givenName = v.givenName
+      if (v.familyName && v.familyName !== fetchedEntity?.familyName) body.familyName = v.familyName
+      if (v.status) body.status = [{ status: v.status }]
+      // Changed characteristics
+      const charEntries = Object.entries(v).filter(([k, val]) => k.startsWith('char_') && val)
+      if (charEntries.length) {
+        body.characteristic = charEntries.map(([k, val]) => ({ charSpecExternalId: k.replace('char_', ''), value: [{ value: val }] }))
+      }
+      // Add _pathParams for the API
+      if (apiKey.includes('party')) body._pathParams = { partyExternalId: v.externalId || v._fetchId }
+      else if (apiKey.includes('customer')) body._pathParams = { customerExternalId: v.externalId || v._fetchId }
+      else if (apiKey.includes('contract')) body._pathParams = { customerExternalId: v.customerExternalId || '', contractExternalId: v.externalId || v._fetchId }
+      return body
+    }
     return null
   }
 
@@ -797,8 +816,9 @@ export const OperationsPanel: React.FC = () => {
     setStatusCode(null)
     setSpecFormValues({})
     setSelectedSpec('')
+    setFetchedEntity(null)
     // Auto-set form mode for spec-driven operations
-    const specDrivenOps = ['party_create', 'create_party', 'customer_create', 'create_customer', 'contract_create', 'create_contract']
+    const specDrivenOps = ['party_create', 'create_party', 'customer_create', 'create_customer', 'contract_create', 'create_contract', 'party_update', 'update_party', 'customer_update', 'update_customer', 'contract_update', 'update_contract']
     setFormMode(specDrivenOps.includes(op.apiKey) ? 'form' : 'json')
   }
 
@@ -1058,9 +1078,92 @@ export const OperationsPanel: React.FC = () => {
               )}
 
               {/* Form mode but not a spec-driven operation - show hint */}
-              {formMode === 'form' && !(['party_create', 'create_party', 'customer_create', 'create_customer', 'contract_create', 'create_contract'].includes(selectedOp.apiKey)) && (
+              {formMode === 'form' && !(['party_create', 'create_party', 'customer_create', 'create_customer', 'contract_create', 'create_contract', 'party_update', 'update_party', 'customer_update', 'update_customer', 'contract_update', 'update_contract'].includes(selectedOp.apiKey)) && (
                 <div style={{ padding: '12px', background: '#fefce8', borderRadius: 6, border: '1px solid #fde047', marginBottom: 8, fontSize: 12, color: '#854d0e' }}>
                   Spec-driven form not available for this operation. Use "📋 Load Template" in JSON mode for a pre-filled body structure.
+                </div>
+              )}
+
+              {/* Update entity form - fetch then edit */}
+              {formMode === 'form' && (['party_update', 'update_party', 'customer_update', 'update_customer', 'contract_update', 'update_contract'].includes(selectedOp.apiKey)) && (
+                <div style={{ padding: '12px', background: '#f8fafc', borderRadius: 6, border: '1px solid #e2e8f0', marginBottom: 8 }}>
+                  {/* Fetch entity */}
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 10 }}>
+                    <input style={{ flex: 1, padding: '6px 10px', fontSize: 12 }}
+                      placeholder={selectedOp.apiKey.includes('party') ? 'Party External ID (e.g. extID-party-46701234567)' : selectedOp.apiKey.includes('customer') ? 'Customer External ID' : 'MSISDN or Contract External ID'}
+                      value={specFormValues._fetchId || ''}
+                      onChange={e => setSpecFormValues(p => ({ ...p, _fetchId: e.target.value }))} />
+                    <button disabled={fetchLoading || !specFormValues._fetchId} onClick={async () => {
+                      setFetchLoading(true); setFetchedEntity(null)
+                      try {
+                        const id = specFormValues._fetchId
+                        let url = ''
+                        if (selectedOp.apiKey.includes('party')) url = `${API}/party?externalId=${encodeURIComponent(id)}`
+                        else if (selectedOp.apiKey.includes('customer')) url = `${API}/customer?externalId=${encodeURIComponent(id)}`
+                        else url = `${API}/contract?msisdn=${encodeURIComponent(id)}`
+                        const r = await fetch(url)
+                        if (r.ok) {
+                          const data = await r.json()
+                          const entity = Array.isArray(data) ? data[0] : data
+                          setFetchedEntity(entity)
+                          // Pre-fill form values from fetched entity
+                          const vals: Record<string, string> = { _fetchId: id }
+                          if (entity.givenName) vals.givenName = entity.givenName
+                          if (entity.familyName) vals.familyName = entity.familyName
+                          if (entity.externalId) vals.externalId = entity.externalId
+                          const status = entity.status?.slice(-1)[0]?.status || ''
+                          if (status) vals.status = status
+                          // Extract characteristics
+                          for (const ch of (entity.characteristic || [])) {
+                            const key = ch.charSpecExternalId || ch.charSpecId || ''
+                            const val = ch.value?.[0]?.value || ''
+                            if (key && val) vals[`char_${key}`] = val
+                          }
+                          setSpecFormValues(vals)
+                        }
+                      } catch (e) { /* ignore */ }
+                      setFetchLoading(false)
+                    }} style={{ fontSize: 11, padding: '6px 14px', background: '#1d4ed8', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer' }}>
+                      {fetchLoading ? '...' : '🔍 Fetch'}
+                    </button>
+                  </div>
+
+                  {/* Edit fields from fetched entity */}
+                  {fetchedEntity && (
+                    <div>
+                      <div style={{ fontSize: 11, color: '#059669', marginBottom: 8 }}>✓ Loaded: {fetchedEntity.externalId} ({fetchedEntity.givenName || fetchedEntity.tradingName || ''} {fetchedEntity.familyName || ''})</div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 10 }}>
+                        {selectedOp.apiKey.includes('party') && <>
+                          <div><label style={{ fontSize: 11, display: 'block', marginBottom: 2 }}>Given Name</label><input style={{ width: '100%', padding: '4px 8px', fontSize: 12 }} value={specFormValues.givenName || ''} onChange={e => setSpecFormValues(p => ({ ...p, givenName: e.target.value }))} /></div>
+                          <div><label style={{ fontSize: 11, display: 'block', marginBottom: 2 }}>Family Name</label><input style={{ width: '100%', padding: '4px 8px', fontSize: 12 }} value={specFormValues.familyName || ''} onChange={e => setSpecFormValues(p => ({ ...p, familyName: e.target.value }))} /></div>
+                        </>}
+                        <div><label style={{ fontSize: 11, display: 'block', marginBottom: 2 }}>Status</label>
+                          <select style={{ width: '100%', padding: '4px 8px', fontSize: 12 }} value={specFormValues.status || ''} onChange={e => setSpecFormValues(p => ({ ...p, status: e.target.value }))}>
+                            <option value="">-- No change --</option>
+                            {selectedOp.apiKey.includes('party') && <><option value="PartyActive">PartyActive</option><option value="PartyInactive">PartyInactive</option></>}
+                            {selectedOp.apiKey.includes('customer') && <><option value="CustomerActive">CustomerActive</option><option value="CustomerSuspended">CustomerSuspended</option><option value="CustomerInactive">CustomerInactive</option></>}
+                            {selectedOp.apiKey.includes('contract') && <><option value="Active">Active</option><option value="Halt">Halt</option><option value="Terminated">Terminated</option></>}
+                          </select>
+                        </div>
+                      </div>
+                      {/* Existing characteristics */}
+                      {(fetchedEntity.characteristic || []).length > 0 && (
+                        <div style={{ padding: '8px', background: '#fff', borderRadius: 4, border: '1px solid #e5e7eb' }}>
+                          <div style={{ fontSize: 11, fontWeight: 600, marginBottom: 6 }}>Characteristics</div>
+                          {(fetchedEntity.characteristic || []).map((ch: any, i: number) => {
+                            const key = ch.charSpecExternalId || ch.charSpecId || `char_${i}`
+                            return (
+                              <div key={i} style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 4 }}>
+                                <span style={{ fontSize: 11, minWidth: 160, color: '#555' }}>{key}</span>
+                                <input style={{ flex: 1, padding: '3px 6px', fontSize: 11 }}
+                                  value={specFormValues[`char_${key}`] || ''} onChange={e => setSpecFormValues(p => ({ ...p, [`char_${key}`]: e.target.value }))} />
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
 
