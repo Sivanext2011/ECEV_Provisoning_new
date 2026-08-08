@@ -1027,7 +1027,7 @@ export function CRMView() {
   }
 
   // === BucketCard sub-component ===
-  const BucketCard = ({ bucket }: { bucket: any }) => {
+  const BucketCard = ({ bucket, productExtId }: { bucket: any; productExtId?: string }) => {
     const rawAmount = Number(bucket?.amount?.number ?? 0)
     const decPlaces = Number(bucket?.amount?.decimalPlaces ?? 0)
     const rawReserved = Number(bucket?.reservedAmount?.number ?? 0)
@@ -1049,14 +1049,73 @@ export function CRMView() {
     const name = bucket?.bucketSpecExternalId || bucket?.bucketName || bucket?.name || 'Bucket'
     const start = fmtDate(bucket?.validFor?.startDateTime)
     const end = fmtDate(bucket?.validFor?.endDateTime)
+
+    const [showAdj, setShowAdj] = React.useState(false)
+    const [adjAction, setAdjAction] = React.useState<'Relative' | 'Set'>('Relative')
+    const [adjAmount, setAdjAmount] = React.useState('')
+    const [adjEndDate, setAdjEndDate] = React.useState('')
+    const [adjLoading, setAdjLoading] = React.useState(false)
+    const [adjMsg, setAdjMsg] = React.useState('')
+
+    const doAdjust = async () => {
+      setAdjLoading(true); setAdjMsg('')
+      try {
+        const body: any = {
+          relatedParty: { externalId: custExtId, '@referredType': 'Customer' },
+          contractExternalId: contractExtId,
+          communicationId: msisdnValue || searchValue,
+          communicationIdType: 'E.164',
+          productExternalId: productExtId || bucket?._productExternalId || '',
+          bucketSpecExternalId: bucket?.bucketSpecExternalId,
+          action: adjAction,
+          amount: { number: parseInt(adjAmount), decimalPlaces: 0 },
+          unitOfMeasure: bucket?.unitOfMeasure || 'byte',
+        }
+        if (adjEndDate) {
+          body.validFor = { startDateTime: new Date().toISOString().replace(/\.\d{3}Z/, '.000Z'), endDateTime: adjEndDate + 'T23:59:59.000Z' }
+        }
+        const r = await fetch(`${API}/balance/productAdjustment`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        })
+        if (!r.ok) throw new Error((await r.json()).detail || `HTTP ${r.status}`)
+        setAdjMsg('✓'); setShowAdj(false); search()
+      } catch (e: any) { setAdjMsg(`✗ ${e.message}`) }
+      setAdjLoading(false)
+    }
+
     return (
       <div style={{ border: '1px solid #fde68a', borderRadius: 6, padding: '8px 10px', marginBottom: 8, background: '#fffbeb' }}>
-        <div style={{ fontWeight: 600, fontSize: 12, marginBottom: 4 }}>{name}</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ fontWeight: 600, fontSize: 12, flex: 1 }}>{name}</span>
+          {productExtId && <button onClick={() => setShowAdj(v => !v)} style={{ fontSize: 9, padding: '1px 5px', background: showAdj ? '#f59e0b' : '#fef3c7', color: showAdj ? '#fff' : '#92400e', border: '1px solid #fbbf24', borderRadius: 3, cursor: 'pointer' }}>{showAdj ? '✕' : '⚡ Adjust'}</button>}
+        </div>
         <InfoRow label="Amount" value={displayAmount} />
         {rawReserved > 0 && <InfoRow label="Reserved" value={fmtAmount(rawReserved)} />}
         {bucket?._baExternalId && <InfoRow label="Billing Account" value={bucket._baExternalId} />}
         {start && <InfoRow label="Valid From" value={start} />}
         {end && <InfoRow label="Valid To" value={end} />}
+        {adjMsg && <div style={{ fontSize: 10, color: adjMsg.startsWith('✓') ? '#059669' : '#dc2626', marginTop: 3 }}>{adjMsg}</div>}
+        {showAdj && (
+          <div style={{ marginTop: 6, padding: '6px 8px', background: '#fff', borderRadius: 4, border: '1px solid #fde68a' }}>
+            <div style={{ display: 'flex', gap: 4, marginBottom: 4, alignItems: 'center', flexWrap: 'wrap' }}>
+              <select style={{ padding: '2px 4px', fontSize: 10 }} value={adjAction} onChange={e => setAdjAction(e.target.value as any)}>
+                <option value="Relative">Add/Subtract</option>
+                <option value="Set">Set to</option>
+              </select>
+              <input type="number" style={{ width: 90, padding: '2px 4px', fontSize: 10 }} value={adjAmount} onChange={e => setAdjAmount(e.target.value)} placeholder="amount" />
+              <span style={{ fontSize: 9, color: '#888' }}>{bucket?.unitOfMeasure || 'byte'}</span>
+            </div>
+            <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+              <label style={{ fontSize: 9, color: '#666' }}>Expiry:</label>
+              <input type="date" style={{ padding: '2px 4px', fontSize: 10, flex: 1 }} value={adjEndDate} onChange={e => setAdjEndDate(e.target.value)} />
+              <button onClick={doAdjust} disabled={adjLoading || !adjAmount}
+                style={{ fontSize: 9, padding: '2px 8px', background: '#f59e0b', color: '#fff', border: 'none', borderRadius: 3, cursor: 'pointer' }}>
+                {adjLoading ? '...' : 'Apply'}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     )
   }
@@ -1210,7 +1269,7 @@ export function CRMView() {
                             return buckets.length > 0 ? (
                               <div style={{ marginTop: 6 }}>
                                 <div style={{ fontSize: 11, color: '#7c3aed', fontWeight: 600, marginBottom: 4 }}>Buckets</div>
-                                {buckets.map((b: any, k: number) => <BucketCard key={k} bucket={b} />)}
+                                {buckets.map((b: any, k: number) => <BucketCard key={k} bucket={b} productExtId={p.externalId} />)}
                               </div>
                             ) : null
                           })()}
