@@ -192,8 +192,8 @@ const bssfUserOps: Operation[] = [
 ]
 
 const bssfRecurrenceOps: Operation[] = [
-  { id: 'recurrence_enquiry', name: 'Recurrence Enquiry', method: 'GET', apiKey: 'recurrence_enquiry', fields: [queryField('contractId', 'Contract ID', true)] },
-  { id: 'recurrence_create_job', name: 'Create Recurrence Job', method: 'POST', apiKey: 'recurrence_create_job', fields: [], hasJsonBody: true },
+  { id: 'recurrence_enquiry', name: 'Recurrence Enquiry (MSISDN)', method: 'GET', apiKey: 'recurrence_enquiry', fields: [queryField('communicationId', 'MSISDN', true)] },
+  { id: 'recurrence_create_job', name: 'Create Recurrence Job', method: 'POST', apiKey: 'create_recurrence_job', fields: [], hasJsonBody: true },
 ]
 
 const bssfTestOps: Operation[] = [

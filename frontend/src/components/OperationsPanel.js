@@ -146,8 +146,8 @@ const bssfUserOps = [
     { id: 'user_delete', name: 'Delete User', method: 'DELETE', apiKey: 'user_delete', fields: [pathField('userId', 'User ID')] },
 ];
 const bssfRecurrenceOps = [
-    { id: 'recurrence_enquiry', name: 'Recurrence Enquiry', method: 'GET', apiKey: 'recurrence_enquiry', fields: [queryField('contractId', 'Contract ID', true)] },
-    { id: 'recurrence_create_job', name: 'Create Recurrence Job', method: 'POST', apiKey: 'recurrence_create_job', fields: [], hasJsonBody: true },
+    { id: 'recurrence_enquiry', name: 'Recurrence Enquiry (MSISDN)', method: 'GET', apiKey: 'recurrence_enquiry', fields: [queryField('communicationId', 'MSISDN', true)] },
+    { id: 'recurrence_create_job', name: 'Create Recurrence Job', method: 'POST', apiKey: 'create_recurrence_job', fields: [], hasJsonBody: true },
 ];
 const bssfTestOps = [
     { id: 'create_entity_adjustment', name: 'Create Entity Adjustment', method: 'POST', apiKey: 'create_entity_adjustment', fields: [], hasJsonBody: true },
