@@ -208,23 +208,57 @@ const bssfCommunicationOps: Operation[] = [
 
 
 // Spec Enquiry - all spec_ APIs
-const specNames = [
-  'individual', 'customer', 'contract', 'product', 'product_offering', 'product_offering_price',
-  'billing_cycle', 'billing_account', 'contact_medium', 'communication_identifier', 'party_role',
-  'agreement_item', 'agreement', 'bucket', 'bucket_determination', 'characteristic_set',
-  'common_dimension', 'common_dimension_spec', 'customer_facing_service', 'customer_list', 'entity_list',
-  'generic_business_setting', 'global_list', 'global_list_data', 'organization', 'price_tax_category',
-  'product_priority_list', 'reference_data_list', 'resource', 'rfss', 'schedule_definition',
-  'settlement_account', 'sharing_provider', 'tag', 'tax_code_detail', 'tax_configuration',
-  'tax_exemption', 'tax_package', 'tax_rule_template'
-]
+// Spec enquiry paths that map to the router endpoints (not execute/)
+const specRouterPaths: Record<string, string> = {
+  'product_offering': '/spec/productOffering',
+  'product': '/spec/product',
+  'individual': '/spec/individual',
+  'customer': '/spec/customer',
+  'contract': '/spec/contract',
+  'billing_cycle': '/spec/billingCycle',
+  'billing_account': '/spec/billing_account',
+  'contact_medium': '/spec/contactMedium',
+  'communication_identifier': '/spec/communicationIdentifier',
+  'party_role': '/spec/partyRole',
+  'agreement_item': '/spec/agreementItem',
+  'agreement': '/spec/agreement',
+  'bucket': '/spec/bucket',
+  'bucket_determination': '/spec/bucketDetermination',
+  'characteristic_set': '/spec/characteristicSet',
+  'common_dimension': '/spec/commonDimension',
+  'common_dimension_spec': '/spec/commonDimensionSpec',
+  'customer_facing_service': '/spec/customerFacingService',
+  'customer_list': '/spec/customerList',
+  'entity_list': '/spec/entityList',
+  'generic_business_setting': '/spec/genericBusinessSetting',
+  'global_list': '/spec/globalList',
+  'global_list_data': '/spec/globalListData',
+  'organization': '/spec/organization',
+  'price_tax_category': '/spec/priceTaxCategory',
+  'product_offering_price': '/spec/productOfferingPrice',
+  'product_priority_list': '/spec/productPriorityList',
+  'reference_data_list': '/spec/referenceDataList',
+  'resource': '/spec/resource',
+  'rfss': '/spec/rfss',
+  'schedule_definition': '/spec/scheduleDefinition',
+  'settlement_account': '/spec/settlementAccount',
+  'sharing_provider': '/spec/sharingProvider',
+  'tag': '/spec/tag',
+  'tax_code_detail': '/spec/taxCodeDetail',
+  'tax_configuration': '/spec/taxConfiguration',
+  'tax_exemption': '/spec/taxExemption',
+  'tax_package': '/spec/taxPackage',
+  'tax_rule_template': '/spec/taxRuleTemplate',
+}
+
+const specNames = Object.keys(specRouterPaths)
 
 const bssfSpecEnquiryOps: Operation[] = specNames.map(spec => ({
   id: `spec_${spec}`,
   name: `Spec: ${spec.replace(/_/g, ' ')}`,
   method: 'GET' as HttpMethod,
-  apiKey: `spec_${spec}`,
-  fields: [queryField('externalId', 'External ID (or leave empty for list)')],
+  apiKey: `spec_router_${spec}`,  // special marker for router-based call
+  fields: [queryField('externalId', 'External ID')],
 }))
 
 // ============ RMCA OPERATIONS ============
@@ -855,7 +889,21 @@ export const OperationsPanel: React.FC = () => {
 
       let response: Response
 
-      if (selectedOp.method === 'GET' && !selectedOp.hasJsonBody) {
+      // Special handling for spec enquiry - call router endpoints directly
+      if (selectedOp.apiKey.startsWith('spec_router_')) {
+        const specKey = selectedOp.apiKey.replace('spec_router_', '')
+        const routerPath = specRouterPaths[specKey] || ''
+        if (routerPath) {
+          const params = new URLSearchParams()
+          Object.entries(queryParams).forEach(([k, v]) => { if (v) params.append(k, v) })
+          const url = `/api/v1${routerPath}${params.toString() ? '?' + params.toString() : ''}`
+          response = await fetch(url)
+        } else {
+          setResult('ERROR: Unknown spec router path')
+          setLoading(false)
+          return
+        }
+      } else if (selectedOp.method === 'GET' && !selectedOp.hasJsonBody) {
         // GET with possible query params
         if (Object.keys(pathParams).length > 0) {
           response = await exec(selectedOp.apiKey, pathParams, undefined, queryParams)
