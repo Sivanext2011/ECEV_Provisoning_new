@@ -416,16 +416,16 @@ export function CRMView() {
                         else
                             char.charSpecId = c.id;
                         const action = { characteristic: [char] };
-                        if (c.actionId)
-                            action.action = { id: c.actionId };
-                        else if (c.actionExternalId)
+                        if (c.actionExternalId)
                             action.action = { externalId: c.actionExternalId };
+                        else if (c.actionId)
+                            action.action = { id: c.actionId };
                         return action;
                     }).filter(Boolean);
                     if (!priceAction.length)
                         return null;
                     return {
-                        ...(row.rowId ? { productOfferingPriceRow: { id: row.rowId } } : {}),
+                        ...(row.rowExternalId ? { productOfferingPriceRow: { externalId: row.rowExternalId } } : row.rowId ? { productOfferingPriceRow: { id: row.rowId } } : {}),
                         priceAction,
                     };
                 }).filter(Boolean);
@@ -669,7 +669,7 @@ export function CRMView() {
                                 }).filter(Boolean);
                                 if (!priceAction.length)
                                     return null;
-                                return { ...(row.rowId ? { productOfferingPriceRow: { id: row.rowId } } : {}), priceAction };
+                                return { ...(row.rowExternalId ? { productOfferingPriceRow: { externalId: row.rowExternalId } } : row.rowId ? { productOfferingPriceRow: { id: row.rowId } } : {}), priceAction };
                             }).filter(Boolean);
                             if (!priceRows.length)
                                 return null;
@@ -965,15 +965,15 @@ export function CRMView() {
                         else
                             char.charSpecId = c.id;
                         const action = { characteristic: [char] };
-                        if (c.actionId)
-                            action.action = { id: c.actionId };
-                        else if (c.actionExternalId)
+                        if (c.actionExternalId)
                             action.action = { externalId: c.actionExternalId };
+                        else if (c.actionId)
+                            action.action = { id: c.actionId };
                         return action;
                     }).filter(Boolean);
                     if (!priceAction.length)
                         return null;
-                    return { ...(row.rowId ? { productOfferingPriceRow: { id: row.rowId } } : {}), priceAction };
+                    return { ...(row.rowExternalId ? { productOfferingPriceRow: { externalId: row.rowExternalId } } : row.rowId ? { productOfferingPriceRow: { id: row.rowId } } : {}), priceAction };
                 }).filter(Boolean);
                 if (!priceRows.length)
                     return null;

@@ -754,13 +754,13 @@ export function ProvisionWizard() {
                         const action: any = { characteristic: [char] }
                         const _aid = String(c["actionId"] || "")
                         const _aeid = String(c["actionExternalId"] || "")
-                        if (_aid) action["action"] = { id: _aid }
-                        else if (_aeid) action["action"] = { externalId: _aeid }
+                        if (_aeid) action["action"] = { externalId: _aeid }
+                        else if (_aid) action["action"] = { id: _aid }
                         return action
                       }).filter(Boolean)
                       if (!priceAction.length) return null
                       return {
-                        ...(row.rowId ? { productOfferingPriceRow: { id: row.rowId } } : {}),
+                        ...(row.rowExternalId ? { productOfferingPriceRow: { externalId: row.rowExternalId } } : row.rowId ? { productOfferingPriceRow: { id: row.rowId } } : {}),
                         priceAction,
                       }
                     }).filter(Boolean)
@@ -813,12 +813,12 @@ export function ProvisionWizard() {
                           if (c.externalId) char.charSpecExternalId = c.externalId
                           else char.charSpecId = c.id
                           const action: any = { characteristic: [char] }
-                          if (c.actionId) action.action = { id: c.actionId }
-                          else if (c.actionExternalId) action.action = { externalId: c.actionExternalId }
+                          if (c.actionExternalId) action.action = { externalId: c.actionExternalId }
+                          else if (c.actionId) action.action = { id: c.actionId }
                           return action
                         }).filter(Boolean)
                         if (!priceAction.length) return null
-                        return { ...(row.rowId ? { productOfferingPriceRow: { id: row.rowId } } : {}), priceAction }
+                        return { ...(row.rowExternalId ? { productOfferingPriceRow: { externalId: row.rowExternalId } } : row.rowId ? { productOfferingPriceRow: { id: row.rowId } } : {}), priceAction }
                       }).filter(Boolean)
                       if (!priceRows.length) return null
                       return { productOfferingPrice: { id: pop.popId, ...(pop.popExternalId ? { externalId: pop.popExternalId } : {}) }, priceRow: priceRows }

@@ -411,13 +411,13 @@ export function CRMView() {
               if (c.externalId) char.charSpecExternalId = c.externalId
               else char.charSpecId = c.id
               const action: any = { characteristic: [char] }
-              if (c.actionId) action.action = { id: c.actionId }
-              else if (c.actionExternalId) action.action = { externalId: c.actionExternalId }
+              if (c.actionExternalId) action.action = { externalId: c.actionExternalId }
+              else if (c.actionId) action.action = { id: c.actionId }
               return action
             }).filter(Boolean)
             if (!priceAction.length) return null
             return {
-              ...(row.rowId ? { productOfferingPriceRow: { id: row.rowId } } : {}),
+              ...(row.rowExternalId ? { productOfferingPriceRow: { externalId: row.rowExternalId } } : row.rowId ? { productOfferingPriceRow: { id: row.rowId } } : {}),
               priceAction,
             }
           }).filter(Boolean)
@@ -629,7 +629,7 @@ export function CRMView() {
                     return action
                   }).filter(Boolean)
                   if (!priceAction.length) return null
-                  return { ...(row.rowId ? { productOfferingPriceRow: { id: row.rowId } } : {}), priceAction }
+                  return { ...(row.rowExternalId ? { productOfferingPriceRow: { externalId: row.rowExternalId } } : row.rowId ? { productOfferingPriceRow: { id: row.rowId } } : {}), priceAction }
                 }).filter(Boolean)
                 if (!priceRows.length) return null
                 return { productOfferingPrice: { id: pop.popId, ...(pop.popExternalId ? { externalId: pop.popExternalId } : {}) }, priceRow: priceRows }
@@ -884,12 +884,12 @@ export function CRMView() {
               if (c.externalId) char.charSpecExternalId = c.externalId
               else char.charSpecId = c.id
               const action: any = { characteristic: [char] }
-              if (c.actionId) action.action = { id: c.actionId }
-              else if (c.actionExternalId) action.action = { externalId: c.actionExternalId }
+              if (c.actionExternalId) action.action = { externalId: c.actionExternalId }
+              else if (c.actionId) action.action = { id: c.actionId }
               return action
             }).filter(Boolean)
             if (!priceAction.length) return null
-            return { ...(row.rowId ? { productOfferingPriceRow: { id: row.rowId } } : {}), priceAction }
+            return { ...(row.rowExternalId ? { productOfferingPriceRow: { externalId: row.rowExternalId } } : row.rowId ? { productOfferingPriceRow: { id: row.rowId } } : {}), priceAction }
           }).filter(Boolean)
           if (!priceRows.length) return null
           // Find existing price instance ID by matching productOfferingPriceId or productOfferingPriceExternalId
