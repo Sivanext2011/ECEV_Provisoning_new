@@ -868,6 +868,8 @@ export function CRMView() {
       // Debug: log if no prices found
       if (existingPrices.length === 0) {
         console.warn('No existing prices found for product', modifyPopProduct, 'Available keys:', Object.keys(contractProduct || {}))
+      } else {
+        console.log('Found existing prices:', existingPrices.map((ep: any) => ({ id: ep.id, popId: ep.productOfferingPriceId, popExtId: ep.productOfferingPriceExternalId, popRef: ep.productOfferingPrice })))
       }
 
       const priceEntries = modifyPopData
@@ -898,6 +900,9 @@ export function CRMView() {
             ep.productOfferingPrice?.externalId === pop.popExternalId ||
             ep.productOfferingPriceId === pop.popExternalId
           )
+          if (!existingPrice) {
+            console.warn('No match for POP:', { popId: pop.popId, popExternalId: pop.popExternalId }, 'in prices:', existingPrices.map((ep: any) => ({ id: ep.id, popId: ep.productOfferingPriceId, popExtId: ep.productOfferingPriceExternalId })))
+          }
           const entry: any = { productOfferingPrice: { id: pop.popId, ...(pop.popExternalId ? { externalId: pop.popExternalId } : {}) }, priceRow: priceRows }
           // Include existing price instance ID to update (not create new)
           if (existingPrice?.id) entry.id = existingPrice.id
