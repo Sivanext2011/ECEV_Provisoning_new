@@ -159,21 +159,21 @@ const bssfCommunicationOps = [
 ];
 // Spec Enquiry - all spec_ APIs
 const specNames = [
-    'individual', 'customer', 'contract', 'product', 'productOffering', 'productOfferingPrice',
-    'billingCycle', 'billingAccount', 'contactMedium', 'communicationIdentifier', 'partyRole',
-    'agreementItem', 'agreement', 'bucket', 'bucketDetermination', 'characteristicSet',
-    'commonDimension', 'commonDimensionSpec', 'customerFacingService', 'customerList', 'entityList',
-    'genericBusinessSetting', 'globalList', 'globalListData', 'organization', 'priceTaxCategory',
-    'productPriorityList', 'referenceDataList', 'resource', 'rfss', 'scheduleDefinition',
-    'settlementAccount', 'sharingProvider', 'tag', 'taxCodeDetail', 'taxConfiguration',
-    'taxExemption', 'taxPackage', 'taxRuleTemplate'
+    'individual', 'customer', 'contract', 'product', 'product_offering', 'product_offering_price',
+    'billing_cycle', 'billing_account', 'contact_medium', 'communication_identifier', 'party_role',
+    'agreement_item', 'agreement', 'bucket', 'bucket_determination', 'characteristic_set',
+    'common_dimension', 'common_dimension_spec', 'customer_facing_service', 'customer_list', 'entity_list',
+    'generic_business_setting', 'global_list', 'global_list_data', 'organization', 'price_tax_category',
+    'product_priority_list', 'reference_data_list', 'resource', 'rfss', 'schedule_definition',
+    'settlement_account', 'sharing_provider', 'tag', 'tax_code_detail', 'tax_configuration',
+    'tax_exemption', 'tax_package', 'tax_rule_template'
 ];
 const bssfSpecEnquiryOps = specNames.map(spec => ({
     id: `spec_${spec}`,
-    name: `spec_${spec}`,
+    name: `Spec: ${spec.replace(/_/g, ' ')}`,
     method: 'GET',
     apiKey: `spec_${spec}`,
-    fields: [queryField('specId', `${spec} Spec ID`)],
+    fields: [queryField('externalId', 'External ID (or leave empty for list)')],
 }));
 // ============ RMCA OPERATIONS ============
 const rmcaProductOfferingOps = [
