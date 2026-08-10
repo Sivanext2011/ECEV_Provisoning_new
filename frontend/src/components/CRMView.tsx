@@ -21,6 +21,25 @@ function InfoRow({ label, value }: { label: string; value: any }) {
   )
 }
 
+/** Determine current status from a BSSF status timeline array.
+ *  Finds the entry whose validFor covers 'now'. Falls back to last entry without endDateTime, or last entry overall. */
+function getCurrentStatus(statusArr: any[]): string {
+  if (!statusArr || statusArr.length === 0) return ''
+  if (statusArr.length === 1) return statusArr[0].status || ''
+  const now = new Date()
+  // Find entry where startDateTime <= now < endDateTime (or endDateTime is absent)
+  for (const s of statusArr) {
+    const start = s.validFor?.startDateTime ? new Date(s.validFor.startDateTime) : null
+    const end = s.validFor?.endDateTime ? new Date(s.validFor.endDateTime) : null
+    if (start && start <= now && (!end || now < end)) return s.status || ''
+  }
+  // Fallback: entry with no endDateTime (open-ended = final state)
+  const openEnded = statusArr.find((s: any) => s.validFor?.startDateTime && !s.validFor?.endDateTime)
+  if (openEnded) return openEnded.status || ''
+  // Last resort: last element
+  return statusArr[statusArr.length - 1].status || ''
+}
+
 function Card({ title, icon, color, defaultOpen, rawData, children }: { title: string; icon: string; color: string; defaultOpen?: boolean; rawData?: any; children: React.ReactNode }) {
   const [open, setOpen] = React.useState(defaultOpen ?? true)
   const [showRaw, setShowRaw] = React.useState(false)
@@ -269,7 +288,7 @@ export function CRMView() {
   const custExtId = cu?.externalId || ''
   const contractExtId = c?.externalId || ''
   const baExtId = cu?.account?.[0]?.externalId || ''
-  const contractStatus = c?.status?.slice(-1)[0]?.status || ''
+  const contractStatus = getCurrentStatus(c?.status) || ''
   const products = c?.product || []
   const poList = specs?.productOfferings || []
   const resourceSpecs = specs?.resourceSpecifications || []
@@ -529,7 +548,7 @@ export function CRMView() {
               consumerListExtId: cl.externalId,
               consumerCustomer: cl.consumerCustomerExternalId,
               consumerContract: cl.consumerContractExternalId,
-              status: cl.status?.slice(-1)[0]?.status || 'Active',
+              status: getCurrentStatus(cl.status) || 'Active',
             }))
           )
           setPcResult({ _type: 'provider', consumers, message: `This subscriber is a PROVIDER with ${consumers.length} consumer(s)` })
@@ -543,7 +562,7 @@ export function CRMView() {
             providerContract: p.sharingConsumer.providerContractExternalId,
             providerProduct: p.sharingConsumer.providerProductExternalId,
             consumerListEntry: p.sharingConsumer.consumerListEntryExternalId,
-            status: p.status?.slice(-1)[0]?.status || '',
+            status: getCurrentStatus(p.status) || '',
           }))
           setPcResult({ _type: 'consumer', consumerInfo, message: `This subscriber is a CONSUMER in ${consumerInfo.length} sharing group(s)` })
           setActionMsg(`✓ Consumer in ${consumerInfo.length} sharing group(s) — from loaded contract data`)
@@ -1204,7 +1223,7 @@ export function CRMView() {
                 <InfoRow label="Given Name" value={p0.givenName} />
                 <InfoRow label="Family Name" value={p0.familyName} />
                 <InfoRow label="Spec" value={p0.individualSpecification?.externalId} />
-                <InfoRow label="Status" value={p0.status?.slice(-1)[0]?.status} />
+                <InfoRow label="Status" value={getCurrentStatus(p0.status)} />
                 {(p0.contactMedium || []).map((cm: any, i: number) => {
                   const commId = cm.characteristic?.find((ch: any) => (ch.charSpecExternalId || '').toLowerCase().includes('communication'))?.value?.[0]?.value
                   const chType = cm.characteristic?.find((ch: any) => (ch.charSpecExternalId || '').toLowerCase().includes('channel'))?.value?.[0]?.value
@@ -1219,7 +1238,7 @@ export function CRMView() {
                 <InfoRow label="External ID" value={cu.externalId} />
                 <InfoRow label="Internal ID" value={cu.id} />
                 <InfoRow label="Spec" value={cu.customerSpecification?.externalId} />
-                <InfoRow label="Status" value={cu.status?.slice(-1)[0]?.status} />
+                <InfoRow label="Status" value={getCurrentStatus(cu.status)} />
                 {(cu.characteristic || []).map((ch: any, i: number) => (
                   <InfoRow key={i} label={ch.charSpecExternalId || ch.name || `Char ${i+1}`} value={ch.value?.[0]?.value ?? ch.value} />
                 ))}
@@ -1228,7 +1247,7 @@ export function CRMView() {
                     <div style={{ fontWeight: 600, marginBottom: 4 }}>💳 Billing Account {a.externalId}</div>
                     <InfoRow label="Internal ID" value={a.id} />
                     <InfoRow label="Spec" value={a.billingAccountSpecExternalId} />
-                    <InfoRow label="Status" value={a.status?.slice(-1)[0]?.status} />
+                    <InfoRow label="Status" value={getCurrentStatus(a.status)} />
                     {a.customerBillCycleSpecification?.map((bcs: any, j: number) => (
                       <InfoRow key={j} label="Bill Cycle Spec" value={bcs.billCycleSpecExternalId} />
                     ))}
@@ -1272,7 +1291,7 @@ export function CRMView() {
                   <div style={{ marginTop: 12 }}>
                     <div style={{ fontSize: 12, fontWeight: 600, color: '#555', marginBottom: 6 }}>📦 Products ({products.length})</div>
                     {products.map((p: any, i: number) => {
-                      const pStatus = p.status?.slice(-1)[0]?.status || ''
+                      const pStatus = getCurrentStatus(p.status) || ''
                       return (
                         <div key={i} style={{ border: '1px solid #e9d5ff', borderRadius: 6, padding: '8px 10px', marginBottom: 8, background: '#faf5ff' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
@@ -1296,7 +1315,7 @@ export function CRMView() {
                                   <InfoRow label="Consumer List" value={cl.externalId || cl.id} />
                                   <InfoRow label="Consumer Customer" value={cl.consumerCustomerExternalId} />
                                   <InfoRow label="Consumer Contract" value={cl.consumerContractExternalId} />
-                                  <InfoRow label="Status" value={cl.status?.slice(-1)[0]?.status} />
+                                  <InfoRow label="Status" value={getCurrentStatus(cl.status)} />
                                 </div>
                               ))}
                             </div>
@@ -2330,7 +2349,7 @@ export function CRMView() {
           {/* === PRODUCT REPLACE FORM === */}
           {showProductReplace && (() => {
             const activeProducts = products.filter((p: any) => {
-              const s = (p.status?.slice(-1)[0]?.status || '').toLowerCase()
+              const s = (getCurrentStatus(p.status) || '').toLowerCase()
               return !s.includes('terminat')
             })
             const selectedOld = activeProducts.find((p: any) => p.externalId === prOldProductExtId)
@@ -2348,7 +2367,7 @@ export function CRMView() {
                   </select>
                   {selectedOld && (
                     <div style={{ fontSize: 10, color: '#999', marginTop: 2 }}>
-                      Current PO: {selectedOld.productOfferingExternalId} | Status: {selectedOld.status?.slice(-1)[0]?.status}
+                      Current PO: {selectedOld.productOfferingExternalId} | Status: {getCurrentStatus(selectedOld.status)}
                     </div>
                   )}
                 </div>
@@ -2403,8 +2422,8 @@ export function CRMView() {
 
           {/* === UPDATE PARTY / CUSTOMER FORM === */}
           {showUpdateEntity && (() => {
-            const currentPartyStatus = p0?.status?.slice(-1)[0]?.status || ''
-            const currentCustStatus = cu?.status?.slice(-1)[0]?.status || ''
+            const currentPartyStatus = getCurrentStatus(p0?.status) || ''
+            const currentCustStatus = getCurrentStatus(cu?.status) || ''
             const currentPartyChars = p0?.characteristic || []
             const currentCustChars = cu?.characteristic || []
             return (
