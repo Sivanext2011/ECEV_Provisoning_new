@@ -1,0 +1,51 @@
+# N40 (Nchf_ConvergedCharging) - Create ChargingData Request
+# Replace <SBI_FQDN> with your CHA SBI endpoint
+# Add --cert and --key if mTLS is required
+
+curl -k -X POST \
+  "https://<SBI_FQDN>:443/nchf-convergedcharging/v3/chargingData" \
+  -H "Content-Type: application/json" \
+  -d '{
+  "subscriberIdentifier": "imsi-785007850078780",
+  "nfConsumerIdentification": {
+    "nfName": "smf-provisioning-tool",
+    "nfIPv4Address": "10.0.0.1",
+    "nfPLMNID": {"mcc": "466", "mnc": "01"}
+  },
+  "invocationTimeStamp": "2026-08-10T06:00:00.000Z",
+  "invocationSequenceNumber": 0,
+  "multipleUnitUsage": [{
+    "ratingGroup": 1000,
+    "requestedUnit": {"totalVolume": 1048576}
+  }],
+  "pDUSessionChargingInformation": {
+    "chargingId": 123456789,
+    "userInformation": {
+      "servedGPSI": "msisdn-7850078780",
+      "servedPEI": "imeisv-78500787800000000"
+    },
+    "pduSessionInformation": {
+      "networkSlicingInfo": {"sNSSAI": {"sst": 1}},
+      "pduType": "IPV4",
+      "servingNodeID": [{"plmnId": {"mcc": "466", "mnc": "01"}, "amfId": "010001"}],
+      "dnnId": "internet"
+    }
+  }
+}'
+
+
+# --- Parameters to adjust ---
+# SBI_FQDN: Your CHA SBI endpoint (e.g. bss-sbi.ecevns-oam-haber031.ews.gic.ericsson.se)
+# imsi: 785007850078780 (subscriber IMSI)
+# msisdn: 7850078780 (subscriber MSISDN)
+# ratingGroup: 1000 (must match PO usage POP dimension condition)
+# totalVolume: 1048576 (1MB in bytes - requested grant)
+# chargingId: any unique integer
+# invocationTimeStamp: current UTC time
+#
+# Expected response: 201 Created with Location header containing chargingDataRef
+# Example: Location: /nchf-convergedcharging/v3/chargingData/<chargingDataRef>
+#
+# Use chargingDataRef for subsequent Update and Release calls:
+#   Update: POST /nchf-convergedcharging/v3/chargingData/<chargingDataRef>/update
+#   Release: POST /nchf-convergedcharging/v3/chargingData/<chargingDataRef>/release

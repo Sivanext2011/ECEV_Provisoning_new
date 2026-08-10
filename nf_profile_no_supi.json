@@ -1,0 +1,170 @@
+{
+  "cha1": {
+    "allowedNfDomains": [],
+    "allowedNfTypes": [
+      "SMF",
+      "PCF"
+    ],
+    "allowedNssais": [],
+    "allowedPlmns": [],
+    "allowedSnpns": [],
+    "capacity": 100,
+    "chfInfo": {
+      "gpsiRangeList": null,
+      "plmnRangeList": null,
+      "supiRangeList": null
+    },
+    "chfInfoList": null,
+    "customInfo": null,
+    "heartBeatTimer": 30,
+    "ipv4Addresses": [],
+    "locality": "nsw",
+    "nfServicePersistence": false,
+    "nfServices": [
+      {
+        "allowedNfTypes": [
+          "SMF"
+        ],
+        "allowedOperationsPerNfInstance": null,
+        "allowedOperationsPerNfType": null,
+        "allowedSnpns": null,
+        "ipEndPoints": [],
+        "perPlmnSnssaiList": null,
+        "sNssais": null,
+        "scheme": null,
+        "serviceName": "nchf-convergedcharging",
+        "vendorId": null,
+        "versions": [
+          {
+            "apiFullVersion": "2.0.3",
+            "apiVersionInUri": "v2"
+          },
+          {
+            "apiFullVersion": "3.0.1",
+            "apiVersionInUri": "v3"
+          }
+        ]
+      },
+      {
+        "allowedNfTypes": [
+          "PCF"
+        ],
+        "allowedOperationsPerNfInstance": null,
+        "allowedOperationsPerNfType": null,
+        "allowedSnpns": null,
+        "ipEndPoints": [],
+        "perPlmnSnssaiList": null,
+        "sNssais": null,
+        "scheme": null,
+        "serviceName": "nchf-spendinglimitcontrol",
+        "vendorId": null,
+        "versions": [
+          {
+            "apiFullVersion": "1.2.0",
+            "apiVersionInUri": "v1"
+          }
+        ]
+      }
+    ],
+    "nfSetIdList": [
+      "set-prepaid.chfset.5gc.mnc001.mcc505"
+    ],
+    "nfType": "CHF",
+    "nsiList": [],
+    "overloadReporting": {
+      "downwardsNormalLoadThreshold": null,
+      "upwardsOverloadThreshold": null
+    },
+    "perPlmnSnssaiList": [],
+    "plmnList": [],
+    "priority": 0,
+    "sNssais": null,
+    "scpDomains": [],
+    "servingScope": [],
+    "snpnList": []
+  },
+  "cha2": {
+    "allowedNfDomains": [],
+    "allowedNfTypes": [
+      "SMF",
+      "PCF"
+    ],
+    "allowedNssais": [],
+    "allowedPlmns": [],
+    "allowedSnpns": [],
+    "capacity": 100,
+    "chfInfo": {
+      "gpsiRangeList": null,
+      "plmnRangeList": null,
+      "supiRangeList": null
+    },
+    "chfInfoList": null,
+    "customInfo": null,
+    "heartBeatTimer": 30,
+    "ipv4Addresses": [],
+    "locality": "qld",
+    "nfServicePersistence": false,
+    "nfServices": [
+      {
+        "allowedNfTypes": [
+          "SMF"
+        ],
+        "allowedOperationsPerNfInstance": null,
+        "allowedOperationsPerNfType": null,
+        "allowedSnpns": null,
+        "ipEndPoints": [],
+        "perPlmnSnssaiList": null,
+        "sNssais": null,
+        "scheme": null,
+        "serviceName": "nchf-convergedcharging",
+        "vendorId": null,
+        "versions": [
+          {
+            "apiFullVersion": "2.0.3",
+            "apiVersionInUri": "v2"
+          },
+          {
+            "apiFullVersion": "3.0.1",
+            "apiVersionInUri": "v3"
+          }
+        ]
+      },
+      {
+        "allowedNfTypes": [
+          "PCF"
+        ],
+        "allowedOperationsPerNfInstance": null,
+        "allowedOperationsPerNfType": null,
+        "allowedSnpns": null,
+        "ipEndPoints": [],
+        "perPlmnSnssaiList": null,
+        "sNssais": null,
+        "scheme": null,
+        "serviceName": "nchf-spendinglimitcontrol",
+        "vendorId": null,
+        "versions": [
+          {
+            "apiFullVersion": "1.2.0",
+            "apiVersionInUri": "v1"
+          }
+        ]
+      }
+    ],
+    "nfSetIdList": [
+      "set-prepaid.chfset.5gc.mnc001.mcc505"
+    ],
+    "nfType": "CHF",
+    "nsiList": [],
+    "overloadReporting": {
+      "downwardsNormalLoadThreshold": null,
+      "upwardsOverloadThreshold": null
+    },
+    "perPlmnSnssaiList": [],
+    "plmnList": [],
+    "priority": 0,
+    "sNssais": null,
+    "scpDomains": [],
+    "servingScope": [],
+    "snpnList": []
+  }
+}

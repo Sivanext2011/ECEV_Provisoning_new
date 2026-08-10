@@ -6,7 +6,7 @@ BASE = "http://localhost:8000/api/v1"
 # Fetch PO spec for POP_ReucrringTest_2
 req = urllib.request.Request(
     f"{BASE}/execute/spec_product_offering",
-    data=json.dumps({"_pathParams": {"productOfferingExternalId": "POP_ReucrringTest_1"}}).encode(),
+    data=json.dumps({"_pathParams": {"productOfferingExternalId": "POPOPP_recurrance_test2"}}).encode(),
     headers={"Content-Type": "application/json"}, method="POST"
 )
 

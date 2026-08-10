@@ -50,6 +50,7 @@ export function ProvisionWizard() {
   const [contractStatus, setContractStatus] = useState('Created')
   const [techProductStatus, setTechProductStatus] = useState('ProductActive')
   const [basePlanStatus, setBasePlanStatus] = useState('ProductCreated')
+  const [productValidFor, setProductValidFor] = useState({ enabled: false, startDateTime: '', endDateTime: '' })
 
 
   useEffect(() => {
@@ -333,6 +334,16 @@ export function ProvisionWizard() {
                 <label style={{ fontSize: 10 }}>Customer<select style={{ width: '100%', padding: '2px 4px', fontSize: 10 }} value={customerStatus} onChange={e => setCustomerStatus(e.target.value)}><option value="CustomerActive">CustomerActive</option><option value="CustomerCreated">CustomerCreated</option></select></label>
                 <label style={{ fontSize: 10 }}>Billing Acct<select style={{ width: '100%', padding: '2px 4px', fontSize: 10 }} value={baStatus} onChange={e => setBaStatus(e.target.value)}><option value="BillingAccountActive">BillingAccountActive</option><option value="BillingAccountCreated">BillingAccountCreated</option></select></label>
               </div>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, marginTop: 6 }}>
+                <input type="checkbox" checked={productValidFor.enabled} onChange={e => setProductValidFor({...productValidFor, enabled: e.target.checked})} />
+                Product Status validFor
+              </label>
+              {productValidFor.enabled && (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginTop: 4 }}>
+                  <label style={{ fontSize: 10 }}>Start<input type="datetime-local" style={{ width: '100%', padding: '2px 4px', fontSize: 10 }} value={productValidFor.startDateTime} onChange={e => setProductValidFor({...productValidFor, startDateTime: e.target.value})} /></label>
+                  <label style={{ fontSize: 10 }}>End<input type="datetime-local" style={{ width: '100%', padding: '2px 4px', fontSize: 10 }} value={productValidFor.endDateTime} onChange={e => setProductValidFor({...productValidFor, endDateTime: e.target.value})} /></label>
+                </div>
+              )}
             </div>
           )}
 
@@ -717,7 +728,7 @@ export function ProvisionWizard() {
                   externalId: `${selectedPO}-${msisdn}`,
                   correlationId: productOptions.sharingProvider ? '2' : '1',
                   name: selectedPO,
-                  status: [{ status: basePlanStatus }],
+                  status: [{ status: basePlanStatus, ...(productValidFor.enabled && (productValidFor.startDateTime || productValidFor.endDateTime) ? { validFor: { ...(productValidFor.startDateTime ? { startDateTime: new Date(productValidFor.startDateTime).toISOString() } : {}), ...(productValidFor.endDateTime ? { endDateTime: new Date(productValidFor.endDateTime).toISOString() } : {}) } } : {}) }],
                 }
                 if (productOptions.baRef) basePlanProduct.billingAccountReference = { externalId: baExtId }
                 if (productOptions.baRefRecurrence) basePlanProduct.baRefForBillCycleAlignedRecurrence = { externalId: baExtId }
@@ -781,7 +792,7 @@ export function ProvisionWizard() {
                   productOfferingExternalId: entry.poExtId,
                   externalId: `${entry.poExtId}-${msisdn}`,
                   name: entry.poExtId,
-                  status: [{ status: basePlanStatus }],
+                  status: [{ status: basePlanStatus, ...(productValidFor.enabled && (productValidFor.startDateTime || productValidFor.endDateTime) ? { validFor: { ...(productValidFor.startDateTime ? { startDateTime: new Date(productValidFor.startDateTime).toISOString() } : {}), ...(productValidFor.endDateTime ? { endDateTime: new Date(productValidFor.endDateTime).toISOString() } : {}) } } : {}) }],
                 }
                 if (entry.baRef) addOn.billingAccountReference = { externalId: baExtId }
                 if (entry.baRefRecurrence) addOn.baRefForBillCycleAlignedRecurrence = { externalId: baExtId }
