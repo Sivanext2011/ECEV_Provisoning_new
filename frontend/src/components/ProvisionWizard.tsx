@@ -15,7 +15,7 @@ export function ProvisionWizard() {
   const [selectedBASpec, setSelectedBASpec] = useState('')
   const [selectedContractSpec, setSelectedContractSpec] = useState('')
   const [selectedPO, setSelectedPO] = useState('')
-  const [additionalPOs, setAdditionalPOs] = useState<Array<{ poExtId: string; formVals: any; baRef: boolean; baRefRecurrence: boolean; popData: any[]; popVals: Record<string, {value:string;unit:string}>; popEnabled: boolean; popSelected: Record<string, boolean>; popLoading: boolean }>>([{ poExtId: '', formVals: {}, baRef: true, baRefRecurrence: true, popData: [], popVals: {}, popEnabled: false, popSelected: {}, popLoading: false }])
+  const [additionalPOs, setAdditionalPOs] = useState<Array<{ poExtId: string; formVals: any; baRef: boolean; baRefRecurrence: boolean; popData: any[]; popVals: Record<string, {value:string;unit:string}>; popEnabled: boolean; popSelected: Record<string, boolean>; popLoading: boolean; validFor: { enabled: boolean; startDateTime: string; endDateTime: string } }>>([{ poExtId: '', formVals: {}, baRef: true, baRefRecurrence: true, popData: [], popVals: {}, popEnabled: false, popSelected: {}, popLoading: false, validFor: { enabled: false, startDateTime: '', endDateTime: '' } }])
   const [selectedCommIdSpec, setSelectedCommIdSpec] = useState('')
   const [selectedResources, setSelectedResources] = useState<Array<{ specExtId: string; specId?: string; value: string }>>([])
   const [selectedCmSpecs, setSelectedCmSpecs] = useState<Array<{ specExtId: string; charVals: Record<string, string>; externalId: string }>>([{ specExtId: '', charVals: {}, externalId: '' }])
@@ -380,6 +380,20 @@ export function ProvisionWizard() {
                 <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10 }}><input type="checkbox" checked={entry.baRef} onChange={e => { const u = [...additionalPOs]; u[idx].baRef = e.target.checked; u[idx].baRefRecurrence = e.target.checked; setAdditionalPOs(u) }} />BA</label>
                 {additionalPOs.length > 1 && <button type="button" onClick={() => setAdditionalPOs(additionalPOs.filter((_, i) => i !== idx))} style={{ fontSize: 11 }}>✕</button>}
               </div>
+              {entry.poExtId && (
+                <div style={{ marginBottom: 4 }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 10 }}>
+                    <input type="checkbox" checked={entry.validFor.enabled} onChange={e => { const u = [...additionalPOs]; u[idx].validFor = { ...u[idx].validFor, enabled: e.target.checked }; setAdditionalPOs(u) }} />
+                    validFor
+                  </label>
+                  {entry.validFor.enabled && (
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4, marginTop: 2 }}>
+                      <label style={{ fontSize: 9 }}>Start<input type="datetime-local" style={{ width: '100%', padding: '2px 4px', fontSize: 9 }} value={entry.validFor.startDateTime} onChange={e => { const u = [...additionalPOs]; u[idx].validFor = { ...u[idx].validFor, startDateTime: e.target.value }; setAdditionalPOs(u) }} /></label>
+                      <label style={{ fontSize: 9 }}>End<input type="datetime-local" style={{ width: '100%', padding: '2px 4px', fontSize: 9 }} value={entry.validFor.endDateTime} onChange={e => { const u = [...additionalPOs]; u[idx].validFor = { ...u[idx].validFor, endDateTime: e.target.value }; setAdditionalPOs(u) }} /></label>
+                    </div>
+                  )}
+                </div>
+              )}
               {entry.poExtId && addOnMust.length > 0 && <div style={{ marginBottom: 4 }}>{addOnMust.map((c: any) => <CharInput key={c.id} char={c} value={entry.formVals[c.externalId || c.id] || ''} onChange={v => { const u = [...additionalPOs]; u[idx].formVals = { ...u[idx].formVals, [c.externalId || c.id]: v }; setAdditionalPOs(u) }} />)}</div>}
               {entry.poExtId && addOnOpt.length > 0 && <div style={{ marginBottom: 4 }}>{addOnOpt.map((c: any) => <CharInput key={c.id} char={c} value={entry.formVals[c.externalId || c.id] || ''} onChange={v => { const u = [...additionalPOs]; u[idx].formVals = { ...u[idx].formVals, [c.externalId || c.id]: v }; setAdditionalPOs(u) }} />)}</div>}
               {entry.popLoading && <div style={{ fontSize: 10, color: '#888' }}>Loading POP...</div>}
@@ -424,7 +438,7 @@ export function ProvisionWizard() {
             </div>
             )
           })}
-          <button type="button" style={{ fontSize: 11, width: 'fit-content' }} onClick={() => setAdditionalPOs([...additionalPOs, { poExtId: '', formVals: {}, baRef: true, baRefRecurrence: true, popData: [], popVals: {}, popEnabled: false, popSelected: {}, popLoading: false }])}>+ Add Product Offering</button>
+          <button type="button" style={{ fontSize: 11, width: 'fit-content' }} onClick={() => setAdditionalPOs([...additionalPOs, { poExtId: '', formVals: {}, baRef: true, baRefRecurrence: true, popData: [], popVals: {}, popEnabled: false, popSelected: {}, popLoading: false, validFor: { enabled: false, startDateTime: '', endDateTime: '' } }])}>+ Add Product Offering</button>
 
           <label style={{ fontSize: 12, fontWeight: 'bold', marginTop: 4 }}>Contact Mediums</label>
           {selectedCmSpecs.map((entry, idx) => {
@@ -792,7 +806,7 @@ export function ProvisionWizard() {
                   productOfferingExternalId: entry.poExtId,
                   externalId: `${entry.poExtId}-${msisdn}`,
                   name: entry.poExtId,
-                  status: [{ status: basePlanStatus, ...(productValidFor.enabled && (productValidFor.startDateTime || productValidFor.endDateTime) ? { validFor: { ...(productValidFor.startDateTime ? { startDateTime: new Date(productValidFor.startDateTime).toISOString() } : {}), ...(productValidFor.endDateTime ? { endDateTime: new Date(productValidFor.endDateTime).toISOString() } : {}) } } : {}) }],
+                  status: [{ status: basePlanStatus, ...(entry.validFor.enabled && (entry.validFor.startDateTime || entry.validFor.endDateTime) ? { validFor: { ...(entry.validFor.startDateTime ? { startDateTime: new Date(entry.validFor.startDateTime).toISOString() } : {}), ...(entry.validFor.endDateTime ? { endDateTime: new Date(entry.validFor.endDateTime).toISOString() } : {}) } } : {}) }],
                 }
                 if (entry.baRef) addOn.billingAccountReference = { externalId: baExtId }
                 if (entry.baRefRecurrence) addOn.baRefForBillCycleAlignedRecurrence = { externalId: baExtId }
