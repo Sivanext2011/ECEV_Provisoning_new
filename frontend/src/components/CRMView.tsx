@@ -135,6 +135,7 @@ export function CRMView() {
   const [newProductSharingConsumer, setNewProductSharingConsumer] = useState(false)
   const [newProductProviderExtId, setNewProductProviderExtId] = useState('')
   const [newProductConsumerListExtId, setNewProductConsumerListExtId] = useState('')
+  const [newProductValidFor, setNewProductValidFor] = useState({ enabled: false, startDateTime: '', endDateTime: '' })
   const [poSpecs, setPoSpecs] = useState<any>(null)
 
   // POP Personalization state (for Add Product)
@@ -368,11 +369,18 @@ export function CRMView() {
 
   const purchaseProduct = () => {
     if (!newPO || !newProductExtId) return
+    const statusObj: any = { status: 'ProductCreated' }
+    if (newProductValidFor.enabled) {
+      const vf: any = {}
+      if (newProductValidFor.startDateTime) vf.startDateTime = new Date(newProductValidFor.startDateTime).toISOString()
+      if (newProductValidFor.endDateTime) vf.endDateTime = new Date(newProductValidFor.endDateTime).toISOString()
+      if (Object.keys(vf).length) statusObj.validFor = vf
+    }
     const product: any = {
       productOfferingExternalId: newPO,
       externalId: newProductExtId,
       name: newProductName || newPO,
-      status: [{ status: 'ProductCreated' }],
+      status: [statusObj],
     }
     if (newProductBaRef && baExtId) {
       product.billingAccountReference = { externalId: baExtId }
@@ -1640,6 +1648,20 @@ export function CRMView() {
                       <input type="checkbox" checked={newProductBaRefRecurrence} onChange={e => setNewProductBaRefRecurrence(e.target.checked)} />
                       baRefForBillCycleAlignedRecurrence
                     </label>
+                  </div>
+
+                  {/* Product Status validFor */}
+                  <div style={{ marginBottom: 12, padding: '8px 10px', background: '#fefce8', borderRadius: 6 }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, cursor: 'pointer', fontWeight: 600 }}>
+                      <input type="checkbox" checked={newProductValidFor.enabled} onChange={e => setNewProductValidFor({...newProductValidFor, enabled: e.target.checked})} />
+                      Product Status validFor
+                    </label>
+                    {newProductValidFor.enabled && (
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 6 }}>
+                        <label style={{ fontSize: 11 }}>Start DateTime<input type="datetime-local" style={{ width: '100%', padding: '4px 6px', fontSize: 11 }} value={newProductValidFor.startDateTime} onChange={e => setNewProductValidFor({...newProductValidFor, startDateTime: e.target.value})} /></label>
+                        <label style={{ fontSize: 11 }}>End DateTime<input type="datetime-local" style={{ width: '100%', padding: '4px 6px', fontSize: 11 }} value={newProductValidFor.endDateTime} onChange={e => setNewProductValidFor({...newProductValidFor, endDateTime: e.target.value})} /></label>
+                      </div>
+                    )}
                   </div>
 
                   {/* Product Characteristics */}
