@@ -409,7 +409,19 @@ export function ProvisionWizard() {
                                             externalId: `${selectedPO}-${msisdn}`,
                                             correlationId: productOptions.sharingProvider ? '2' : '1',
                                             name: selectedPO,
-                                            status: [{ status: basePlanStatus, ...(productValidFor.enabled && (productValidFor.startDateTime || productValidFor.endDateTime) ? { validFor: { ...(productValidFor.startDateTime ? { startDateTime: new Date(productValidFor.startDateTime).toISOString() } : {}), ...(productValidFor.endDateTime ? { endDateTime: new Date(productValidFor.endDateTime).toISOString() } : {}) } } : {}) }],
+                                            status: [(() => {
+                                                    const s = { status: basePlanStatus };
+                                                    if (productValidFor.enabled) {
+                                                        const vf = {};
+                                                        if (productValidFor.startDateTime)
+                                                            vf.startDateTime = new Date(productValidFor.startDateTime).toISOString();
+                                                        if (productValidFor.endDateTime)
+                                                            vf.endDateTime = new Date(productValidFor.endDateTime).toISOString();
+                                                        if (Object.keys(vf).length)
+                                                            s.validFor = vf;
+                                                    }
+                                                    return s;
+                                                })()],
                                         };
                                         if (productOptions.baRef)
                                             basePlanProduct.billingAccountReference = { externalId: baExtId };
@@ -486,7 +498,19 @@ export function ProvisionWizard() {
                                             productOfferingExternalId: entry.poExtId,
                                             externalId: `${entry.poExtId}-${msisdn}`,
                                             name: entry.poExtId,
-                                            status: [{ status: basePlanStatus, ...(entry.validFor.enabled && (entry.validFor.startDateTime || entry.validFor.endDateTime) ? { validFor: { ...(entry.validFor.startDateTime ? { startDateTime: new Date(entry.validFor.startDateTime).toISOString() } : {}), ...(entry.validFor.endDateTime ? { endDateTime: new Date(entry.validFor.endDateTime).toISOString() } : {}) } } : {}) }],
+                                            status: [(() => {
+                                                    const s = { status: basePlanStatus };
+                                                    if (entry.validFor.enabled) {
+                                                        const vf = {};
+                                                        if (entry.validFor.startDateTime)
+                                                            vf.startDateTime = new Date(entry.validFor.startDateTime).toISOString();
+                                                        if (entry.validFor.endDateTime)
+                                                            vf.endDateTime = new Date(entry.validFor.endDateTime).toISOString();
+                                                        if (Object.keys(vf).length)
+                                                            s.validFor = vf;
+                                                    }
+                                                    return s;
+                                                })()],
                                         };
                                         if (entry.baRef)
                                             addOn.billingAccountReference = { externalId: baExtId };
