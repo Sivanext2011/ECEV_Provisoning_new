@@ -44,7 +44,7 @@ export function CharInput({ char: c, value, onChange }: CharInputProps) {
     <select style={{ width: '100%' }} value={value} onChange={e => onChange(e.target.value)} disabled={isFixed || (!personalize && isCan)}>
       <option value="">-- Select --</option>
       {enumPVs.map((pv: any, i: number) => (
-        <option key={i} value={pv.value || ''}>{pv.name || pv.value}{pv.default ? ' ✓' : ''}</option>
+        <option key={i} value={pv.value || ''}>{pv.value}{pv.name && pv.name !== pv.value && pv.name !== c.name ? ` (${pv.name})` : ''}{pv.default ? ' ✓' : ''}</option>
       ))}
     </select>
   ) : (
