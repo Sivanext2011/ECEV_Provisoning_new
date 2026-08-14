@@ -760,14 +760,16 @@ export function ProvisionWizard() {
                 if (poCharEntries.length) {
                   const poObj = poList.find((p: any) => p.externalId === selectedPO)
                   const poChars = poObj?.characteristics || []
-                  const MEASURE_TO_UNIT: Record<string, string> = { 'Data': 'megabyte', 'Duration': 'hour', 'Money': 'euro', 'Voice': 'second' }
+                  const MEASURE_CATEGORIES = ['Data', 'Duration', 'Money', 'Voice', 'SMS', 'MMS', 'Events']
                   basePlanProduct.characteristic = poCharEntries.map(([k, v]) => {
                     const charExtId = k.replace('_po_', '')
                     const specChar = poChars.find((c: any) => (c.externalId || c.id) === charExtId)
-                    // Get unit: possibleValues > form override > measure-to-unit mapping
+                    // Get unit: possibleValues unitOfMeasure > spec unitOfMeasure > form override
                     let unit = specChar?.possibleValues?.[0]?.unitOfMeasure || ''
+                    if (!unit && specChar?.unitOfMeasure) unit = specChar.unitOfMeasure
                     if (!unit && formValues.contract[`_po_unit_${charExtId}`]) unit = formValues.contract[`_po_unit_${charExtId}`]
-                    if (!unit && specChar?.unitOfMeasure && MEASURE_TO_UNIT[specChar.unitOfMeasure]) unit = MEASURE_TO_UNIT[specChar.unitOfMeasure]
+                    // Filter out measure category names (not actual units)
+                    if (MEASURE_CATEGORIES.includes(unit)) unit = ''
                     const valObj: any = { value: v }
                     if (unit) valObj.unitOfMeasure = unit
                     return { charSpecExternalId: charExtId, value: [valObj] }

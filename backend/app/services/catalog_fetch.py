@@ -77,7 +77,8 @@ def _extract_chars(char_list: list) -> list:
             "required": (c.get("minCardinality") or 0) >= 1,
             "defaultValue": "",
             "possibleValues": [],
-            "unitOfMeasure": c.get("unitOfMeasure") or c.get("measure") or "",
+            "unitOfMeasure": c.get("unitOfMeasure") or "",
+            "measure": c.get("measure") or "",
         }
 
         # Parse specCharacteristicValue entries
