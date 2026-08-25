@@ -308,10 +308,11 @@ export function ProvisionWizard() {
                                             return !poHasRs && (_jsx("button", { type: "button", style: { fontSize: 11, width: 'fit-content' }, onClick: () => setSelectedResources([...selectedResources, { specExtId: '', specId: '', value: '' }]), children: "+ Add Resource" }));
                                         })()] })), _jsxs("label", { style: { display: 'block', marginBottom: 6, fontSize: 12 }, children: ["Home Time Zone", _jsx("input", { style: { width: '100%' }, value: homeTimeZone, onChange: e => setHomeTimeZone(e.target.value), placeholder: "e.g. Europe/Stockholm" })] }), _jsxs("label", { style: { display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, marginBottom: 6 }, children: [_jsx("input", { type: "checkbox", checked: includeContactMediumAssoc, onChange: e => setIncludeContactMediumAssoc(e.target.checked) }), "Include contactMediumAssociation"] }), includeContactMediumAssoc && (_jsxs("label", { style: { display: 'block', fontSize: 12, marginBottom: 6 }, children: ["Association Language", languages.length > 0 ? (_jsx("select", { style: { width: '100%' }, value: cmAssocLanguage, onChange: e => setCmAssocLanguage(e.target.value), children: languages.map(l => _jsxs("option", { value: l.id, children: [l.name, " (", l.id, ")"] }, l.id)) })) : (_jsx("input", { style: { width: '100%' }, value: cmAssocLanguage, onChange: e => setCmAssocLanguage(e.target.value), placeholder: "e.g. en" }))] })), mustChars.length > 0 && _jsxs(_Fragment, { children: [_jsx("p", { style: { fontSize: 12, color: '#c60', margin: '8px 0 4px' }, children: "Contract \u2014 Required Characteristics:" }), mustChars.map((c) => _jsx(CharInput, { char: c, value: formValues.contract[c.externalId || c.id] || '', onChange: v => setFormValues({ ...formValues, contract: { ...formValues.contract, [c.externalId || c.id]: v } }) }, c.id))] }), optChars.length > 0 && _jsxs(_Fragment, { children: [_jsx("p", { style: { fontSize: 12, color: '#0a7', margin: '8px 0 4px' }, children: "Contract \u2014 Optional Characteristics:" }), optChars.map((c) => _jsx(CharInput, { char: c, value: formValues.contract[c.externalId || c.id] || '', onChange: v => setFormValues({ ...formValues, contract: { ...formValues.contract, [c.externalId || c.id]: v } }) }, c.id))] })] }));
                     })(), _jsxs("div", { style: { display: 'flex', gap: 10 }, children: [_jsx("button", { onClick: () => setStep(0), children: "\u2190 Back" }), _jsx("button", { disabled: !givenName || !familyName || !msisdn, onClick: () => {
-                                    const partyExtId = `extID-party-${msisdn}`;
-                                    const customerExtId = `extID-customer-${msisdn}`;
-                                    const baExtId = `extID_BA-${msisdn}`;
-                                    const contractExtId = `extID-contract-${msisdn}`;
+                                    const subRef = crypto.randomUUID().slice(0, 8);
+                                    const partyExtId = `party-${subRef}`;
+                                    const customerExtId = `customer-${subRef}`;
+                                    const baExtId = `ba-${subRef}`;
+                                    const contractExtId = `contract-${subRef}`;
                                     const nowDt = new Date().toISOString().replace(/\.\d{3}Z$/, '.000Z');
                                     const pb = {
                                         externalId: partyExtId,
@@ -323,7 +324,7 @@ export function ProvisionWizard() {
                                         .filter(e => e.specExtId)
                                         .map(e => ({
                                         contactMediumSpecExternalId: e.specExtId,
-                                        externalId: e.externalId || `cm_${e.specExtId}_${msisdn}`,
+                                        externalId: e.externalId || `cm_${e.specExtId}_${subRef}`,
                                         validFor: { startDateTime: nowDt },
                                         characteristic: Object.entries(e.charVals)
                                             .filter(([, v]) => v)
@@ -337,7 +338,7 @@ export function ProvisionWizard() {
                                         .map(e => ({
                                         contactRole: 'Notification',
                                         language: cmAssocLanguage || 'en',
-                                        contactMediumExternalId: e.externalId || `cm_${e.specExtId}_${msisdn}`,
+                                        contactMediumExternalId: e.externalId || `cm_${e.specExtId}_${subRef}`,
                                         enabled: true,
                                         validFor: { startDateTime: nowDt },
                                     }));
@@ -350,7 +351,7 @@ export function ProvisionWizard() {
                                                     billingAccountSpecExternalId: selectedBASpec,
                                                     status: [{ status: baStatus }],
                                                     ...(billCycleSpecExtId ? { customerBillCycleSpecification: [{
-                                                                externalId: `cbcs-${msisdn}`,
+                                                                externalId: `cbcs-${subRef}`,
                                                                 billCycleSpecExternalId: billCycleSpecExtId,
                                                                 billCycleChangeType: billCycleChangeType || 'NO_PRORATE',
                                                             }] } : {}),
@@ -366,7 +367,7 @@ export function ProvisionWizard() {
                                     }
                                     if (billCycleSpecExtId.trim()) {
                                         cb.account[0].customerBillCycleSpecification = [{
-                                                externalId: `cbcs-${msisdn}`,
+                                                externalId: `cbcs-${subRef}`,
                                                 billCycleSpecExternalId: billCycleSpecExtId.trim(),
                                                 billCycleChangeType: billCycleChangeType,
                                             }];
@@ -387,7 +388,7 @@ export function ProvisionWizard() {
                                         const techPO = productOptions.techPO || 'PO-Technical';
                                         products.push({
                                             productOfferingExternalId: techPO,
-                                            externalId: `extID_tech-${msisdn}`,
+                                            externalId: `extID_tech-${subRef}`,
                                             correlationId: '1',
                                             name: 'Technical Product',
                                             status: [{ status: techProductStatus }],
@@ -395,18 +396,18 @@ export function ProvisionWizard() {
                                             baRefForBillCycleAlignedRecurrence: { externalId: baExtId },
                                             sharingProvider: {
                                                 billingAccount: [{ externalId: baExtId }],
-                                                consumerList: [{ externalId: `Consumer_List_${msisdn}`, consumerCustomerExternalId: customerExtId, consumerContractExternalId: contractExtId }],
+                                                consumerList: [{ externalId: `Consumer_List_${subRef}`, consumerCustomerExternalId: customerExtId, consumerContractExternalId: contractExtId }],
                                             },
                                             sharingConsumer: {
                                                 providerCustomerExternalId: customerExtId, providerContractExternalId: contractExtId,
-                                                providerProductExternalId: `extID_tech-${msisdn}`, consumerListEntryExternalId: `Consumer_List_${msisdn}`,
+                                                providerProductExternalId: `extID_tech-${subRef}`, consumerListEntryExternalId: `Consumer_List_${subRef}`,
                                             },
                                         });
                                     }
                                     if (selectedPO) {
                                         const basePlanProduct = {
                                             productOfferingExternalId: selectedPO,
-                                            externalId: `${selectedPO}-${msisdn}`,
+                                            externalId: `${selectedPO}-${subRef}`,
                                             correlationId: productOptions.sharingProvider ? '2' : '1',
                                             name: selectedPO,
                                             status: [(() => {
@@ -503,7 +504,7 @@ export function ProvisionWizard() {
                                     for (const entry of additionalPOs.filter(e => e.poExtId)) {
                                         const addOn = {
                                             productOfferingExternalId: entry.poExtId,
-                                            externalId: `${entry.poExtId}-${msisdn}`,
+                                            externalId: `${entry.poExtId}-${subRef}`,
                                             name: entry.poExtId,
                                             status: [(() => {
                                                     const s = { status: basePlanStatus };
@@ -593,7 +594,7 @@ export function ProvisionWizard() {
                                         const commIdSpec = commIdSpecs.find((s) => s.externalId === entry.specExtId);
                                         const specId = entry.specId || linkedRs?.id || commIdSpec?.id || '';
                                         const res = {
-                                            externalId: `${rsLabel}-${entry.value}`,
+                                            externalId: `${rsLabel}-${subRef}`,
                                             resourceNumber: entry.value,
                                             resourceSpecificationExternalId: entry.specExtId,
                                             productCorrelationId: [basePlanCorrelationId],
@@ -616,7 +617,7 @@ export function ProvisionWizard() {
                                             .map(e => ({
                                             contactRole: 'Notification',
                                             language: 'en',
-                                            contactMediumExternalId: e.externalId || `cm_${e.specExtId}_${msisdn}`,
+                                            contactMediumExternalId: e.externalId || `cm_${e.specExtId}_${subRef}`,
                                             enabled: true,
                                         }));
                                     }

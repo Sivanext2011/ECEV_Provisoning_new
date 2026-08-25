@@ -640,10 +640,11 @@ export function ProvisionWizard() {
           <div style={{ display: 'flex', gap: 10 }}>
             <button onClick={() => setStep(0)}>← Back</button>
             <button disabled={!givenName || !familyName || !msisdn} onClick={() => {
-              const partyExtId = `extID-party-${msisdn}`
-              const customerExtId = `extID-customer-${msisdn}`
-              const baExtId = `extID_BA-${msisdn}`
-              const contractExtId = `extID-contract-${msisdn}`
+              const subRef = crypto.randomUUID().slice(0, 8)
+              const partyExtId = `party-${subRef}`
+              const customerExtId = `customer-${subRef}`
+              const baExtId = `ba-${subRef}`
+              const contractExtId = `contract-${subRef}`
               const nowDt = new Date().toISOString().replace(/\.\d{3}Z$/, '.000Z')
 
               const pb: any = {
@@ -656,7 +657,7 @@ export function ProvisionWizard() {
                 .filter(e => e.specExtId)
                 .map(e => ({
                   contactMediumSpecExternalId: e.specExtId,
-                  externalId: e.externalId || `cm_${e.specExtId}_${msisdn}`,
+                  externalId: e.externalId || `cm_${e.specExtId}_${subRef}`,
                   validFor: { startDateTime: nowDt },
                   characteristic: Object.entries(e.charVals)
                     .filter(([, v]) => v)
@@ -670,7 +671,7 @@ export function ProvisionWizard() {
                 .map(e => ({
                   contactRole: 'Notification',
                   language: cmAssocLanguage || 'en',
-                  contactMediumExternalId: e.externalId || `cm_${e.specExtId}_${msisdn}`,
+                  contactMediumExternalId: e.externalId || `cm_${e.specExtId}_${subRef}`,
                   enabled: true,
                   validFor: { startDateTime: nowDt },
                 }))
@@ -683,7 +684,7 @@ export function ProvisionWizard() {
                   billingAccountSpecExternalId: selectedBASpec,
                   status: [{ status: baStatus }],
                   ...(billCycleSpecExtId ? { customerBillCycleSpecification: [{
-                    externalId: `cbcs-${msisdn}`,
+                    externalId: `cbcs-${subRef}`,
                     billCycleSpecExternalId: billCycleSpecExtId,
                     billCycleChangeType: billCycleChangeType || 'NO_PRORATE',
                   }] } : {}),
@@ -699,7 +700,7 @@ export function ProvisionWizard() {
               }
               if (billCycleSpecExtId.trim()) {
                 cb.account[0].customerBillCycleSpecification = [{
-                  externalId: `cbcs-${msisdn}`,
+                  externalId: `cbcs-${subRef}`,
                   billCycleSpecExternalId: billCycleSpecExtId.trim(),
                   billCycleChangeType: billCycleChangeType,
                 }]
@@ -720,7 +721,7 @@ export function ProvisionWizard() {
                 const techPO = (productOptions as any).techPO || 'PO-Technical'
                 products.push({
                   productOfferingExternalId: techPO,
-                  externalId: `extID_tech-${msisdn}`,
+                  externalId: `extID_tech-${subRef}`,
                   correlationId: '1',
                   name: 'Technical Product',
                   status: [{ status: techProductStatus }],
@@ -728,18 +729,18 @@ export function ProvisionWizard() {
                   baRefForBillCycleAlignedRecurrence: { externalId: baExtId },
                   sharingProvider: {
                     billingAccount: [{ externalId: baExtId }],
-                    consumerList: [{ externalId: `Consumer_List_${msisdn}`, consumerCustomerExternalId: customerExtId, consumerContractExternalId: contractExtId }],
+                    consumerList: [{ externalId: `Consumer_List_${subRef}`, consumerCustomerExternalId: customerExtId, consumerContractExternalId: contractExtId }],
                   },
                   sharingConsumer: {
                     providerCustomerExternalId: customerExtId, providerContractExternalId: contractExtId,
-                    providerProductExternalId: `extID_tech-${msisdn}`, consumerListEntryExternalId: `Consumer_List_${msisdn}`,
+                    providerProductExternalId: `extID_tech-${subRef}`, consumerListEntryExternalId: `Consumer_List_${subRef}`,
                   },
                 })
               }
               if (selectedPO) {
                 const basePlanProduct: any = {
                   productOfferingExternalId: selectedPO,
-                  externalId: `${selectedPO}-${msisdn}`,
+                  externalId: `${selectedPO}-${subRef}`,
                   correlationId: productOptions.sharingProvider ? '2' : '1',
                   name: selectedPO,
                   status: [(() => {
@@ -818,7 +819,7 @@ export function ProvisionWizard() {
               for (const entry of additionalPOs.filter(e => e.poExtId)) {
                 const addOn: any = {
                   productOfferingExternalId: entry.poExtId,
-                  externalId: `${entry.poExtId}-${msisdn}`,
+                  externalId: `${entry.poExtId}-${subRef}`,
                   name: entry.poExtId,
                   status: [(() => {
                     const s: any = { status: basePlanStatus }
@@ -890,7 +891,7 @@ export function ProvisionWizard() {
                 const commIdSpec = commIdSpecs.find((s: any) => s.externalId === entry.specExtId)
                 const specId = entry.specId || linkedRs?.id || commIdSpec?.id || ''
                 const res: any = {
-                  externalId: `${rsLabel}-${entry.value}`,
+                  externalId: `${rsLabel}-${subRef}`,
                   resourceNumber: entry.value,
                   resourceSpecificationExternalId: entry.specExtId,
                   productCorrelationId: [basePlanCorrelationId],
@@ -911,7 +912,7 @@ export function ProvisionWizard() {
                   .map(e => ({
                     contactRole: 'Notification',
                     language: 'en',
-                    contactMediumExternalId: e.externalId || `cm_${e.specExtId}_${msisdn}`,
+                    contactMediumExternalId: e.externalId || `cm_${e.specExtId}_${subRef}`,
                     enabled: true,
                   }))
               }
