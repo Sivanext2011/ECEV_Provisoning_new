@@ -433,6 +433,9 @@ export function CRMView() {
             const priceAction = (row.chars || []).map((c: any) => {
               const val = popValues[`${pop.popId}_${row.rowId}_${c.id}`]
               if (!val?.value?.trim()) return null
+              // Only send if user changed from default
+              const defaultVal = c.defaultValue || ''
+              if (val.value.trim() === defaultVal.trim()) return null
               const char: any = { value: [{ value: val.value }] }
               if (val.unit) char.value[0].unitOfMeasure = val.unit
               if (c.externalId) char.charSpecExternalId = c.externalId
@@ -646,6 +649,9 @@ export function CRMView() {
                   const priceAction = (row.chars || []).map((c: any) => {
                     const val = pcPopValues[`${pop.popId}_${row.rowId}_${c.id}`]
                     if (!val?.value?.trim()) return null
+                    // Only send if user changed from default
+                    const defaultVal = c.defaultValue || ''
+                    if (val.value.trim() === defaultVal.trim()) return null
                     const char: any = { value: [{ value: val.value }] }
                     if (val.unit) char.value[0].unitOfMeasure = val.unit
                     if (c.externalId) char.charSpecExternalId = c.externalId
