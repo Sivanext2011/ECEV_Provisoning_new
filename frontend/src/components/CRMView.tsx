@@ -213,6 +213,7 @@ export function CRMView() {
   const [rsNewResourceNumber, setRsNewResourceNumber] = useState('')
   const [rsResourceSpecExtId, setRsResourceSpecExtId] = useState('')
   const [rsProductExtId, setRsProductExtId] = useState('')
+  const [rsUpdateContactMedium, setRsUpdateContactMedium] = useState(true)
 
   // Balance Adjustment state
   const [showBalanceAdj, setShowBalanceAdj] = useState(false)
@@ -977,7 +978,41 @@ export function CRMView() {
         body: JSON.stringify(body)
       })
       if (!r.ok) throw new Error((await r.json()).detail || `HTTP ${r.status}`)
-      setActionMsg('✓ Resource swap successful'); setShowResourceSwap(false); search()
+
+      // Update Contact Medium communication ID if enabled
+      if (rsUpdateContactMedium && p0?.contactMedium?.length) {
+        const partyExtId = p0.externalId
+        // Find contact mediums that have the old MSISDN in their characteristics
+        const cmUpdates: any[] = []
+        for (const cm of p0.contactMedium) {
+          const chars = cm.characteristic || []
+          const hasOldMsisdn = chars.some((ch: any) => ch.value?.[0]?.value === rsOldResourceNumber)
+          if (hasOldMsisdn) {
+            const updatedChars = chars.map((ch: any) =>
+              ch.value?.[0]?.value === rsOldResourceNumber
+                ? { ...ch, value: [{ value: rsNewResourceNumber }] }
+                : ch
+            )
+            cmUpdates.push({ externalId: cm.externalId, characteristic: updatedChars })
+          }
+        }
+        if (cmUpdates.length && partyExtId) {
+          try {
+            const cmR = await fetch(`${API}/execute/update_party`, {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ contactMedium: cmUpdates, _params: { partyExternalId: partyExtId } })
+            })
+            if (!cmR.ok) {
+              const cmErr = await cmR.json()
+              console.warn('Contact Medium update failed:', cmErr.detail)
+            }
+          } catch (cmE) {
+            console.warn('Contact Medium update error:', cmE)
+          }
+        }
+      }
+
+      setActionMsg('✓ Resource swap successful' + (rsUpdateContactMedium ? ' (Contact Medium updated)' : '')); setShowResourceSwap(false); search()
     } catch (e: any) { setActionErr(e.message) }
     setActionLoading(false)
   }
@@ -2287,6 +2322,10 @@ export function CRMView() {
                 </div>
               </div>
               <div style={{ fontSize: 11, color: '#666', marginBottom: 10 }}>Customer: <b>{custExtId}</b> | Contract: <b>{contractExtId}</b></div>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, cursor: 'pointer', marginBottom: 10 }}>
+                <input type="checkbox" checked={rsUpdateContactMedium} onChange={e => setRsUpdateContactMedium(e.target.checked)} />
+                Also update Contact Medium communication ID
+              </label>
               <div style={{ display: 'flex', gap: 8 }}>
                 <button onClick={doResourceSwap} disabled={actionLoading || !rsOldResourceNumber || !rsNewResourceNumber}
                   style={{ background: '#ea580c', color: '#fff', border: 'none', borderRadius: 6, padding: '8px 20px', cursor: 'pointer', fontWeight: 600 }}>
