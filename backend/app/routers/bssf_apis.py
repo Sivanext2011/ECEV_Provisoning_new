@@ -453,6 +453,11 @@ async def spec_billing_cycle(externalId: str = None):
     q = {"externalId": externalId} if externalId else {}
     return await _call("spec_billing_cycle", query_params=q)
 
+@router.get("/spec/bucket")
+async def spec_bucket(externalId: str = None):
+    q = {"bucketSpecificationExternalId": externalId} if externalId else {}
+    return await _call("spec_bucket", query_params=q)
+
 @router.get("/spec/bucketDetermination")
 async def spec_bucket_determination(externalId: str = None):
     q = {"externalId": externalId} if externalId else {}
@@ -703,6 +708,41 @@ async def spec_tax_package(externalId: str = None):
 async def spec_tax_rule_template(externalId: str = None):
     q = {"externalId": externalId} if externalId else {}
     return await _call("spec_tax_rule_template", query_params=q)
+
+@router.get("/spec/contract")
+async def spec_contract(externalId: str = None):
+    q = {"contractSpecificationExternalId": externalId} if externalId else {}
+    return await _call("spec_contract", query_params=q)
+
+@router.get("/spec/billing_account")
+async def spec_billing_account(externalId: str = None):
+    q = {"billingAccountSpecificationExternalId": externalId} if externalId else {}
+    return await _call("spec_billing_account", query_params=q)
+
+@router.get("/spec/resource")
+async def spec_resource(externalId: str = None):
+    q = {"resourceSpecificationExternalId": externalId} if externalId else {}
+    return await _call("spec_resource", query_params=q)
+
+@router.get("/spec/rfss")
+async def spec_rfss(externalId: str = None):
+    q = {"externalId": externalId} if externalId else {}
+    return await _call("spec_rfss", query_params=q)
+
+@router.get("/spec/referenceDataList")
+async def spec_reference_data_list(externalId: str = None):
+    q = {"externalId": externalId} if externalId else {}
+    return await _call("spec_reference_data_list", query_params=q)
+
+@router.get("/spec/globalList")
+async def spec_global_list(externalId: str = None):
+    q = {"externalId": externalId} if externalId else {}
+    return await _call("spec_global_list", query_params=q)
+
+@router.get("/spec/globalListData")
+async def spec_global_list_data(externalId: str = None):
+    q = {"externalId": externalId} if externalId else {}
+    return await _call("spec_global_list_data", query_params=q)
 
 
 # === Subscription Enquiry (extra) ===
