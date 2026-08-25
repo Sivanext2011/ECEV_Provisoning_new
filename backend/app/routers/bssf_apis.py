@@ -726,7 +726,7 @@ async def spec_resource(externalId: str = None):
 
 @router.get("/spec/rfss")
 async def spec_rfss(externalId: str = None):
-    q = {"externalId": externalId} if externalId else {}
+    q = {"resourceFacingServiceSpecificationExternalId": externalId} if externalId else {}
     return await _call("spec_rfss", query_params=q)
 
 @router.get("/spec/referenceDataList")

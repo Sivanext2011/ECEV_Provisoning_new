@@ -239,7 +239,6 @@ const specRouterPaths: Record<string, string> = {
   'product_priority_list': '/spec/productPriorityList',
   'reference_data_list': '/spec/referenceDataList',
   'resource': '/spec/resource',
-  'rfss': '/spec/rfss',
   'schedule_definition': '/spec/scheduleDefinition',
   'settlement_account': '/spec/settlementAccount',
   'sharing_provider': '/spec/sharingProvider',
