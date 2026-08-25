@@ -325,6 +325,8 @@ PATCH /bae/bssfSubscriptionManagement/v1/customer/{customerExternalId}/contract/
 
 ## Step 5: MSISDN Swap (9950099507 → 9950099508)
 
+### Step 5a: Resource Swap (Contract Update)
+
 ### Request
 ```
 PATCH /bae/bssfSubscriptionManagement/v1/customer/{customerExternalId}/contract/{contractExternalId}
@@ -383,6 +385,59 @@ PATCH /bae/bssfSubscriptionManagement/v1/customer/{customerExternalId}/contract/
 }
 ```
 
+### Step 5b: Update Contact Medium (Party Update)
+
+After the resource swap, the Contact Medium's communication ID (socialMediaId) must be updated to reflect the new MSISDN.
+
+### Request
+```
+PATCH /bae/bssfIndividualPartyManagement/v1/individualPartyExternalId/{partyExternalId}
+```
+
+```json
+{
+  "contactMedium": [
+    {
+      "externalId": "cm_CMS_SocialMedia_NTF_34337ff6",
+      "characteristic": [
+        {
+          "charSpecExternalId": "SocialMedia",
+          "value": [
+            {
+              "value": "SocialMedia"
+            }
+          ]
+        },
+        {
+          "charSpecExternalId": "socialMediaId",
+          "value": [
+            {
+              "value": "9950099508"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Response: 200 OK
+```json
+{
+  "externalId": "party-34337ff6",
+  "contactMedium": [
+    {
+      "externalId": "cm_CMS_SocialMedia_NTF_34337ff6",
+      "characteristic": [
+        {"charSpecExternalId": "SocialMedia", "value": [{"value": "SocialMedia"}]},
+        {"charSpecExternalId": "socialMediaId", "value": [{"value": "9950099508"}]}
+      ]
+    }
+  ]
+}
+```
+
 ---
 
 ## Verification: Post-Swap State
@@ -395,13 +450,14 @@ After MSISDN swap, all external IDs remain unchanged:
 | Customer | `customer-34337ff6` | CustomerActive |
 | Contract | `contract-34337ff6` | Active |
 | BA | `ba-34337ff6` | BillingAccountActive |
+| Contact Medium | `cm_CMS_SocialMedia_NTF_34337ff6` | socialMediaId = **9950099508** (updated) |
 | Product 255001 | `255001-34337ff6` | ProductActive |
 | Product 145001 | `145001-34337ff6` | ProductActive |
 | MSISDN (old) | `msisdn-34337ff6` = 9950099507 | **ResourceInactive** |
 | MSISDN (new) | `msisdn2-34337ff6` = 9950099508 | **ResourceActive** |
 | IMSI | `imsi-34337ff6` = 995009950099507 | ResourceActive |
 
-**Key Point:** No entity external IDs changed during the MSISDN swap. Only the resource status changed. This eliminates the problem of broken references when MSISDN changes.
+**Key Point:** No entity external IDs changed during the MSISDN swap. The resource status changed, and the Contact Medium communication ID was updated to the new MSISDN. All other references remain stable.
 
 ---
 
