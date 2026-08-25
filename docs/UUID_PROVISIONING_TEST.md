@@ -551,3 +551,32 @@ POP personalization works using **only externalIds** — internal UUIDs (`id`) a
 | `charSpecExternalId` | Characteristic spec identifier | `FlatRate_No_Amount` |
 
 **Note:** Internal `id` (UUID) fields are NOT required. The BSSF API resolves everything via externalId.
+
+---
+
+## CorrelationId — Optional
+
+`correlationId` on products and `productCorrelationId` on resources are **NOT required** for provisioning.
+
+### Without correlationId (verified working):
+```json
+{
+  "product": [{
+    "productOfferingExternalId": "145001",
+    "externalId": "145001-f969ac66",
+    "name": "145001",
+    "status": [{"status": "ProductActive"}]
+  }],
+  "resource": [{
+    "externalId": "msisdn-f969ac66",
+    "resourceNumber": "9950099517",
+    "resourceSpecificationExternalId": "ext_LRS_MSISDN",
+    "resourceSpecificationId": "8aabb378-affe-4bda-8ba6-55a53ccf4549"
+  }]
+}
+```
+
+### When correlationId IS needed:
+- When you have **multiple products** and need to explicitly link resources to specific products
+- `correlationId` on product + `productCorrelationId` on resource creates the linkage
+- For single-product contracts, it's unnecessary
