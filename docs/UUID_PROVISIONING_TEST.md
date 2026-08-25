@@ -13,6 +13,8 @@ This document demonstrates the UUID-based external ID approach for subscriber pr
 
 ## External ID Mapping
 
+> **Note:** The UUID (`sub_ref`) used in this document is a reference implementation. It can be replaced with any unique value such as a **CRM ID**, **sequence number**, or **account number**. The OCSG team can choose a unique identifier that suits their integration — the key requirement is that it remains stable and is not tied to MSISDN.
+
 | Entity | Pattern | Example |
 |--------|---------|---------|
 | Party | `party-{uuid}` | `party-34337ff6` |
