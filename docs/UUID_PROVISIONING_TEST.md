@@ -477,3 +477,77 @@ After MSISDN swap, all external IDs remain unchanged:
 - Resources use `resourceSpecificationId` (internal UUID) + `resourceSpecificationExternalId`
 - MSISDN swap deactivates old resource and adds new resource with new externalId
 - All billing/product/contract references use the UUID — never the MSISDN
+
+---
+
+## POP Personalization — ExternalId Only (No Internal IDs Required)
+
+POP personalization works using **only externalIds** — internal UUIDs (`id`) are not required.
+
+### Verified Request Pattern
+
+```json
+"price": [
+  {
+    "productOfferingPrice": {
+      "externalId": "POP_Prorating_Activation"
+    },
+    "priceRow": [
+      {
+        "productOfferingPriceRow": {
+          "externalId": "Action_FlatRate_No"
+        },
+        "priceAction": [
+          {
+            "characteristic": [
+              {
+                "value": [{"value": "1", "unitOfMeasure": "gibibyte"}],
+                "charSpecExternalId": "FlatRate_No_Amount"
+              }
+            ],
+            "action": {
+              "externalId": "FlatRate_No_PB_Set"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "productOfferingPrice": {
+      "externalId": "POP_RegularRecurrence"
+    },
+    "priceRow": [
+      {
+        "productOfferingPriceRow": {
+          "externalId": "Action_FlatRate_No"
+        },
+        "priceAction": [
+          {
+            "characteristic": [
+              {
+                "value": [{"value": "1", "unitOfMeasure": "gibibyte"}],
+                "charSpecExternalId": "FlatRate_No_Amount"
+              }
+            ],
+            "action": {
+              "externalId": "FlatRate_No_PB_Set"
+            }
+          }
+        ]
+      }
+    ]
+  }
+]
+```
+
+### Fields — All ExternalId Based
+
+| Field | Use | Example |
+|-------|-----|---------|
+| `productOfferingPrice.externalId` | POP identifier | `POP_RegularRecurrence` |
+| `productOfferingPriceRow.externalId` | Action row identifier | `Action_FlatRate_No` |
+| `action.externalId` | Action identifier | `FlatRate_No_PB_Set` |
+| `charSpecExternalId` | Characteristic spec identifier | `FlatRate_No_Amount` |
+
+**Note:** Internal `id` (UUID) fields are NOT required. The BSSF API resolves everything via externalId.
