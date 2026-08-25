@@ -399,6 +399,9 @@ PATCH /bae/bssfIndividualPartyManagement/v1/individualPartyExternalId/{partyExte
   "contactMedium": [
     {
       "externalId": "cm_CMS_SocialMedia_NTF_34337ff6",
+      "validFor": {
+        "startDateTime": "2026-08-25T05:20:00.000Z"
+      },
       "characteristic": [
         {
           "charSpecExternalId": "SocialMedia",
@@ -421,6 +424,8 @@ PATCH /bae/bssfIndividualPartyManagement/v1/individualPartyExternalId/{partyExte
   ]
 }
 ```
+
+**Note:** `validFor.startDateTime` is required on the contactMedium level (not on individual characteristics).
 
 ### Response: 200 OK
 ```json
@@ -465,7 +470,10 @@ After MSISDN swap, all external IDs remain unchanged:
 
 - UUID is generated as first 8 chars of `crypto.randomUUID()` (e.g., `34337ff6`)
 - Contact Medium is created on the Party with `socialMediaId` = MSISDN
-- Customer and Contract both reference the Contact Medium via `contactMediumAssociation`
+- `contactMediumAssociation` is only needed at **Customer + Account level** (NOT on contract)
+- Contract-level `contactMediumAssociation` is optional — only use if contract needs a different/specific CM
+- MSISDN swap involves 2 steps: resource swap (contract PATCH) + Contact Medium update (party PATCH)
+- Contact Medium PATCH requires `validFor.startDateTime` on the contactMedium level
 - Resources use `resourceSpecificationId` (internal UUID) + `resourceSpecificationExternalId`
 - MSISDN swap deactivates old resource and adds new resource with new externalId
 - All billing/product/contract references use the UUID — never the MSISDN

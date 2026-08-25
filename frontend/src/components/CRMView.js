@@ -1100,7 +1100,7 @@ export function CRMView() {
                     try {
                         const cmR = await fetch(`${API}/execute/update_party`, {
                             method: 'POST', headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ contactMedium: cmUpdates, _params: { partyExternalId: partyExtId } })
+                            body: JSON.stringify({ contactMedium: cmUpdates.map((cm) => ({ ...cm, validFor: { startDateTime: new Date().toISOString().replace(/\.\d{3}Z$/, '.000Z') } })), _params: { partyExternalId: partyExtId } })
                         });
                         if (!cmR.ok) {
                             const cmErr = await cmR.json();
