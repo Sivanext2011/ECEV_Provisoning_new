@@ -900,12 +900,10 @@ export function ProvisionWizard() {
                 resources.push(res)
               }
               if (resources.length) ctb.resource = resources
-              // Auto-include communicationIdentifier for MSISDN resource
-              const msisdnResource = selectedResources.find(e => e.specExtId && e.value.trim() && e.specExtId.toLowerCase().includes('msisdn'))
-              if (msisdnResource) {
-                ctb.communicationIdentifier = [{ communicationIdentifierSpecExternalId: msisdnResource.specExtId, communicationId: msisdnResource.value.trim() }]
-              } else if (selectedCommIdSpec) {
-                ctb.communicationIdentifier = [{ communicationIdentifierSpecExternalId: selectedCommIdSpec, communicationId: msisdn }]
+              // communicationIdentifier - only if explicitly selected via CommID Spec dropdown
+              if (selectedCommIdSpec) {
+                const msisdnRes = selectedResources.find(e => e.value.trim() && e.specExtId.toLowerCase().includes('msisdn'))
+                ctb.communicationIdentifier = [{ communicationIdentifierSpecExternalId: selectedCommIdSpec, communicationId: msisdnRes?.value?.trim() || msisdn }]
               }
               if (homeTimeZone.trim()) {
                 ctb.homeTimeZone = [{ timeZone: homeTimeZone.trim() }]
