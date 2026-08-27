@@ -901,7 +901,7 @@ export function ProvisionWizard() {
               }
               if (resources.length) ctb.resource = resources
               if (selectedCommIdSpec) {
-                ctb.communicationIdentifier = [{ communicationIdentifierSpecExternalId: selectedCommIdSpec }]
+                ctb.communicationIdentifier = [{ communicationIdentifierSpecExternalId: selectedCommIdSpec, communicationId: msisdn }]
               }
               if (homeTimeZone.trim()) {
                 ctb.homeTimeZone = [{ timeZone: homeTimeZone.trim() }]

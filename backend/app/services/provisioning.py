@@ -260,7 +260,7 @@ async def create_contract(
 
     comm_id_spec = defaults.get("communicationIdentifierSpecExternalId", "").strip()
     if comm_id_spec:
-        body["communicationIdentifier"] = [{"communicationIdentifierSpecExternalId": comm_id_spec}]
+        body["communicationIdentifier"] = [{"communicationIdentifierSpecExternalId": comm_id_spec, "communicationId": msisdn}]
 
     return await ericsson_client.request("create_contract", body=body, path_params={"customerExternalId": customer_external_id})
 
