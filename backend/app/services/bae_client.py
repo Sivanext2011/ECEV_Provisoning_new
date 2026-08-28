@@ -81,8 +81,18 @@ class TokenManager:
 
         try:
             # Token endpoint: always verify=False, no client cert (like curl -sk)
-            with httpx.Client(timeout=15, verify=False) as client:
-                r = client.post(url, data=data)
+            if self.proxy:
+                try:
+                    import httpx_socks
+                    transport = httpx_socks.SyncProxyTransport.from_url(self.proxy, verify=False)
+                    with httpx.Client(timeout=15, transport=transport) as client:
+                        r = client.post(url, data=data)
+                except ImportError:
+                    with httpx.Client(timeout=15, verify=False) as client:
+                        r = client.post(url, data=data)
+            else:
+                with httpx.Client(timeout=15, verify=False) as client:
+                    r = client.post(url, data=data)
         except Exception as e:
             import traceback
             err = f"{type(e).__name__}: {e}\n{traceback.format_exc()}"
@@ -143,7 +153,7 @@ class BAEClient:
         # Token manager
         self.token_mgr = TokenManager(
             self.auth_cfg, self.env, self._verify, self._client_cert,
-            self.network_cfg.get("socks5_proxy", "")
+            self.network_cfg.get("socks5_proxy", "") if self.network_cfg.get("socks5_enabled", False) else ""
         )
 
         # HTTP client
@@ -153,8 +163,20 @@ class BAEClient:
         socks_enabled = self.network_cfg.get("socks5_enabled", False)
         if proxy and socks_enabled:
             import httpx_socks
-            transport = httpx_socks.AsyncProxyTransport.from_url(proxy, verify=self._verify)
-            self._client = httpx.AsyncClient(timeout=timeout, transport=transport, cert=self._client_cert)
+            # Build SSL context for mTLS through SOCKS5
+            if self._client_cert:
+                import ssl as _ssl
+                ctx = _ssl.create_default_context()
+                if not self._verify:
+                    ctx.check_hostname = False
+                    ctx.verify_mode = _ssl.CERT_NONE
+                elif isinstance(self._verify, str):
+                    ctx.load_verify_locations(cafile=self._verify)
+                ctx.load_cert_chain(self._client_cert[0], self._client_cert[1])
+                transport = httpx_socks.AsyncProxyTransport.from_url(proxy, verify=ctx)
+            else:
+                transport = httpx_socks.AsyncProxyTransport.from_url(proxy, verify=self._verify if self._verify else False)
+            self._client = httpx.AsyncClient(timeout=timeout, transport=transport)
         else:
             self._client = httpx.AsyncClient(timeout=timeout, verify=self._verify, cert=self._client_cert)
 
@@ -367,8 +389,19 @@ class RMCACatalogClient:
         socks_enabled = self.network_cfg.get("socks5_enabled", False)
         if proxy and socks_enabled:
             import httpx_socks
-            transport = httpx_socks.AsyncProxyTransport.from_url(proxy, verify=self._verify)
-            self._client = httpx.AsyncClient(timeout=timeout, transport=transport, cert=self._client_cert)
+            if self._client_cert:
+                import ssl as _ssl
+                ctx = _ssl.create_default_context()
+                if not self._verify:
+                    ctx.check_hostname = False
+                    ctx.verify_mode = _ssl.CERT_NONE
+                elif isinstance(self._verify, str):
+                    ctx.load_verify_locations(cafile=self._verify)
+                ctx.load_cert_chain(self._client_cert[0], self._client_cert[1])
+                transport = httpx_socks.AsyncProxyTransport.from_url(proxy, verify=ctx)
+            else:
+                transport = httpx_socks.AsyncProxyTransport.from_url(proxy, verify=self._verify if self._verify else False)
+            self._client = httpx.AsyncClient(timeout=timeout, transport=transport)
         else:
             self._client = httpx.AsyncClient(timeout=timeout, verify=self._verify, cert=self._client_cert)
 

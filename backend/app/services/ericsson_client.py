@@ -124,9 +124,21 @@ class EricssonClient:
                 "scope": self.auth_cfg.get("scope", "openid"),
             }
 
-            # Token endpoint doesn't require mTLS - use a plain client with no verify
+            # Token endpoint doesn't require mTLS - use a plain client with proxy if configured
             timeout = self.network_cfg.get("timeout_seconds", 30)
-            async with httpx.AsyncClient(timeout=timeout, verify=False) as token_client:
+            proxy = self.network_cfg.get("socks5_proxy", "") if self.network_cfg.get("socks5_enabled", False) else ""
+            
+            if proxy:
+                try:
+                    import httpx_socks
+                    transport = httpx_socks.AsyncProxyTransport.from_url(proxy, verify=False)
+                    token_http = httpx.AsyncClient(timeout=timeout, transport=transport)
+                except ImportError:
+                    token_http = httpx.AsyncClient(timeout=timeout, verify=False)
+            else:
+                token_http = httpx.AsyncClient(timeout=timeout, verify=False)
+            
+            async with token_http as token_client:
                 try:
                     r = await token_client.post(endpoint, data=data, headers={"Content-Type": "application/x-www-form-urlencoded"})
                     self._log("POST", endpoint, r.status_code, {"grant_type": data["grant_type"], "client_id": data["client_id"]}, r.text)
