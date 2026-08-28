@@ -400,12 +400,14 @@ export function CRMView() {
         if (validChars.length > 0) {
             const po = poList.find((p) => p.externalId === newPO);
             const poChars = po?.characteristics || [];
-            const MEASURE_TO_UNIT = { 'Data': 'megabyte', 'Duration': 'hour', 'Money': 'euro', 'Voice': 'second' };
+            const MEASURE_CATEGORIES = ['Data', 'Duration', 'Money', 'Voice', 'SMS', 'MMS', 'Events'];
             product.characteristic = validChars.map(ch => {
                 const specChar = poChars.find((c) => (c.externalId || c.id) === ch.charSpecExternalId);
                 let unit = specChar?.possibleValues?.[0]?.unitOfMeasure || '';
-                if (!unit && specChar?.unitOfMeasure && MEASURE_TO_UNIT[specChar.unitOfMeasure])
-                    unit = MEASURE_TO_UNIT[specChar.unitOfMeasure];
+                if (!unit && specChar?.unitOfMeasure)
+                    unit = specChar.unitOfMeasure;
+                if (MEASURE_CATEGORIES.includes(unit))
+                    unit = '';
                 const valObj = { value: ch.value };
                 if (unit)
                     valObj.unitOfMeasure = unit;
