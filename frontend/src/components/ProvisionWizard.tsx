@@ -640,7 +640,7 @@ export function ProvisionWizard() {
           <div style={{ display: 'flex', gap: 10 }}>
             <button onClick={() => setStep(0)}>← Back</button>
             <button disabled={!givenName || !familyName || !msisdn} onClick={() => {
-              const subRef = crypto.randomUUID().slice(0, 8)
+              const subRef = (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2)).slice(0, 8)
               const partyExtId = `party-${subRef}`
               const customerExtId = `customer-${subRef}`
               const baExtId = `ba-${subRef}`
