@@ -1320,7 +1320,7 @@ export function CRMView() {
                     amount: { number: adjAction === 'Subtract' ? -Math.abs(parseInt(adjAmount)) : Math.abs(parseInt(adjAmount)), decimalPlaces: 0 },
                     validFor: { startDateTime: now },
                     unitOfMeasure: bucket?.unitOfMeasure || 'byte',
-                    action: adjAction === 'Set' ? 'SET' : 'RELATIVE',
+                    action: adjAction === 'Set' ? 'Set' : 'Relative',
                 };
                 if (bucket?.bucketSpecId)
                     body.bucketSpecId = bucket.bucketSpecId;
