@@ -3,6 +3,8 @@ import { CharInput } from './CharInput'
 
 const API = '/api/v1'
 
+const DATA_UNITS = ['byte', 'kilobyte', 'kibibyte', 'megabyte', 'mebibyte', 'gigabyte', 'gibibyte', 'terabyte', 'tebibyte', 'petabyte', 'pebibyte']
+
 export function ProvisionWizard() {
   const [specs, setSpecs] = useState<any>(null)
   const [step, setStep] = useState(0)
@@ -279,6 +281,11 @@ export function ProvisionWizard() {
                                     onChange={e => setPopValues(prev => ({ ...prev, [key]: { ...val, unit: e.target.value } }))}>
                                     {c.units.map((u: string) => <option key={u} value={u}>{u}</option>)}
                                   </select>
+                                ) : (val.unit && DATA_UNITS.includes(val.unit)) || (c.defaultUnit && DATA_UNITS.includes(c.defaultUnit)) ? (
+                                  <select style={{ padding: '2px 4px', fontSize: 9 }} value={val.unit}
+                                    onChange={e => setPopValues(prev => ({ ...prev, [key]: { ...val, unit: e.target.value } }))}>
+                                    {DATA_UNITS.map((u: string) => <option key={u} value={u}>{u}</option>)}
+                                  </select>
                                 ) : (
                                   <input style={{ width: 60, padding: '2px 4px', fontSize: 9 }} placeholder={c.defaultUnit || 'unit'} value={val.unit}
                                     onChange={e => setPopValues(prev => ({ ...prev, [key]: { ...val, unit: e.target.value } }))} />
@@ -420,12 +427,17 @@ export function ProvisionWizard() {
                                 <span style={{ fontSize: 10, minWidth: 80, color: '#555' }}>{c.name || c.externalId || c.id}</span>
                                 <input style={{ flex: 1, padding: '2px 4px', fontSize: 10 }} placeholder={c.defaultValue || 'value'}
                                   value={val.value} onChange={e => { const u = [...additionalPOs]; u[idx].popVals = { ...u[idx].popVals, [key]: { ...val, value: e.target.value } }; setAdditionalPOs(u) }} />
-                                {c.units && c.units.length > 0 && (
+                                {c.units && c.units.length > 0 ? (
                                   <select style={{ padding: '2px 4px', fontSize: 9 }} value={val.unit}
                                     onChange={e => { const u = [...additionalPOs]; u[idx].popVals = { ...u[idx].popVals, [key]: { ...val, unit: e.target.value } }; setAdditionalPOs(u) }}>
                                     {c.units.map((uu: string) => <option key={uu} value={uu}>{uu}</option>)}
                                   </select>
-                                )}
+                                ) : (val.unit && DATA_UNITS.includes(val.unit)) || (c.defaultUnit && DATA_UNITS.includes(c.defaultUnit)) ? (
+                                  <select style={{ padding: '2px 4px', fontSize: 9 }} value={val.unit}
+                                    onChange={e => { const u = [...additionalPOs]; u[idx].popVals = { ...u[idx].popVals, [key]: { ...val, unit: e.target.value } }; setAdditionalPOs(u) }}>
+                                    {DATA_UNITS.map((uu: string) => <option key={uu} value={uu}>{uu}</option>)}
+                                  </select>
+                                ) : null}
                               </div>
                             )
                           })}

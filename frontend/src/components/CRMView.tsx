@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react'
 
 const API = '/api/v1'
 
+const DATA_UNITS = ['byte', 'kilobyte', 'kibibyte', 'megabyte', 'mebibyte', 'gigabyte', 'gibibyte', 'terabyte', 'tebibyte', 'petabyte', 'pebibyte']
+
 // === Helper Components ===
 
 function StatusBadge({ status }: { status: string }) {
@@ -1179,6 +1181,7 @@ export function CRMView() {
     const [adjAction, setAdjAction] = React.useState<'Add' | 'Subtract' | 'Set'>('Add')
     const [adjAmount, setAdjAmount] = React.useState('')
     const [adjEndDate, setAdjEndDate] = React.useState('')
+    const [adjUnit, setAdjUnit] = React.useState(bucket?.unitOfMeasure || 'byte')
     const [adjLoading, setAdjLoading] = React.useState(false)
     const [adjMsg, setAdjMsg] = React.useState('')
 
@@ -1195,7 +1198,7 @@ export function CRMView() {
           reason: 'Manual adjustment',
           amount: { number: adjAction === 'Subtract' ? -Math.abs(parseInt(adjAmount)) : Math.abs(parseInt(adjAmount)), decimalPlaces: 0 },
           validFor: { startDateTime: now },
-          unitOfMeasure: bucket?.unitOfMeasure || 'byte',
+          unitOfMeasure: adjUnit,
           action: adjAction === 'Set' ? 'Set' : 'Relative',
         }
         if (bucket?.bucketSpecId) body.bucketSpecId = bucket.bucketSpecId
@@ -1233,7 +1236,9 @@ export function CRMView() {
                 <option value="Set">Set to</option>
               </select>
               <input type="number" style={{ width: 90, padding: '2px 4px', fontSize: 10 }} value={adjAmount} onChange={e => setAdjAmount(e.target.value)} placeholder="amount" />
-              <span style={{ fontSize: 9, color: '#888' }}>{bucket?.unitOfMeasure || 'byte'}</span>
+              <select style={{ padding: '2px 4px', fontSize: 9 }} value={adjUnit} onChange={e => setAdjUnit(e.target.value)}>
+                {DATA_UNITS.map(u => <option key={u} value={u}>{u}</option>)}
+              </select>
             </div>
             <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
               <label style={{ fontSize: 9, color: '#666' }}>Expiry:</label>
@@ -1452,6 +1457,11 @@ export function CRMView() {
                                               <select style={{ padding: '2px 4px', fontSize: 9 }} value={val.unit}
                                                 onChange={e => setModifyPopValues(prev => ({ ...prev, [key]: { ...val, unit: e.target.value } }))}>
                                                 {c.units.map((u: string) => <option key={u} value={u}>{u}</option>)}
+                                              </select>
+                                            ) : (val.unit && DATA_UNITS.includes(val.unit)) || (c.defaultUnit && DATA_UNITS.includes(c.defaultUnit)) ? (
+                                              <select style={{ padding: '2px 4px', fontSize: 9 }} value={val.unit}
+                                                onChange={e => setModifyPopValues(prev => ({ ...prev, [key]: { ...val, unit: e.target.value } }))}>
+                                                {DATA_UNITS.map((u: string) => <option key={u} value={u}>{u}</option>)}
                                               </select>
                                             ) : val.unit ? <span style={{ fontSize: 9, color: '#888' }}>{val.unit}</span> : null}
                                           </div>
@@ -1895,6 +1905,11 @@ export function CRMView() {
                                         onChange={e => setPopValues(prev => ({ ...prev, [key]: { ...val, unit: e.target.value } }))}>
                                         {c.units.map((u: string) => <option key={u} value={u}>{u}</option>)}
                                       </select>
+                                    ) : (val.unit && DATA_UNITS.includes(val.unit)) || (c.defaultUnit && DATA_UNITS.includes(c.defaultUnit)) ? (
+                                      <select style={{ padding: '2px 4px', fontSize: 10 }} value={val.unit}
+                                        onChange={e => setPopValues(prev => ({ ...prev, [key]: { ...val, unit: e.target.value } }))}>
+                                        {DATA_UNITS.map((u: string) => <option key={u} value={u}>{u}</option>)}
+                                      </select>
                                     ) : val.unit ? (
                                       <span style={{ fontSize: 10, color: '#888' }}>{val.unit}</span>
                                     ) : null}
@@ -2212,6 +2227,11 @@ export function CRMView() {
                                       <select style={{ padding: '2px 4px', fontSize: 10 }} value={val.unit}
                                         onChange={e => setPcPopValues(prev => ({ ...prev, [key]: { ...val, unit: e.target.value } }))}>
                                         {c.units.map((u: string) => <option key={u} value={u}>{u}</option>)}
+                                      </select>
+                                    ) : (val.unit && DATA_UNITS.includes(val.unit)) || (c.defaultUnit && DATA_UNITS.includes(c.defaultUnit)) ? (
+                                      <select style={{ padding: '2px 4px', fontSize: 10 }} value={val.unit}
+                                        onChange={e => setPcPopValues(prev => ({ ...prev, [key]: { ...val, unit: e.target.value } }))}>
+                                        {DATA_UNITS.map((u: string) => <option key={u} value={u}>{u}</option>)}
                                       </select>
                                     ) : val.unit ? <span style={{ fontSize: 9, color: '#888' }}>{val.unit}</span> : null}
                                   </div>
