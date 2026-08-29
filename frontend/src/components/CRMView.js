@@ -1309,20 +1309,23 @@ export function CRMView() {
             setAdjLoading(true);
             setAdjMsg('');
             try {
+                const now = new Date().toISOString().replace(/\.\d{3}Z/, '.000Z');
                 const body = {
-                    triggerTime: new Date().toISOString().replace(/\.\d{3}Z/, '.000Z'),
-                    relatedParty: { externalId: custExtId, '@referredType': 'Customer' },
+                    triggerTime: now,
+                    customerExternalId: custExtId,
                     contractExternalId: contractExtId,
-                    communicationId: msisdnValue || searchValue,
-                    communicationIdType: 'E.164',
                     productExternalId: productExtId || bucket?._productExternalId || '',
-                    bucketSpecExternalId: bucket?.bucketSpecExternalId,
-                    action: adjAction === 'Set' ? 'Set' : 'Relative',
+                    bucketSpecExternalId: bucket?.bucketSpecExternalId || '',
+                    reason: 'Manual adjustment',
                     amount: { number: adjAction === 'Subtract' ? -Math.abs(parseInt(adjAmount)) : Math.abs(parseInt(adjAmount)), decimalPlaces: 0 },
+                    validFor: { startDateTime: now },
                     unitOfMeasure: bucket?.unitOfMeasure || 'byte',
+                    action: adjAction === 'Set' ? 'SET' : 'RELATIVE',
                 };
+                if (bucket?.bucketSpecId)
+                    body.bucketSpecId = bucket.bucketSpecId;
                 if (adjEndDate) {
-                    body.validFor = { startDateTime: new Date().toISOString().replace(/\.\d{3}Z/, '.000Z'), endDateTime: adjEndDate + 'T23:59:59.000Z' };
+                    body.validFor.endDateTime = adjEndDate + 'T23:59:59.000Z';
                 }
                 const r = await fetch(`${API}/balance/productAdjustment`, {
                     method: 'POST', headers: { 'Content-Type': 'application/json' },
