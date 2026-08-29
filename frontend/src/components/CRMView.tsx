@@ -254,26 +254,49 @@ export function CRMView() {
     setActionMsg(''); setActionErr('')
     try {
       if (searchType === 'msisdn') {
-        const pr = await fetch(`${API}/party?externalId=${encodeURIComponent(`extID-party-${searchValue}`)}`)
-        if (pr.ok) setParty(await pr.json())
         const custr = await fetch(`${API}/customer?msisdn=${encodeURIComponent(searchValue)}`)
-        if (custr.ok) setCustomer(await custr.json())
+        if (custr.ok) {
+          const custData = await custr.json()
+          setCustomer(custData)
+          // Get party from customer's engagedParty reference
+          const partyExtId = custData?.engagedPartyExternalId || custData?.engagedParty?.externalId || custData?.relatedPartyExternalId || ''
+          if (partyExtId) {
+            const pr = await fetch(`${API}/party?externalId=${encodeURIComponent(partyExtId)}`)
+            if (pr.ok) setParty(await pr.json())
+          } else {
+            // Fallback: try old format
+            const pr = await fetch(`${API}/party?externalId=${encodeURIComponent(`extID-party-${searchValue}`)}`)
+            if (pr.ok) setParty(await pr.json())
+          }
+        }
         const cr = await fetch(`${API}/contract?msisdn=${encodeURIComponent(searchValue)}`)
         if (cr.ok) setContract(await cr.json())
         const balr = await fetch(`${API}/balance?msisdn=${encodeURIComponent(searchValue)}`)
         if (balr.ok) setBalance(await balr.json())
       } else if (searchType === 'externalId') {
+        // Try as party externalId first
         const pr = await fetch(`${API}/party?externalId=${encodeURIComponent(searchValue)}`)
         if (pr.ok) setParty(await pr.json())
-        const msisdnFromExt = searchValue.replace('extID-party-', '').replace('extID-customer-', '').replace('extID-contract-', '')
-        const custExtId = searchValue.startsWith('extID-customer-') ? searchValue : `extID-customer-${msisdnFromExt}`
-        const custr = await fetch(`${API}/customer?externalId=${encodeURIComponent(custExtId)}`)
-        if (custr.ok) setCustomer(await custr.json())
-        if (msisdnFromExt) {
-          const cr = await fetch(`${API}/contract?msisdn=${encodeURIComponent(msisdnFromExt)}`)
+        // Try as customer externalId
+        const custr = await fetch(`${API}/customer?externalId=${encodeURIComponent(searchValue)}`)
+        if (custr.ok) {
+          const custData = await custr.json()
+          setCustomer(custData)
+          // If party not found yet, get from customer's engagedParty
+          if (!pr.ok) {
+            const partyExtId = custData?.engagedPartyExternalId || custData?.engagedParty?.externalId || custData?.relatedPartyExternalId || ''
+            if (partyExtId) {
+              const pr2 = await fetch(`${API}/party?externalId=${encodeURIComponent(partyExtId)}`)
+              if (pr2.ok) setParty(await pr2.json())
+            }
+          }
+        }
+        // Try to get contract from customer's contract list or by MSISDN
+        const custForContract = customer || (custr.ok ? await custr.clone().json().catch(() => null) : null)
+        const contractRef = custForContract?.contract?.[0]?.id
+        if (contractRef) {
+          const cr = await fetch(`${API}/contract?id=${encodeURIComponent(contractRef)}`)
           if (cr.ok) setContract(await cr.json())
-          const balr = await fetch(`${API}/balance?msisdn=${encodeURIComponent(msisdnFromExt)}`)
-          if (balr.ok) setBalance(await balr.json())
         }
       } else {
         const custr = await fetch(`${API}/customer?id=${encodeURIComponent(searchValue)}`)
