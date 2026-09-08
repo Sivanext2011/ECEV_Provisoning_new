@@ -1262,6 +1262,29 @@ export function CRMView() {
         {bucket?._baExternalId && <InfoRow label="Billing Account" value={bucket._baExternalId} />}
         {start && <InfoRow label="Valid From" value={start} />}
         {end && <InfoRow label="Valid To" value={end} />}
+        {(bucket?.valueContainer || []).length > 0 && (
+          <div style={{ marginTop: 4, paddingTop: 4, borderTop: '1px dashed #fde68a' }}>
+            <div style={{ fontSize: 10, fontWeight: 600, color: '#92400e', marginBottom: 2 }}>
+              Value Containers ({bucket.valueContainer.length})
+            </div>
+            {bucket.valueContainer.map((vc: any, i: number) => {
+              const s = vc.validFor?.startDateTime
+              const e = vc.validFor?.endDateTime
+              const now = Date.now()
+              const after = s && !s.startsWith('0001') ? new Date(s).getTime() <= now : true
+              const before = e && !e.startsWith('9999') ? new Date(e).getTime() >= now : true
+              const isActive = after && before && Number(vc.amount?.number) > 0
+              const from = fmtDate(s) || 'Beginning'
+              const to = fmtDate(e) || 'End of time'
+              return (
+                <div key={i} style={{ fontSize: 10, padding: '2px 6px', marginBottom: 2, borderRadius: 3, background: isActive ? '#ecfdf5' : '#f9fafb', border: `1px solid ${isActive ? '#a7f3d0' : '#e5e7eb'}`, display: 'flex', justifyContent: 'space-between', gap: 6 }}>
+                  <span style={{ fontWeight: 600 }}>{fmtAmount(Number(vc.amount?.number || 0))}{isActive ? ' ●' : ''}</span>
+                  <span style={{ color: '#666' }}>{from} → {to}</span>
+                </div>
+              )
+            })}
+          </div>
+        )}
         {adjMsg && <div style={{ fontSize: 10, color: adjMsg.startsWith('✓') ? '#059669' : '#dc2626', marginTop: 3 }}>{adjMsg}</div>}
         {showAdj && (
           <div style={{ marginTop: 6, padding: '6px 8px', background: '#fff', borderRadius: 4, border: '1px solid #fde68a' }}>
@@ -1271,17 +1294,7 @@ export function CRMView() {
               <button onClick={() => setAdjMode('newVC')} style={{ fontSize: 9, padding: '2px 8px', background: adjMode === 'newVC' ? '#f59e0b' : '#fef3c7', color: adjMode === 'newVC' ? '#fff' : '#92400e', border: '1px solid #fbbf24', borderRadius: 3, cursor: 'pointer' }}>+ New Value Container</button>
             </div>
 
-            {/* Existing value containers */}
-            {(bucket?.valueContainer || []).length > 0 && (
-              <div style={{ marginBottom: 6, fontSize: 9, color: '#666' }}>
-                <div style={{ fontWeight: 600, marginBottom: 2 }}>Existing containers:</div>
-                {(bucket.valueContainer || []).map((vc: any, i: number) => (
-                  <div key={i} style={{ paddingLeft: 6 }}>
-                    • {fmtAmount(Number(vc.amount?.number || 0))} [{fmtDate(vc.validFor?.startDateTime) || 'begin'} → {fmtDate(vc.validFor?.endDateTime) || 'end'}]
-                  </div>
-                ))}
-              </div>
-            )}
+            {/* Existing value containers shown above the card always */}
 
             {adjMode === 'adjust' ? (
               <>
