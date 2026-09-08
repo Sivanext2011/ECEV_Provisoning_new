@@ -676,7 +676,7 @@ async def spec_settlement_account(externalId: str = None):
 
 @router.get("/spec/sharingProvider")
 async def spec_sharing_provider(externalId: str = None):
-    q = {"externalId": externalId} if externalId else {}
+    q = {"sharingProviderSpecificationExternalId": externalId} if externalId else {}
     return await _call("spec_sharing_provider", query_params=q)
 
 @router.get("/spec/tag")

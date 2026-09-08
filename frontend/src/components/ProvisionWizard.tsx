@@ -931,9 +931,11 @@ export function ProvisionWizard() {
                   }))
               }
               const cs2 = contractSpecs.find((s: any) => s.externalId === selectedContractSpec)
-              const mustCharKeys = new Set((cs2 ? getMustChars(cs2.characteristics) : []).map((c: any) => c.externalId || c.id))
+              // Include ANY personalizable characteristic the user filled in (mustBePersonalized + canBePersonalized/selection),
+              // not only mandatory ones. Previously optional chars personalized by the user were silently dropped.
+              const personalizableCharKeys = new Set((cs2 ? getPersonalizableChars(cs2.characteristics) : []).map((c: any) => c.externalId || c.id))
               const contractChars = Object.entries(formValues.contract)
-                .filter(([k, v]) => !k.startsWith('_') && (v as string)?.trim() && mustCharKeys.has(k))
+                .filter(([k, v]) => !k.startsWith('_') && (v as string)?.trim() && personalizableCharKeys.has(k))
               if (contractChars.length) ctb.characteristic = contractChars.map(([k, v]) => ({ charSpecExternalId: k, value: [{ value: v }] }))
 
               setPartyJson(JSON.stringify(pb, null, 2))

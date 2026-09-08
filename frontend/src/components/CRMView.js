@@ -1324,8 +1324,10 @@ export function CRMView() {
         const start = fmtDate(bucket?.validFor?.startDateTime);
         const end = fmtDate(bucket?.validFor?.endDateTime);
         const [showAdj, setShowAdj] = React.useState(false);
+        const [adjMode, setAdjMode] = React.useState('adjust');
         const [adjAction, setAdjAction] = React.useState('Add');
         const [adjAmount, setAdjAmount] = React.useState('');
+        const [adjStartDate, setAdjStartDate] = React.useState('');
         const [adjEndDate, setAdjEndDate] = React.useState('');
         const [adjUnit, setAdjUnit] = React.useState(bucket?.unitOfMeasure || 'byte');
         const [adjLoading, setAdjLoading] = React.useState(false);
@@ -1367,7 +1369,49 @@ export function CRMView() {
             }
             setAdjLoading(false);
         };
-        return (_jsxs("div", { style: { border: '1px solid #fde68a', borderRadius: 6, padding: '8px 10px', marginBottom: 8, background: '#fffbeb' }, children: [_jsxs("div", { style: { display: 'flex', alignItems: 'center', gap: 6 }, children: [_jsx("span", { style: { fontWeight: 600, fontSize: 12, flex: 1 }, children: name }), productExtId && _jsx("button", { onClick: () => setShowAdj(v => !v), style: { fontSize: 9, padding: '1px 5px', background: showAdj ? '#f59e0b' : '#fef3c7', color: showAdj ? '#fff' : '#92400e', border: '1px solid #fbbf24', borderRadius: 3, cursor: 'pointer' }, children: showAdj ? '✕' : '⚡ Adjust' })] }), _jsx(InfoRow, { label: "Amount", value: displayAmount }), rawReserved > 0 && _jsx(InfoRow, { label: "Reserved", value: fmtAmount(rawReserved) }), bucket?._baExternalId && _jsx(InfoRow, { label: "Billing Account", value: bucket._baExternalId }), start && _jsx(InfoRow, { label: "Valid From", value: start }), end && _jsx(InfoRow, { label: "Valid To", value: end }), adjMsg && _jsx("div", { style: { fontSize: 10, color: adjMsg.startsWith('✓') ? '#059669' : '#dc2626', marginTop: 3 }, children: adjMsg }), showAdj && (_jsxs("div", { style: { marginTop: 6, padding: '6px 8px', background: '#fff', borderRadius: 4, border: '1px solid #fde68a' }, children: [_jsxs("div", { style: { display: 'flex', gap: 4, marginBottom: 4, alignItems: 'center', flexWrap: 'wrap' }, children: [_jsxs("select", { style: { padding: '2px 4px', fontSize: 10 }, value: adjAction, onChange: e => setAdjAction(e.target.value), children: [_jsx("option", { value: "Add", children: "Add" }), _jsx("option", { value: "Subtract", children: "Subtract" }), _jsx("option", { value: "Set", children: "Set to" })] }), _jsx("input", { type: "number", style: { width: 90, padding: '2px 4px', fontSize: 10 }, value: adjAmount, onChange: e => setAdjAmount(e.target.value), placeholder: "amount" }), _jsx("select", { style: { padding: '2px 4px', fontSize: 9 }, value: adjUnit, onChange: e => setAdjUnit(e.target.value), children: DATA_UNITS.map(u => _jsx("option", { value: u, children: u }, u)) })] }), _jsxs("div", { style: { display: 'flex', gap: 4, alignItems: 'center' }, children: [_jsx("label", { style: { fontSize: 9, color: '#666' }, children: "Expiry:" }), _jsx("input", { type: "date", style: { padding: '2px 4px', fontSize: 10, flex: 1 }, value: adjEndDate, onChange: e => setAdjEndDate(e.target.value) }), _jsx("button", { onClick: doAdjust, disabled: adjLoading || !adjAmount, style: { fontSize: 9, padding: '2px 8px', background: '#f59e0b', color: '#fff', border: 'none', borderRadius: 3, cursor: 'pointer' }, children: adjLoading ? '...' : 'Apply' })] })] }))] }));
+        // Create a NEW value container for a specific validity period.
+        // Uses action=Relative (ADD) with distinct validFor start+end so CHA creates a NEW container
+        // (a validity period not matching an existing container => OperationValueContainer=NEW).
+        const createValueContainer = async () => {
+            setAdjLoading(true);
+            setAdjMsg('');
+            try {
+                if (!adjStartDate || !adjEndDate)
+                    throw new Error('Start and End dates are required for a new value container');
+                const now = new Date().toISOString().replace(/\.\d{3}Z/, '.000Z');
+                const body = {
+                    triggerTime: now,
+                    customerExternalId: custExtId,
+                    contractExternalId: contractExtId,
+                    productExternalId: productExtId || bucket?._productExternalId || '',
+                    bucketSpecExternalId: bucket?.bucketSpecExternalId || '',
+                    reason: 'New value container',
+                    amount: { number: Math.abs(parseInt(adjAmount)), decimalPlaces: 0 },
+                    validFor: {
+                        startDateTime: adjStartDate + 'T00:00:00.000Z',
+                        endDateTime: adjEndDate + 'T23:59:59.000Z',
+                    },
+                    unitOfMeasure: adjUnit,
+                    action: 'Relative', // ADD - creates a new container for a non-matching validity period
+                };
+                if (bucket?.bucketSpecId)
+                    body.bucketSpecId = bucket.bucketSpecId;
+                const r = await fetch(`${API}/balance/productAdjustment`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+                if (!r.ok)
+                    throw new Error((await r.json()).detail || `HTTP ${r.status}`);
+                setAdjMsg('✓ New container created');
+                setShowAdj(false);
+                search();
+            }
+            catch (e) {
+                setAdjMsg(`✗ ${e.message}`);
+            }
+            setAdjLoading(false);
+        };
+        return (_jsxs("div", { style: { border: '1px solid #fde68a', borderRadius: 6, padding: '8px 10px', marginBottom: 8, background: '#fffbeb' }, children: [_jsxs("div", { style: { display: 'flex', alignItems: 'center', gap: 6 }, children: [_jsx("span", { style: { fontWeight: 600, fontSize: 12, flex: 1 }, children: name }), productExtId && _jsx("button", { onClick: () => setShowAdj(v => !v), style: { fontSize: 9, padding: '1px 5px', background: showAdj ? '#f59e0b' : '#fef3c7', color: showAdj ? '#fff' : '#92400e', border: '1px solid #fbbf24', borderRadius: 3, cursor: 'pointer' }, children: showAdj ? '✕' : '⚡ Adjust' })] }), _jsx(InfoRow, { label: "Amount", value: displayAmount }), rawReserved > 0 && _jsx(InfoRow, { label: "Reserved", value: fmtAmount(rawReserved) }), bucket?._baExternalId && _jsx(InfoRow, { label: "Billing Account", value: bucket._baExternalId }), start && _jsx(InfoRow, { label: "Valid From", value: start }), end && _jsx(InfoRow, { label: "Valid To", value: end }), adjMsg && _jsx("div", { style: { fontSize: 10, color: adjMsg.startsWith('✓') ? '#059669' : '#dc2626', marginTop: 3 }, children: adjMsg }), showAdj && (_jsxs("div", { style: { marginTop: 6, padding: '6px 8px', background: '#fff', borderRadius: 4, border: '1px solid #fde68a' }, children: [_jsxs("div", { style: { display: 'flex', gap: 4, marginBottom: 6 }, children: [_jsx("button", { onClick: () => setAdjMode('adjust'), style: { fontSize: 9, padding: '2px 8px', background: adjMode === 'adjust' ? '#f59e0b' : '#fef3c7', color: adjMode === 'adjust' ? '#fff' : '#92400e', border: '1px solid #fbbf24', borderRadius: 3, cursor: 'pointer' }, children: "Adjust Balance" }), _jsx("button", { onClick: () => setAdjMode('newVC'), style: { fontSize: 9, padding: '2px 8px', background: adjMode === 'newVC' ? '#f59e0b' : '#fef3c7', color: adjMode === 'newVC' ? '#fff' : '#92400e', border: '1px solid #fbbf24', borderRadius: 3, cursor: 'pointer' }, children: "+ New Value Container" })] }), (bucket?.valueContainer || []).length > 0 && (_jsxs("div", { style: { marginBottom: 6, fontSize: 9, color: '#666' }, children: [_jsx("div", { style: { fontWeight: 600, marginBottom: 2 }, children: "Existing containers:" }), (bucket.valueContainer || []).map((vc, i) => (_jsxs("div", { style: { paddingLeft: 6 }, children: ["\u2022 ", fmtAmount(Number(vc.amount?.number || 0)), " [", fmtDate(vc.validFor?.startDateTime) || 'begin', " \u2192 ", fmtDate(vc.validFor?.endDateTime) || 'end', "]"] }, i)))] })), adjMode === 'adjust' ? (_jsxs(_Fragment, { children: [_jsxs("div", { style: { display: 'flex', gap: 4, marginBottom: 4, alignItems: 'center', flexWrap: 'wrap' }, children: [_jsxs("select", { style: { padding: '2px 4px', fontSize: 10 }, value: adjAction, onChange: e => setAdjAction(e.target.value), children: [_jsx("option", { value: "Add", children: "Add" }), _jsx("option", { value: "Subtract", children: "Subtract" }), _jsx("option", { value: "Set", children: "Set to" })] }), _jsx("input", { type: "number", style: { width: 90, padding: '2px 4px', fontSize: 10 }, value: adjAmount, onChange: e => setAdjAmount(e.target.value), placeholder: "amount" }), _jsx("select", { style: { padding: '2px 4px', fontSize: 9 }, value: adjUnit, onChange: e => setAdjUnit(e.target.value), children: DATA_UNITS.map(u => _jsx("option", { value: u, children: u }, u)) })] }), _jsxs("div", { style: { display: 'flex', gap: 4, alignItems: 'center' }, children: [_jsx("label", { style: { fontSize: 9, color: '#666' }, children: "Expiry:" }), _jsx("input", { type: "date", style: { padding: '2px 4px', fontSize: 10, flex: 1 }, value: adjEndDate, onChange: e => setAdjEndDate(e.target.value) }), _jsx("button", { onClick: doAdjust, disabled: adjLoading || !adjAmount, style: { fontSize: 9, padding: '2px 8px', background: '#f59e0b', color: '#fff', border: 'none', borderRadius: 3, cursor: 'pointer' }, children: adjLoading ? '...' : 'Apply' })] })] })) : (_jsxs(_Fragment, { children: [_jsx("div", { style: { fontSize: 9, color: '#666', marginBottom: 4 }, children: "Creates a NEW value container (action=Relative) for the given validity period. Requires a MULTIPLE-value-container bucket." }), _jsxs("div", { style: { display: 'flex', gap: 4, marginBottom: 4, alignItems: 'center', flexWrap: 'wrap' }, children: [_jsx("input", { type: "number", style: { width: 90, padding: '2px 4px', fontSize: 10 }, value: adjAmount, onChange: e => setAdjAmount(e.target.value), placeholder: "amount" }), _jsx("select", { style: { padding: '2px 4px', fontSize: 9 }, value: adjUnit, onChange: e => setAdjUnit(e.target.value), children: DATA_UNITS.map(u => _jsx("option", { value: u, children: u }, u)) })] }), _jsxs("div", { style: { display: 'flex', gap: 4, alignItems: 'center', marginBottom: 4, flexWrap: 'wrap' }, children: [_jsx("label", { style: { fontSize: 9, color: '#666' }, children: "Start:" }), _jsx("input", { type: "date", style: { padding: '2px 4px', fontSize: 10 }, value: adjStartDate, onChange: e => setAdjStartDate(e.target.value) }), _jsx("label", { style: { fontSize: 9, color: '#666' }, children: "End:" }), _jsx("input", { type: "date", style: { padding: '2px 4px', fontSize: 10 }, value: adjEndDate, onChange: e => setAdjEndDate(e.target.value) })] }), _jsx("button", { onClick: createValueContainer, disabled: adjLoading || !adjAmount || !adjStartDate || !adjEndDate, style: { fontSize: 9, padding: '2px 8px', background: '#0a7', color: '#fff', border: 'none', borderRadius: 3, cursor: 'pointer' }, children: adjLoading ? '...' : 'Create Container' })] }))] }))] }));
     };
     // === RENDER ===
     return (_jsxs("div", { children: [_jsx("h2", { children: "\uD83D\uDC64 360\u00B0 Subscriber View" }), _jsxs("div", { style: { display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }, children: [_jsxs("select", { value: searchType, onChange: e => setSearchType(e.target.value), children: [_jsx("option", { value: "msisdn", children: "MSISDN" }), _jsx("option", { value: "externalId", children: "External ID" }), _jsx("option", { value: "id", children: "Internal ID" })] }), _jsx("input", { style: { flex: 1, minWidth: 200 }, placeholder: `Enter ${searchType}...`, value: searchValue, onChange: e => setSearchValue(e.target.value), onKeyDown: e => e.key === 'Enter' && search() }), _jsx("button", { onClick: search, disabled: loading || !searchValue, children: loading ? 'Searching...' : 'Search' })] }), error && _jsx("p", { style: { color: 'red' }, children: error }), actionMsg && _jsx("p", { style: { color: 'green', fontSize: 12, background: '#f0fff0', padding: 8, borderRadius: 4 }, children: actionMsg }), actionErr && (() => {

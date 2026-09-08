@@ -1178,8 +1178,10 @@ export function CRMView() {
     const end = fmtDate(bucket?.validFor?.endDateTime)
 
     const [showAdj, setShowAdj] = React.useState(false)
+    const [adjMode, setAdjMode] = React.useState<'adjust' | 'newVC'>('adjust')
     const [adjAction, setAdjAction] = React.useState<'Add' | 'Subtract' | 'Set'>('Add')
     const [adjAmount, setAdjAmount] = React.useState('')
+    const [adjStartDate, setAdjStartDate] = React.useState('')
     const [adjEndDate, setAdjEndDate] = React.useState('')
     const [adjUnit, setAdjUnit] = React.useState(bucket?.unitOfMeasure || 'byte')
     const [adjLoading, setAdjLoading] = React.useState(false)
@@ -1215,6 +1217,40 @@ export function CRMView() {
       setAdjLoading(false)
     }
 
+    // Create a NEW value container for a specific validity period.
+    // Uses action=Relative (ADD) with distinct validFor start+end so CHA creates a NEW container
+    // (a validity period not matching an existing container => OperationValueContainer=NEW).
+    const createValueContainer = async () => {
+      setAdjLoading(true); setAdjMsg('')
+      try {
+        if (!adjStartDate || !adjEndDate) throw new Error('Start and End dates are required for a new value container')
+        const now = new Date().toISOString().replace(/\.\d{3}Z/, '.000Z')
+        const body: any = {
+          triggerTime: now,
+          customerExternalId: custExtId,
+          contractExternalId: contractExtId,
+          productExternalId: productExtId || bucket?._productExternalId || '',
+          bucketSpecExternalId: bucket?.bucketSpecExternalId || '',
+          reason: 'New value container',
+          amount: { number: Math.abs(parseInt(adjAmount)), decimalPlaces: 0 },
+          validFor: {
+            startDateTime: adjStartDate + 'T00:00:00.000Z',
+            endDateTime: adjEndDate + 'T23:59:59.000Z',
+          },
+          unitOfMeasure: adjUnit,
+          action: 'Relative', // ADD - creates a new container for a non-matching validity period
+        }
+        if (bucket?.bucketSpecId) body.bucketSpecId = bucket.bucketSpecId
+        const r = await fetch(`${API}/balance/productAdjustment`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        })
+        if (!r.ok) throw new Error((await r.json()).detail || `HTTP ${r.status}`)
+        setAdjMsg('✓ New container created'); setShowAdj(false); search()
+      } catch (e: any) { setAdjMsg(`✗ ${e.message}`) }
+      setAdjLoading(false)
+    }
+
     return (
       <div style={{ border: '1px solid #fde68a', borderRadius: 6, padding: '8px 10px', marginBottom: 8, background: '#fffbeb' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -1229,25 +1265,67 @@ export function CRMView() {
         {adjMsg && <div style={{ fontSize: 10, color: adjMsg.startsWith('✓') ? '#059669' : '#dc2626', marginTop: 3 }}>{adjMsg}</div>}
         {showAdj && (
           <div style={{ marginTop: 6, padding: '6px 8px', background: '#fff', borderRadius: 4, border: '1px solid #fde68a' }}>
-            <div style={{ display: 'flex', gap: 4, marginBottom: 4, alignItems: 'center', flexWrap: 'wrap' }}>
-              <select style={{ padding: '2px 4px', fontSize: 10 }} value={adjAction} onChange={e => setAdjAction(e.target.value as any)}>
-                <option value="Add">Add</option>
-                <option value="Subtract">Subtract</option>
-                <option value="Set">Set to</option>
-              </select>
-              <input type="number" style={{ width: 90, padding: '2px 4px', fontSize: 10 }} value={adjAmount} onChange={e => setAdjAmount(e.target.value)} placeholder="amount" />
-              <select style={{ padding: '2px 4px', fontSize: 9 }} value={adjUnit} onChange={e => setAdjUnit(e.target.value)}>
-                {DATA_UNITS.map(u => <option key={u} value={u}>{u}</option>)}
-              </select>
+            {/* Mode toggle */}
+            <div style={{ display: 'flex', gap: 4, marginBottom: 6 }}>
+              <button onClick={() => setAdjMode('adjust')} style={{ fontSize: 9, padding: '2px 8px', background: adjMode === 'adjust' ? '#f59e0b' : '#fef3c7', color: adjMode === 'adjust' ? '#fff' : '#92400e', border: '1px solid #fbbf24', borderRadius: 3, cursor: 'pointer' }}>Adjust Balance</button>
+              <button onClick={() => setAdjMode('newVC')} style={{ fontSize: 9, padding: '2px 8px', background: adjMode === 'newVC' ? '#f59e0b' : '#fef3c7', color: adjMode === 'newVC' ? '#fff' : '#92400e', border: '1px solid #fbbf24', borderRadius: 3, cursor: 'pointer' }}>+ New Value Container</button>
             </div>
-            <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-              <label style={{ fontSize: 9, color: '#666' }}>Expiry:</label>
-              <input type="date" style={{ padding: '2px 4px', fontSize: 10, flex: 1 }} value={adjEndDate} onChange={e => setAdjEndDate(e.target.value)} />
-              <button onClick={doAdjust} disabled={adjLoading || !adjAmount}
-                style={{ fontSize: 9, padding: '2px 8px', background: '#f59e0b', color: '#fff', border: 'none', borderRadius: 3, cursor: 'pointer' }}>
-                {adjLoading ? '...' : 'Apply'}
-              </button>
-            </div>
+
+            {/* Existing value containers */}
+            {(bucket?.valueContainer || []).length > 0 && (
+              <div style={{ marginBottom: 6, fontSize: 9, color: '#666' }}>
+                <div style={{ fontWeight: 600, marginBottom: 2 }}>Existing containers:</div>
+                {(bucket.valueContainer || []).map((vc: any, i: number) => (
+                  <div key={i} style={{ paddingLeft: 6 }}>
+                    • {fmtAmount(Number(vc.amount?.number || 0))} [{fmtDate(vc.validFor?.startDateTime) || 'begin'} → {fmtDate(vc.validFor?.endDateTime) || 'end'}]
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {adjMode === 'adjust' ? (
+              <>
+                <div style={{ display: 'flex', gap: 4, marginBottom: 4, alignItems: 'center', flexWrap: 'wrap' }}>
+                  <select style={{ padding: '2px 4px', fontSize: 10 }} value={adjAction} onChange={e => setAdjAction(e.target.value as any)}>
+                    <option value="Add">Add</option>
+                    <option value="Subtract">Subtract</option>
+                    <option value="Set">Set to</option>
+                  </select>
+                  <input type="number" style={{ width: 90, padding: '2px 4px', fontSize: 10 }} value={adjAmount} onChange={e => setAdjAmount(e.target.value)} placeholder="amount" />
+                  <select style={{ padding: '2px 4px', fontSize: 9 }} value={adjUnit} onChange={e => setAdjUnit(e.target.value)}>
+                    {DATA_UNITS.map(u => <option key={u} value={u}>{u}</option>)}
+                  </select>
+                </div>
+                <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                  <label style={{ fontSize: 9, color: '#666' }}>Expiry:</label>
+                  <input type="date" style={{ padding: '2px 4px', fontSize: 10, flex: 1 }} value={adjEndDate} onChange={e => setAdjEndDate(e.target.value)} />
+                  <button onClick={doAdjust} disabled={adjLoading || !adjAmount}
+                    style={{ fontSize: 9, padding: '2px 8px', background: '#f59e0b', color: '#fff', border: 'none', borderRadius: 3, cursor: 'pointer' }}>
+                    {adjLoading ? '...' : 'Apply'}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div style={{ fontSize: 9, color: '#666', marginBottom: 4 }}>Creates a NEW value container (action=Relative) for the given validity period. Requires a MULTIPLE-value-container bucket.</div>
+                <div style={{ display: 'flex', gap: 4, marginBottom: 4, alignItems: 'center', flexWrap: 'wrap' }}>
+                  <input type="number" style={{ width: 90, padding: '2px 4px', fontSize: 10 }} value={adjAmount} onChange={e => setAdjAmount(e.target.value)} placeholder="amount" />
+                  <select style={{ padding: '2px 4px', fontSize: 9 }} value={adjUnit} onChange={e => setAdjUnit(e.target.value)}>
+                    {DATA_UNITS.map(u => <option key={u} value={u}>{u}</option>)}
+                  </select>
+                </div>
+                <div style={{ display: 'flex', gap: 4, alignItems: 'center', marginBottom: 4, flexWrap: 'wrap' }}>
+                  <label style={{ fontSize: 9, color: '#666' }}>Start:</label>
+                  <input type="date" style={{ padding: '2px 4px', fontSize: 10 }} value={adjStartDate} onChange={e => setAdjStartDate(e.target.value)} />
+                  <label style={{ fontSize: 9, color: '#666' }}>End:</label>
+                  <input type="date" style={{ padding: '2px 4px', fontSize: 10 }} value={adjEndDate} onChange={e => setAdjEndDate(e.target.value)} />
+                </div>
+                <button onClick={createValueContainer} disabled={adjLoading || !adjAmount || !adjStartDate || !adjEndDate}
+                  style={{ fontSize: 9, padding: '2px 8px', background: '#0a7', color: '#fff', border: 'none', borderRadius: 3, cursor: 'pointer' }}>
+                  {adjLoading ? '...' : 'Create Container'}
+                </button>
+              </>
+            )}
           </div>
         )}
       </div>
