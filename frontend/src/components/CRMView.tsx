@@ -1184,6 +1184,7 @@ export function CRMView() {
     const [adjStartDate, setAdjStartDate] = React.useState('')
     const [adjEndDate, setAdjEndDate] = React.useState('')
     const [adjUnit, setAdjUnit] = React.useState(bucket?.unitOfMeasure || 'byte')
+    const [adjTargetVC, setAdjTargetVC] = React.useState('') // '' = default (now); index into valueContainer to target a specific one
     const [adjLoading, setAdjLoading] = React.useState(false)
     const [adjMsg, setAdjMsg] = React.useState('')
 
@@ -1204,7 +1205,16 @@ export function CRMView() {
           action: adjAction === 'Set' ? 'Set' : 'Relative',
         }
         if (bucket?.bucketSpecId) body.bucketSpecId = bucket.bucketSpecId
-        if (adjEndDate) {
+        // Target a specific value container by matching its validity period.
+        // CHA selects the container to adjust via validFor (no container-id selector exists).
+        if (adjTargetVC !== '') {
+          const vc = (bucket?.valueContainer || [])[parseInt(adjTargetVC)]
+          if (vc?.validFor) {
+            body.validFor = {}
+            if (vc.validFor.startDateTime) body.validFor.startDateTime = vc.validFor.startDateTime
+            if (vc.validFor.endDateTime) body.validFor.endDateTime = vc.validFor.endDateTime
+          }
+        } else if (adjEndDate) {
           body.validFor.endDateTime = adjEndDate + 'T23:59:59.000Z'
         }
         const r = await fetch(`${API}/balance/productAdjustment`, {
@@ -1298,6 +1308,19 @@ export function CRMView() {
 
             {adjMode === 'adjust' ? (
               <>
+                {(bucket?.valueContainer || []).length > 0 && (
+                  <div style={{ display: 'flex', gap: 4, marginBottom: 4, alignItems: 'center' }}>
+                    <label style={{ fontSize: 9, color: '#666' }}>Target:</label>
+                    <select style={{ padding: '2px 4px', fontSize: 9, flex: 1 }} value={adjTargetVC} onChange={e => setAdjTargetVC(e.target.value)}>
+                      <option value="">Default (active / now)</option>
+                      {bucket.valueContainer.map((vc: any, i: number) => (
+                        <option key={i} value={String(i)}>
+                          {fmtAmount(Number(vc.amount?.number || 0))} [{fmtDate(vc.validFor?.startDateTime) || 'begin'} → {fmtDate(vc.validFor?.endDateTime) || 'end'}]
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
                 <div style={{ display: 'flex', gap: 4, marginBottom: 4, alignItems: 'center', flexWrap: 'wrap' }}>
                   <select style={{ padding: '2px 4px', fontSize: 10 }} value={adjAction} onChange={e => setAdjAction(e.target.value as any)}>
                     <option value="Add">Add</option>
@@ -1310,8 +1333,11 @@ export function CRMView() {
                   </select>
                 </div>
                 <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-                  <label style={{ fontSize: 9, color: '#666' }}>Expiry:</label>
-                  <input type="date" style={{ padding: '2px 4px', fontSize: 10, flex: 1 }} value={adjEndDate} onChange={e => setAdjEndDate(e.target.value)} />
+                  {adjTargetVC === '' && <>
+                    <label style={{ fontSize: 9, color: '#666' }}>Expiry:</label>
+                    <input type="date" style={{ padding: '2px 4px', fontSize: 10, flex: 1 }} value={adjEndDate} onChange={e => setAdjEndDate(e.target.value)} />
+                  </>}
+                  {adjTargetVC !== '' && <span style={{ fontSize: 9, color: '#0a7', flex: 1 }}>Targeting selected container's validity</span>}
                   <button onClick={doAdjust} disabled={adjLoading || !adjAmount}
                     style={{ fontSize: 9, padding: '2px 8px', background: '#f59e0b', color: '#fff', border: 'none', borderRadius: 3, cursor: 'pointer' }}>
                     {adjLoading ? '...' : 'Apply'}
