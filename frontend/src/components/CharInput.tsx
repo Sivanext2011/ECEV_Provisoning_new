@@ -1,5 +1,15 @@
 import React, { useState, useEffect } from 'react'
 
+// Multi-value encoding: when maxCardinality > 1, CharInput joins values with this delimiter.
+// Callers use splitCharValues() to turn the encoded string into multiple {value} objects.
+export const MULTI_VALUE_DELIM = '\u0001'
+
+/** Split a (possibly multi-value) characteristic string into individual trimmed values. */
+export function splitCharValues(v: string): string[] {
+  if (v === undefined || v === null) return []
+  return String(v).split(MULTI_VALUE_DELIM).map(s => s.trim()).filter(s => s !== '')
+}
+
 interface CharInputProps {
   char: any
   value: string
@@ -20,6 +30,8 @@ export function CharInput({ char: c, value, onChange }: CharInputProps) {
   const isDateByName = nameLC.includes('date') || nameLC.includes('datetime') || nameLC.includes('starttime') || nameLC.includes('endtime') || nameLC.includes('expir')
   const isDateTime = c.valueType === 'DATE_TIME' || c.valueType === 'DATE' || (c.valueType === 'STRING' && isDateByName)
   const enumPVs = possibleValues.filter((pv: any) => pv.value !== undefined || pv.name)
+  const maxCard = Number(c.maxCardinality) || 1
+  const isMulti = maxCard > 1
   const [personalize, setPersonalize] = useState(isMust || isFixed || isSelection)
 
   useEffect(() => {
@@ -40,38 +52,83 @@ export function CharInput({ char: c, value, onChange }: CharInputProps) {
     ? `${c.valueFrom}–${c.valueTo}${c.unitOfMeasure ? ' ' + c.unitOfMeasure : (!isNumeric ? ' chars' : '')}`
     : c.unitOfMeasure ? c.unitOfMeasure : ''
 
-  const inputEl = enumPVs.length > 0 ? (
-    <select style={{ width: '100%' }} value={value} onChange={e => onChange(e.target.value)} disabled={isFixed || (!personalize && isCan)}>
-      <option value="">-- Select --</option>
-      {enumPVs.map((pv: any, i: number) => (
-        <option key={i} value={pv.value || ''}>{pv.value}{pv.name && pv.name !== pv.value && pv.name !== c.name ? ` (${pv.name})` : ''}{pv.default ? ' ✓' : ''}</option>
-      ))}
-    </select>
-  ) : (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+  const disabled = isFixed || (!personalize && isCan)
+
+  // ---- single-value input renderer (reused for each row in multi mode) ----
+  const renderSingle = (val: string, setVal: (v: string) => void) => {
+    if (enumPVs.length > 0) {
+      return (
+        <select style={{ width: '100%' }} value={val} onChange={e => setVal(e.target.value)} disabled={disabled}>
+          <option value="">-- Select --</option>
+          {enumPVs.map((pv: any, i: number) => (
+            <option key={i} value={pv.value || ''}>{pv.value}{pv.name && pv.name !== pv.value && pv.name !== c.name ? ` (${pv.name})` : ''}{pv.default ? ' ✓' : ''}</option>
+          ))}
+        </select>
+      )
+    }
+    return (
       <input
         type={isDateTime ? 'datetime-local' : isNumeric ? 'number' : 'text'}
-        style={{ flex: 1, background: (isFixed || (!personalize && isCan)) ? '#f5f5f5' : undefined }}
+        style={{ flex: 1, width: '100%', background: disabled ? '#f5f5f5' : undefined }}
         placeholder={c.defaultValue || (hasRange && isNumeric ? `${c.valueFrom}–${c.valueTo}` : isDateTime ? 'Select date/time' : `Enter ${c.name || charKey}`)}
-        value={isDateTime && value && value.includes('T') && value.includes('Z') ? value.slice(0, 16) : value}
+        value={isDateTime && val && val.includes('T') && val.includes('Z') ? val.slice(0, 16) : val}
         onChange={e => {
           if (isDateTime && e.target.value) {
-            // Ensure full BSSF datetime format: yyyy-MM-ddTHH:mm:ss.SSSZ
             const v = e.target.value
-            if (v.length === 16) onChange(v + ':00.000Z')       // 2026-09-30T11:32 → add :00.000Z
-            else if (v.length === 19) onChange(v + '.000Z')     // 2026-09-30T11:32:00 → add .000Z
-            else if (!v.endsWith('Z')) onChange(v + 'Z')        // add Z if missing
-            else onChange(v)
+            if (v.length === 16) setVal(v + ':00.000Z')
+            else if (v.length === 19) setVal(v + '.000Z')
+            else if (!v.endsWith('Z')) setVal(v + 'Z')
+            else setVal(v)
           } else {
-            onChange(e.target.value)
+            setVal(e.target.value)
           }
         }}
-        readOnly={isFixed || (!personalize && isCan)}
+        readOnly={disabled}
         min={hasRange && isNumeric ? c.valueFrom : undefined}
         max={hasRange && isNumeric ? c.valueTo : undefined}
       />
-      {rangeHint && <span style={{ fontSize: 10, color: '#888', whiteSpace: 'nowrap' }}>{rangeHint}</span>}
-    </div>
+    )
+  }
+
+  // ---- multi-value input: one row per value, add/remove, capped at maxCardinality ----
+  const renderMulti = () => {
+    const values = value ? value.split(MULTI_VALUE_DELIM) : ['']
+    const setAt = (idx: number, v: string) => {
+      const next = [...values]; next[idx] = v; onChange(next.join(MULTI_VALUE_DELIM))
+    }
+    const removeAt = (idx: number) => {
+      const next = values.filter((_, i) => i !== idx)
+      onChange((next.length ? next : ['']).join(MULTI_VALUE_DELIM))
+    }
+    const addRow = () => {
+      if (values.length >= maxCard) return
+      onChange([...values, ''].join(MULTI_VALUE_DELIM))
+    }
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+        {values.map((v, i) => (
+          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            {renderSingle(v, nv => setAt(i, nv))}
+            {rangeHint && <span style={{ fontSize: 10, color: '#888', whiteSpace: 'nowrap' }}>{rangeHint}</span>}
+            {values.length > 1 && !disabled && (
+              <button type="button" onClick={() => removeAt(i)} style={{ fontSize: 11, padding: '0 6px', cursor: 'pointer' }}>✕</button>
+            )}
+          </div>
+        ))}
+        {!disabled && values.length < maxCard && (
+          <button type="button" onClick={addRow} style={{ fontSize: 10, width: 'fit-content', padding: '1px 8px', cursor: 'pointer' }}>+ Add value ({values.length}/{maxCard})</button>
+        )}
+      </div>
+    )
+  }
+
+  const inputEl = isMulti ? renderMulti() : (
+    enumPVs.length > 0 ? renderSingle(value, onChange) : (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+        {renderSingle(value, onChange)}
+        {rangeHint && <span style={{ fontSize: 10, color: '#888', whiteSpace: 'nowrap' }}>{rangeHint}</span>}
+      </div>
+    )
   )
 
   return (
@@ -81,6 +138,7 @@ export function CharInput({ char: c, value, onChange }: CharInputProps) {
           {c.name || charKey}
           {c.required && <span style={{ color: 'red', marginLeft: 2 }}>*</span>}
           {badge}
+          {isMulti && <span style={{ fontSize: 10, background: '#7c3aed', color: '#fff', borderRadius: 3, padding: '1px 4px', marginLeft: 4 }}>multi ≤{maxCard}</span>}
           {c.valueType && <span style={{ fontSize: 10, color: '#aaa', marginLeft: 4 }}>[{c.valueType}]</span>}
         </span>
         {isCan && (

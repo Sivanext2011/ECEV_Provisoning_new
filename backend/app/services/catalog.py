@@ -124,6 +124,7 @@ def _extract_char(cs: dict) -> dict | None:
         "valueType": cs.get("valueType", ""),
         "valueRegulator": reg,
         "required": cs.get("minCardinality", 0) >= 1,
+        "maxCardinality": cs.get("maxCardinality") or 1,
         "defaultValue": "",
         "possibleValues": [],
         # For bucket chars (promoted from noPersonalization), PV-level unitOfMeasure

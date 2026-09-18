@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { CharInput, splitCharValues, MULTI_VALUE_DELIM } from './CharInput'
 
 const API = '/api/v1'
 
@@ -138,6 +139,7 @@ export function CRMView() {
   const [newProductProviderExtId, setNewProductProviderExtId] = useState('')
   const [newProductConsumerListExtId, setNewProductConsumerListExtId] = useState('')
   const [newProductValidFor, setNewProductValidFor] = useState({ enabled: false, startDateTime: '', endDateTime: '' })
+  const [newProductStatus, setNewProductStatus] = useState('ProductCreated')
   const [poSpecs, setPoSpecs] = useState<any>(null)
 
   // POP Personalization state (for Add Product)
@@ -393,9 +395,47 @@ export function CRMView() {
   const changeContractStatus = (status: string) => patchContract({ status: [{ status }] })
   const changeProductStatus = (productExtId: string, status: string) => patchContract({ product: [{ externalId: productExtId, status: [{ status }] }] })
 
+  // === Update existing product (characteristics) in 360 view ===
+  const [editProductExtId, setEditProductExtId] = useState('')          // which product is being edited
+  const [editProductChars, setEditProductChars] = useState<Array<{ charSpecExternalId: string; value: string }>>([])
+
+  const openEditProduct = (p: any) => {
+    if (editProductExtId === p.externalId) { setEditProductExtId(''); return }
+    // Prefill with existing product characteristic values (join multi-values with the delimiter)
+    const existing = (p.characteristic || []).map((ch: any) => {
+      const vals = Array.isArray(ch.value) ? ch.value.map((x: any) => x?.value ?? x).filter((x: any) => x !== undefined && x !== null) : [ch.value]
+      return { charSpecExternalId: ch.charSpecExternalId || ch.charSpecId || '', value: vals.join(MULTI_VALUE_DELIM) }
+    })
+    setEditProductChars(existing)
+    setEditProductExtId(p.externalId)
+  }
+
+  const saveEditProduct = (p: any) => {
+    // Resolve the PO spec to get units and full char list
+    const po = poList.find((x: any) => x.externalId === p.productOfferingExternalId)
+    const poChars = po?.characteristics || []
+    const MEASURE_CATEGORIES = ['Data', 'Duration', 'Money', 'Voice', 'SMS', 'MMS', 'Events']
+    const chars = editProductChars.filter(ch => ch.charSpecExternalId && ch.value && splitCharValues(ch.value).length)
+      .map(ch => {
+        const specChar = poChars.find((c: any) => (c.externalId || c.id) === ch.charSpecExternalId)
+        let unit = specChar?.possibleValues?.[0]?.unitOfMeasure || ''
+        if (!unit && specChar?.unitOfMeasure) unit = specChar.unitOfMeasure
+        if (MEASURE_CATEGORIES.includes(unit)) unit = ''
+        const vals = splitCharValues(ch.value).map(sv => {
+          const valObj: any = { value: sv }
+          if (unit) valObj.unitOfMeasure = unit
+          return valObj
+        })
+        return { charSpecExternalId: ch.charSpecExternalId, value: vals }
+      })
+    if (!chars.length) { setActionErr('No characteristic values to update'); return }
+    patchContract({ product: [{ externalId: p.externalId, characteristic: chars }] })
+    setEditProductExtId('')
+  }
+
   const purchaseProduct = () => {
     if (!newPO || !newProductExtId) return
-    const statusObj: any = { status: 'ProductCreated' }
+    const statusObj: any = { status: newProductStatus }
     if (newProductValidFor.enabled) {
       const vf: any = {}
       if (newProductValidFor.startDateTime) vf.startDateTime = new Date(newProductValidFor.startDateTime).toISOString()
@@ -425,9 +465,12 @@ export function CRMView() {
         let unit = specChar?.possibleValues?.[0]?.unitOfMeasure || ''
         if (!unit && specChar?.unitOfMeasure) unit = specChar.unitOfMeasure
         if (MEASURE_CATEGORIES.includes(unit)) unit = ''
-        const valObj: any = { value: ch.value }
-        if (unit) valObj.unitOfMeasure = unit
-        return { charSpecExternalId: ch.charSpecExternalId, value: [valObj] }
+        const vals = splitCharValues(ch.value).map(sv => {
+          const valObj: any = { value: sv }
+          if (unit) valObj.unitOfMeasure = unit
+          return valObj
+        })
+        return { charSpecExternalId: ch.charSpecExternalId, value: vals }
       })
     }
     // Add sharing provider config
@@ -1543,11 +1586,37 @@ export function CRMView() {
                             <button disabled={actionLoading} onClick={() => changeProductStatus(p.externalId, 'ProductActive')} style={{ fontSize: 10, padding: '2px 6px' }}>Activate</button>
                             <button disabled={actionLoading} onClick={() => changeProductStatus(p.externalId, 'ProductHalt')} style={{ fontSize: 10, padding: '2px 6px' }}>Halt</button>
                             <button disabled={actionLoading} onClick={() => changeProductStatus(p.externalId, 'ProductTerminated')} style={{ fontSize: 10, padding: '2px 6px', color: 'red' }}>Terminate</button>
+                            <button disabled={actionLoading} onClick={() => openEditProduct(p)} style={{ fontSize: 10, padding: '2px 6px', background: editProductExtId === p.externalId ? '#7c3aed' : '#ede9fe', color: editProductExtId === p.externalId ? '#fff' : '#5b21b6', border: '1px solid #c4b5fd', borderRadius: 3, cursor: 'pointer' }}>{editProductExtId === p.externalId ? '✕ Close' : '✏️ Update'}</button>
                             <button disabled={actionLoading} onClick={() => modifyPopProduct === p.externalId ? setModifyPopProduct('') : loadProductPop(p.externalId, p.productOfferingExternalId)}
                               style={{ fontSize: 10, padding: '2px 6px', background: modifyPopProduct === p.externalId ? '#7c3aed' : '#f3e8ff', color: modifyPopProduct === p.externalId ? '#fff' : '#7c3aed', border: '1px solid #c4b5fd', borderRadius: 3 }}>
                               {modifyPopProduct === p.externalId ? '✕ Close' : '✎ Modify POP'}
                             </button>
                           </div>
+                          {editProductExtId === p.externalId && (() => {
+                            const poObj = poList.find((x: any) => x.externalId === p.productOfferingExternalId)
+                            const specChars = (poObj?.characteristics || []).filter((cc: any) => cc.valueRegulator === 'mustBePersonalized' || cc.valueRegulator === 'canBePersonalized' || cc.valueRegulator === 'selection')
+                            return (
+                              <div style={{ marginTop: 6, padding: '8px 10px', background: '#faf5ff', border: '1px solid #c4b5fd', borderRadius: 4 }}>
+                                <div style={{ fontSize: 11, fontWeight: 600, color: '#5b21b6', marginBottom: 6 }}>Update Characteristics</div>
+                                {specChars.length === 0 && <div style={{ fontSize: 10, color: '#888', marginBottom: 6 }}>No personalizable characteristics on this PO spec. (Existing values shown below.)</div>}
+                                {specChars.map((cc: any) => {
+                                  const charExtId = cc.externalId || cc.id
+                                  const idx = editProductChars.findIndex(ch => ch.charSpecExternalId === charExtId)
+                                  const val = idx >= 0 ? editProductChars[idx].value : ''
+                                  return (
+                                    <CharInput key={charExtId} char={cc} value={val} onChange={v => {
+                                      const updated = [...editProductChars]
+                                      if (idx >= 0) updated[idx].value = v; else updated.push({ charSpecExternalId: charExtId, value: v })
+                                      setEditProductChars(updated)
+                                    }} />
+                                  )
+                                })}
+                                <button disabled={actionLoading} onClick={() => saveEditProduct(p)} style={{ fontSize: 10, padding: '3px 10px', background: '#7c3aed', color: '#fff', border: 'none', borderRadius: 3, cursor: 'pointer', marginTop: 4 }}>
+                                  {actionLoading ? '...' : 'Save Update'}
+                                </button>
+                              </div>
+                            )
+                          })()}
                           {/* Inline POP Editor */}
                           {modifyPopProduct === p.externalId && (
                             <div style={{ marginTop: 8, padding: '8px 10px', background: '#faf5ff', borderRadius: 6, border: '1px solid #e9d5ff' }}>
@@ -1844,6 +1913,18 @@ export function CRMView() {
                     </label>
                   </div>
 
+                  {/* Product Status */}
+                  <div style={{ marginBottom: 12, padding: '8px 10px', background: '#f0fdf4', borderRadius: 6 }}>
+                    <label style={{ fontSize: 12, fontWeight: 600, display: 'block', marginBottom: 4 }}>Product Status</label>
+                    <select style={{ width: '100%', padding: '4px 6px', fontSize: 12 }} value={newProductStatus} onChange={e => setNewProductStatus(e.target.value)}>
+                      <option value="ProductCreated">ProductCreated</option>
+                      <option value="ProductActive">ProductActive</option>
+                      <option value="ProductSuspend">ProductSuspend</option>
+                      <option value="ProductTerminated">ProductTerminated</option>
+                    </select>
+                    <div style={{ fontSize: 10, color: '#666', marginTop: 3 }}>Initial status of the product when added. Default ProductCreated (auto-activates via lifecycle).</div>
+                  </div>
+
                   {/* Product Status validFor */}
                   <div style={{ marginBottom: 12, padding: '8px 10px', background: '#fefce8', borderRadius: 6 }}>
                     <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, cursor: 'pointer', fontWeight: 600 }}>
@@ -1865,7 +1946,7 @@ export function CRMView() {
                       <button onClick={() => setNewProductChars(prev => [...prev, { charSpecExternalId: '', value: '' }])}
                         style={{ fontSize: 10, padding: '1px 6px', background: '#eee', border: '1px solid #ccc', borderRadius: 3, cursor: 'pointer' }}>+ Custom</button>
                     </div>
-                    {/* Spec-driven characteristics from PO */}
+                    {/* Spec-driven characteristics from PO (shared CharInput supports multi-cardinality) */}
                     {(() => {
                       const po = poList.find((p: any) => p.externalId === newPO)
                       const chars = po?.characteristics || []
@@ -1874,39 +1955,12 @@ export function CRMView() {
                         const charExtId = c.externalId || c.id
                         const idx = newProductChars.findIndex(ch => ch.charSpecExternalId === charExtId)
                         const val = idx >= 0 ? newProductChars[idx].value : ''
-                        const possVals = c.possibleValues || []
-                        const isMust = c.valueRegulator === 'mustBePersonalized'
-                        const unit = c.unitOfMeasure || ''
                         return (
-                          <div key={charExtId} style={{ marginBottom: 6 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 2 }}>
-                              <span style={{ fontSize: 11 }}>{c.name || charExtId}</span>
-                              {isMust && <span style={{ fontSize: 9, background: '#c60', color: '#fff', borderRadius: 3, padding: '0 4px' }}>required</span>}
-                              {!isMust && <span style={{ fontSize: 9, background: '#0a7', color: '#fff', borderRadius: 3, padding: '0 4px' }}>optional</span>}
-                              {unit && <span style={{ fontSize: 9, color: '#888' }}>[{unit}]</span>}
-                            </div>
-                            {possVals.length > 0 ? (
-                              <select style={{ width: '100%', padding: '3px 6px', fontSize: 11 }} value={val}
-                                onChange={e => {
-                                  const updated = [...newProductChars]
-                                  if (idx >= 0) { updated[idx].value = e.target.value } else { updated.push({ charSpecExternalId: charExtId, value: e.target.value }) }
-                                  setNewProductChars(updated)
-                                }}>
-                                <option value="">-- Select --</option>
-                                {possVals.map((pv: any) => <option key={pv.value} value={pv.value}>{pv.name || pv.value}{pv.default ? ' ✓' : ''}</option>)}
-                              </select>
-                            ) : (
-                              <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-                                <input style={{ flex: 1, padding: '3px 6px', fontSize: 11 }} placeholder={c.defaultValue || `Enter ${c.name || charExtId}`}
-                                  value={val} onChange={e => {
-                                    const updated = [...newProductChars]
-                                    if (idx >= 0) { updated[idx].value = e.target.value } else { updated.push({ charSpecExternalId: charExtId, value: e.target.value }) }
-                                    setNewProductChars(updated)
-                                  }} />
-                                {unit && <span style={{ fontSize: 10, color: '#888' }}>{unit}</span>}
-                              </div>
-                            )}
-                          </div>
+                          <CharInput key={charExtId} char={c} value={val} onChange={v => {
+                            const updated = [...newProductChars]
+                            if (idx >= 0) { updated[idx].value = v } else { updated.push({ charSpecExternalId: charExtId, value: v }) }
+                            setNewProductChars(updated)
+                          }} />
                         )
                       }) : null
                     })()}

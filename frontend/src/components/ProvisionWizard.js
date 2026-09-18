@@ -1,6 +1,6 @@
 import { jsx as _jsx, jsxs as _jsxs, Fragment as _Fragment } from "react/jsx-runtime";
 import { useState, useEffect } from 'react';
-import { CharInput } from './CharInput';
+import { CharInput, splitCharValues } from './CharInput';
 const API = '/api/v1';
 const DATA_UNITS = ['byte', 'kilobyte', 'kibibyte', 'megabyte', 'mebibyte', 'gigabyte', 'gibibyte', 'terabyte', 'tebibyte', 'petabyte', 'pebibyte'];
 export function ProvisionWizard() {
@@ -329,11 +329,11 @@ export function ProvisionWizard() {
                                         validFor: { startDateTime: nowDt },
                                         characteristic: Object.entries(e.charVals)
                                             .filter(([, v]) => v)
-                                            .map(([k, v]) => ({ charSpecExternalId: k, value: [{ value: v }] })),
+                                            .map(([k, v]) => ({ charSpecExternalId: k, value: splitCharValues(v).map(sv => ({ value: sv })) })),
                                     }));
                                     const partyChars = Object.entries(formValues.party).filter(([, v]) => v);
                                     if (partyChars.length)
-                                        pb.characteristic = partyChars.map(([k, v]) => ({ charSpecExternalId: k, value: [{ value: v }] }));
+                                        pb.characteristic = partyChars.map(([k, v]) => ({ charSpecExternalId: k, value: splitCharValues(v).map(sv => ({ value: sv })) }));
                                     const buildCma = () => selectedCmSpecs
                                         .filter(e => e.specExtId)
                                         .map(e => ({
@@ -375,10 +375,10 @@ export function ProvisionWizard() {
                                     }
                                     const custChars = Object.entries(formValues.customer).filter(([, v]) => v);
                                     if (custChars.length)
-                                        cb.characteristic = custChars.map(([k, v]) => ({ charSpecExternalId: k, value: [{ value: v }] }));
+                                        cb.characteristic = custChars.map(([k, v]) => ({ charSpecExternalId: k, value: splitCharValues(v).map(sv => ({ value: sv })) }));
                                     const baChars = Object.entries(formValues.billingAccount).filter(([, v]) => v);
                                     if (baChars.length)
-                                        cb.account[0].characteristic = baChars.map(([k, v]) => ({ charSpecExternalId: k, value: [{ value: v }] }));
+                                        cb.account[0].characteristic = baChars.map(([k, v]) => ({ charSpecExternalId: k, value: splitCharValues(v).map(sv => ({ value: sv })) }));
                                     const ctb = {
                                         externalId: contractExtId,
                                         contractSpecification: { externalId: selectedContractSpec },
@@ -447,10 +447,13 @@ export function ProvisionWizard() {
                                                 // Filter out measure category names (not actual units)
                                                 if (MEASURE_CATEGORIES.includes(unit))
                                                     unit = '';
-                                                const valObj = { value: v };
-                                                if (unit)
-                                                    valObj.unitOfMeasure = unit;
-                                                return { charSpecExternalId: charExtId, value: [valObj] };
+                                                const vals = splitCharValues(v).map(sv => {
+                                                    const valObj = { value: sv };
+                                                    if (unit)
+                                                        valObj.unitOfMeasure = unit;
+                                                    return valObj;
+                                                });
+                                                return { charSpecExternalId: charExtId, value: vals };
                                             });
                                         }
                                         // POP personalization
@@ -631,7 +634,7 @@ export function ProvisionWizard() {
                                     const contractChars = Object.entries(formValues.contract)
                                         .filter(([k, v]) => !k.startsWith('_') && v?.trim() && personalizableCharKeys.has(k));
                                     if (contractChars.length)
-                                        ctb.characteristic = contractChars.map(([k, v]) => ({ charSpecExternalId: k, value: [{ value: v }] }));
+                                        ctb.characteristic = contractChars.map(([k, v]) => ({ charSpecExternalId: k, value: splitCharValues(v).map(sv => ({ value: sv })) }));
                                     setPartyJson(JSON.stringify(pb, null, 2));
                                     setCustomerJson(JSON.stringify(cb, null, 2));
                                     setContractJson(JSON.stringify(ctb, null, 2));

@@ -75,6 +75,7 @@ def _extract_chars(char_list: list) -> list:
             "valueType": c.get("valueType", ""),
             "valueRegulator": reg,
             "required": (c.get("minCardinality") or 0) >= 1,
+            "maxCardinality": c.get("maxCardinality") or 1,
             "defaultValue": "",
             "possibleValues": [],
             "unitOfMeasure": c.get("unitOfMeasure") or "",

@@ -1,5 +1,6 @@
 import { jsx as _jsx, jsxs as _jsxs, Fragment as _Fragment } from "react/jsx-runtime";
 import React, { useState, useEffect } from 'react';
+import { CharInput, splitCharValues, MULTI_VALUE_DELIM } from './CharInput';
 const API = '/api/v1';
 const DATA_UNITS = ['byte', 'kilobyte', 'kibibyte', 'megabyte', 'mebibyte', 'gigabyte', 'gibibyte', 'terabyte', 'tebibyte', 'petabyte', 'pebibyte'];
 // === Helper Components ===
@@ -111,6 +112,7 @@ export function CRMView() {
     const [newProductProviderExtId, setNewProductProviderExtId] = useState('');
     const [newProductConsumerListExtId, setNewProductConsumerListExtId] = useState('');
     const [newProductValidFor, setNewProductValidFor] = useState({ enabled: false, startDateTime: '', endDateTime: '' });
+    const [newProductStatus, setNewProductStatus] = useState('ProductCreated');
     const [poSpecs, setPoSpecs] = useState(null);
     // POP Personalization state (for Add Product)
     const [popPersonalization, setPopPersonalization] = useState([]);
@@ -394,10 +396,54 @@ export function CRMView() {
     };
     const changeContractStatus = (status) => patchContract({ status: [{ status }] });
     const changeProductStatus = (productExtId, status) => patchContract({ product: [{ externalId: productExtId, status: [{ status }] }] });
+    // === Update existing product (characteristics) in 360 view ===
+    const [editProductExtId, setEditProductExtId] = useState(''); // which product is being edited
+    const [editProductChars, setEditProductChars] = useState([]);
+    const openEditProduct = (p) => {
+        if (editProductExtId === p.externalId) {
+            setEditProductExtId('');
+            return;
+        }
+        // Prefill with existing product characteristic values (join multi-values with the delimiter)
+        const existing = (p.characteristic || []).map((ch) => {
+            const vals = Array.isArray(ch.value) ? ch.value.map((x) => x?.value ?? x).filter((x) => x !== undefined && x !== null) : [ch.value];
+            return { charSpecExternalId: ch.charSpecExternalId || ch.charSpecId || '', value: vals.join(MULTI_VALUE_DELIM) };
+        });
+        setEditProductChars(existing);
+        setEditProductExtId(p.externalId);
+    };
+    const saveEditProduct = (p) => {
+        // Resolve the PO spec to get units and full char list
+        const po = poList.find((x) => x.externalId === p.productOfferingExternalId);
+        const poChars = po?.characteristics || [];
+        const MEASURE_CATEGORIES = ['Data', 'Duration', 'Money', 'Voice', 'SMS', 'MMS', 'Events'];
+        const chars = editProductChars.filter(ch => ch.charSpecExternalId && ch.value && splitCharValues(ch.value).length)
+            .map(ch => {
+            const specChar = poChars.find((c) => (c.externalId || c.id) === ch.charSpecExternalId);
+            let unit = specChar?.possibleValues?.[0]?.unitOfMeasure || '';
+            if (!unit && specChar?.unitOfMeasure)
+                unit = specChar.unitOfMeasure;
+            if (MEASURE_CATEGORIES.includes(unit))
+                unit = '';
+            const vals = splitCharValues(ch.value).map(sv => {
+                const valObj = { value: sv };
+                if (unit)
+                    valObj.unitOfMeasure = unit;
+                return valObj;
+            });
+            return { charSpecExternalId: ch.charSpecExternalId, value: vals };
+        });
+        if (!chars.length) {
+            setActionErr('No characteristic values to update');
+            return;
+        }
+        patchContract({ product: [{ externalId: p.externalId, characteristic: chars }] });
+        setEditProductExtId('');
+    };
     const purchaseProduct = () => {
         if (!newPO || !newProductExtId)
             return;
-        const statusObj = { status: 'ProductCreated' };
+        const statusObj = { status: newProductStatus };
         if (newProductValidFor.enabled) {
             const vf = {};
             if (newProductValidFor.startDateTime)
@@ -432,10 +478,13 @@ export function CRMView() {
                     unit = specChar.unitOfMeasure;
                 if (MEASURE_CATEGORIES.includes(unit))
                     unit = '';
-                const valObj = { value: ch.value };
-                if (unit)
-                    valObj.unitOfMeasure = unit;
-                return { charSpecExternalId: ch.charSpecExternalId, value: [valObj] };
+                const vals = splitCharValues(ch.value).map(sv => {
+                    const valObj = { value: sv };
+                    if (unit)
+                        valObj.unitOfMeasure = unit;
+                    return valObj;
+                });
+                return { charSpecExternalId: ch.charSpecExternalId, value: vals };
             });
         }
         // Add sharing provider config
@@ -1475,7 +1524,23 @@ export function CRMView() {
                                                             const { products: prodBucketMap } = flattenBuckets(balance);
                                                             const buckets = prodBucketMap[p.externalId] || prodBucketMap[p.id] || [];
                                                             return buckets.length > 0 ? (_jsxs("div", { style: { marginTop: 6 }, children: [_jsx("div", { style: { fontSize: 11, color: '#7c3aed', fontWeight: 600, marginBottom: 4 }, children: "Buckets" }), buckets.map((b, k) => _jsx(BucketCard, { bucket: b, productExtId: p.externalId }, k))] })) : null;
-                                                        })(), _jsxs("div", { style: { display: 'flex', gap: 4, marginTop: 6, flexWrap: 'wrap' }, children: [_jsx("button", { disabled: actionLoading, onClick: () => changeProductStatus(p.externalId, 'ProductActive'), style: { fontSize: 10, padding: '2px 6px' }, children: "Activate" }), _jsx("button", { disabled: actionLoading, onClick: () => changeProductStatus(p.externalId, 'ProductHalt'), style: { fontSize: 10, padding: '2px 6px' }, children: "Halt" }), _jsx("button", { disabled: actionLoading, onClick: () => changeProductStatus(p.externalId, 'ProductTerminated'), style: { fontSize: 10, padding: '2px 6px', color: 'red' }, children: "Terminate" }), _jsx("button", { disabled: actionLoading, onClick: () => modifyPopProduct === p.externalId ? setModifyPopProduct('') : loadProductPop(p.externalId, p.productOfferingExternalId), style: { fontSize: 10, padding: '2px 6px', background: modifyPopProduct === p.externalId ? '#7c3aed' : '#f3e8ff', color: modifyPopProduct === p.externalId ? '#fff' : '#7c3aed', border: '1px solid #c4b5fd', borderRadius: 3 }, children: modifyPopProduct === p.externalId ? '✕ Close' : '✎ Modify POP' })] }), modifyPopProduct === p.externalId && (_jsxs("div", { style: { marginTop: 8, padding: '8px 10px', background: '#faf5ff', borderRadius: 6, border: '1px solid #e9d5ff' }, children: [modifyPopLoading && _jsx("div", { style: { fontSize: 11, color: '#888' }, children: "Loading POP values..." }), modifyPopData.length === 0 && !modifyPopLoading && _jsx("div", { style: { fontSize: 11, color: '#888' }, children: "No personalizable POP values for this product" }), modifyPopData.map((pop) => (_jsxs("div", { style: { marginBottom: 6 }, children: [_jsxs("label", { style: { display: 'flex', alignItems: 'center', gap: 6, fontSize: 10, fontWeight: 600, cursor: 'pointer', marginBottom: 3 }, children: [_jsx("input", { type: "checkbox", checked: !!modifyPopSelected[pop.popId], onChange: e => setModifyPopSelected(prev => ({ ...prev, [pop.popId]: e.target.checked })) }), pop.popName || pop.popExternalId] }), modifyPopSelected[pop.popId] && (pop.rows || []).map((row) => (_jsx("div", { style: { marginLeft: 14 }, children: (row.chars || []).map((c) => {
+                                                        })(), _jsxs("div", { style: { display: 'flex', gap: 4, marginTop: 6, flexWrap: 'wrap' }, children: [_jsx("button", { disabled: actionLoading, onClick: () => changeProductStatus(p.externalId, 'ProductActive'), style: { fontSize: 10, padding: '2px 6px' }, children: "Activate" }), _jsx("button", { disabled: actionLoading, onClick: () => changeProductStatus(p.externalId, 'ProductHalt'), style: { fontSize: 10, padding: '2px 6px' }, children: "Halt" }), _jsx("button", { disabled: actionLoading, onClick: () => changeProductStatus(p.externalId, 'ProductTerminated'), style: { fontSize: 10, padding: '2px 6px', color: 'red' }, children: "Terminate" }), _jsx("button", { disabled: actionLoading, onClick: () => openEditProduct(p), style: { fontSize: 10, padding: '2px 6px', background: editProductExtId === p.externalId ? '#7c3aed' : '#ede9fe', color: editProductExtId === p.externalId ? '#fff' : '#5b21b6', border: '1px solid #c4b5fd', borderRadius: 3, cursor: 'pointer' }, children: editProductExtId === p.externalId ? '✕ Close' : '✏️ Update' }), _jsx("button", { disabled: actionLoading, onClick: () => modifyPopProduct === p.externalId ? setModifyPopProduct('') : loadProductPop(p.externalId, p.productOfferingExternalId), style: { fontSize: 10, padding: '2px 6px', background: modifyPopProduct === p.externalId ? '#7c3aed' : '#f3e8ff', color: modifyPopProduct === p.externalId ? '#fff' : '#7c3aed', border: '1px solid #c4b5fd', borderRadius: 3 }, children: modifyPopProduct === p.externalId ? '✕ Close' : '✎ Modify POP' })] }), editProductExtId === p.externalId && (() => {
+                                                            const poObj = poList.find((x) => x.externalId === p.productOfferingExternalId);
+                                                            const specChars = (poObj?.characteristics || []).filter((cc) => cc.valueRegulator === 'mustBePersonalized' || cc.valueRegulator === 'canBePersonalized' || cc.valueRegulator === 'selection');
+                                                            return (_jsxs("div", { style: { marginTop: 6, padding: '8px 10px', background: '#faf5ff', border: '1px solid #c4b5fd', borderRadius: 4 }, children: [_jsx("div", { style: { fontSize: 11, fontWeight: 600, color: '#5b21b6', marginBottom: 6 }, children: "Update Characteristics" }), specChars.length === 0 && _jsx("div", { style: { fontSize: 10, color: '#888', marginBottom: 6 }, children: "No personalizable characteristics on this PO spec. (Existing values shown below.)" }), specChars.map((cc) => {
+                                                                        const charExtId = cc.externalId || cc.id;
+                                                                        const idx = editProductChars.findIndex(ch => ch.charSpecExternalId === charExtId);
+                                                                        const val = idx >= 0 ? editProductChars[idx].value : '';
+                                                                        return (_jsx(CharInput, { char: cc, value: val, onChange: v => {
+                                                                                const updated = [...editProductChars];
+                                                                                if (idx >= 0)
+                                                                                    updated[idx].value = v;
+                                                                                else
+                                                                                    updated.push({ charSpecExternalId: charExtId, value: v });
+                                                                                setEditProductChars(updated);
+                                                                            } }, charExtId));
+                                                                    }), _jsx("button", { disabled: actionLoading, onClick: () => saveEditProduct(p), style: { fontSize: 10, padding: '3px 10px', background: '#7c3aed', color: '#fff', border: 'none', borderRadius: 3, cursor: 'pointer', marginTop: 4 }, children: actionLoading ? '...' : 'Save Update' })] }));
+                                                        })(), modifyPopProduct === p.externalId && (_jsxs("div", { style: { marginTop: 8, padding: '8px 10px', background: '#faf5ff', borderRadius: 6, border: '1px solid #e9d5ff' }, children: [modifyPopLoading && _jsx("div", { style: { fontSize: 11, color: '#888' }, children: "Loading POP values..." }), modifyPopData.length === 0 && !modifyPopLoading && _jsx("div", { style: { fontSize: 11, color: '#888' }, children: "No personalizable POP values for this product" }), modifyPopData.map((pop) => (_jsxs("div", { style: { marginBottom: 6 }, children: [_jsxs("label", { style: { display: 'flex', alignItems: 'center', gap: 6, fontSize: 10, fontWeight: 600, cursor: 'pointer', marginBottom: 3 }, children: [_jsx("input", { type: "checkbox", checked: !!modifyPopSelected[pop.popId], onChange: e => setModifyPopSelected(prev => ({ ...prev, [pop.popId]: e.target.checked })) }), pop.popName || pop.popExternalId] }), modifyPopSelected[pop.popId] && (pop.rows || []).map((row) => (_jsx("div", { style: { marginLeft: 14 }, children: (row.chars || []).map((c) => {
                                                                                 const key = `${pop.popId}_${row.rowId}_${c.id}`;
                                                                                 const val = modifyPopValues[key] || { value: '', unit: '' };
                                                                                 return (_jsxs("div", { style: { display: 'flex', gap: 4, marginBottom: 2, alignItems: 'center' }, children: [_jsx("span", { style: { fontSize: 10, minWidth: 80, color: '#555' }, children: c.name || c.externalId }), _jsx("input", { style: { flex: 1, padding: '2px 4px', fontSize: 10 }, value: val.value, onChange: e => setModifyPopValues(prev => ({ ...prev, [key]: { ...val, value: e.target.value } })) }), c.units && c.units.length > 0 ? (_jsx("select", { style: { padding: '2px 4px', fontSize: 9 }, value: val.unit, onChange: e => setModifyPopValues(prev => ({ ...prev, [key]: { ...val, unit: e.target.value } })), children: c.units.map((u) => _jsx("option", { value: u, children: u }, u)) })) : (val.unit && DATA_UNITS.includes(val.unit)) || (c.defaultUnit && DATA_UNITS.includes(c.defaultUnit)) ? (_jsx("select", { style: { padding: '2px 4px', fontSize: 9 }, value: val.unit, onChange: e => setModifyPopValues(prev => ({ ...prev, [key]: { ...val, unit: e.target.value } })), children: DATA_UNITS.map((u) => _jsx("option", { value: u, children: u }, u)) })) : val.unit ? _jsx("span", { style: { fontSize: 9, color: '#888' }, children: val.unit }) : null] }, c.id));
@@ -1500,7 +1565,7 @@ export function CRMView() {
                                                         updated[i].value = e.target.value;
                                                         setNewContractChars(updated);
                                                     } }), _jsx("button", { onClick: () => setNewContractChars(prev => prev.filter((_, j) => j !== i)), style: { fontSize: 10, color: 'red', background: 'none', border: 'none', cursor: 'pointer' }, children: "\u2715" })] }, i)))] }), _jsxs("div", { style: { display: 'flex', gap: 8, alignItems: 'center' }, children: [_jsx("button", { onClick: doCreateContract, disabled: actionLoading || !newContractExtId, style: { background: '#1d4ed8', color: '#fff', border: 'none', borderRadius: 6, padding: '8px 20px', cursor: 'pointer', fontWeight: 600 }, children: actionLoading ? 'Creating...' : 'Create Contract' }), _jsx("button", { onClick: () => setShowAddContract(false), style: { background: '#f3f4f6', border: '1px solid #ddd', borderRadius: 6, padding: '8px 14px', cursor: 'pointer' }, children: "Cancel" })] })] }));
-                    })(), showAddProduct && (_jsxs("div", { style: { border: '1px solid #e9d5ff', borderRadius: 8, padding: 16, background: '#faf5ff', marginBottom: 16 }, children: [_jsx("h4", { style: { margin: '0 0 12px', color: '#7c3aed' }, children: "\u2795 Add Product to Contract" }), _jsxs("div", { style: { marginBottom: 12 }, children: [_jsx("label", { style: { display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }, children: "Product Offering *" }), _jsxs("select", { style: { width: '100%', padding: '6px 8px' }, value: newPO, onChange: e => setNewPO(e.target.value), children: [_jsx("option", { value: "", children: "-- Select Product Offering --" }), poList.map((p) => _jsxs("option", { value: p.externalId, children: [p.name, " (", p.externalId, ")"] }, p.id || p.externalId))] })] }), newPO && (_jsxs(_Fragment, { children: [_jsxs("div", { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }, children: [_jsxs("div", { children: [_jsx("label", { style: { display: 'block', fontSize: 11, fontWeight: 600, marginBottom: 2 }, children: "Product External ID *" }), _jsx("input", { style: { width: '100%', padding: '4px 8px', fontSize: 12 }, value: newProductExtId, onChange: e => setNewProductExtId(e.target.value) })] }), _jsxs("div", { children: [_jsx("label", { style: { display: 'block', fontSize: 11, fontWeight: 600, marginBottom: 2 }, children: "Product Name" }), _jsx("input", { style: { width: '100%', padding: '4px 8px', fontSize: 12 }, value: newProductName, onChange: e => setNewProductName(e.target.value) })] })] }), _jsxs("div", { style: { marginBottom: 12, padding: '8px 10px', background: '#eff6ff', borderRadius: 6 }, children: [_jsx("div", { style: { fontSize: 11, fontWeight: 600, marginBottom: 6 }, children: "Billing Account References" }), _jsxs("div", { style: { fontSize: 11, color: '#666', marginBottom: 6 }, children: ["BA: ", baExtId || '(none found)'] }), _jsxs("label", { style: { display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, cursor: 'pointer' }, children: [_jsx("input", { type: "checkbox", checked: newProductBaRef, onChange: e => setNewProductBaRef(e.target.checked) }), "billingAccountReference"] }), _jsxs("label", { style: { display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, cursor: 'pointer', marginTop: 4 }, children: [_jsx("input", { type: "checkbox", checked: newProductBaRefRecurrence, onChange: e => setNewProductBaRefRecurrence(e.target.checked) }), "baRefForBillCycleAlignedRecurrence"] })] }), _jsxs("div", { style: { marginBottom: 12, padding: '8px 10px', background: '#fefce8', borderRadius: 6 }, children: [_jsxs("label", { style: { display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, cursor: 'pointer', fontWeight: 600 }, children: [_jsx("input", { type: "checkbox", checked: newProductValidFor.enabled, onChange: e => setNewProductValidFor({ ...newProductValidFor, enabled: e.target.checked }) }), "Product Status validFor"] }), newProductValidFor.enabled && (_jsxs("div", { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 6 }, children: [_jsxs("label", { style: { fontSize: 11 }, children: ["Start DateTime", _jsx("input", { type: "datetime-local", style: { width: '100%', padding: '4px 6px', fontSize: 11 }, value: newProductValidFor.startDateTime, onChange: e => setNewProductValidFor({ ...newProductValidFor, startDateTime: e.target.value }) })] }), _jsxs("label", { style: { fontSize: 11 }, children: ["End DateTime", _jsx("input", { type: "datetime-local", style: { width: '100%', padding: '4px 6px', fontSize: 11 }, value: newProductValidFor.endDateTime, onChange: e => setNewProductValidFor({ ...newProductValidFor, endDateTime: e.target.value }) })] })] }))] }), _jsxs("div", { style: { marginBottom: 12 }, children: [_jsxs("div", { style: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }, children: [_jsx("span", { style: { fontSize: 11, fontWeight: 600 }, children: "Characteristics" }), _jsx("button", { onClick: () => setNewProductChars(prev => [...prev, { charSpecExternalId: '', value: '' }]), style: { fontSize: 10, padding: '1px 6px', background: '#eee', border: '1px solid #ccc', borderRadius: 3, cursor: 'pointer' }, children: "+ Custom" })] }), (() => {
+                    })(), showAddProduct && (_jsxs("div", { style: { border: '1px solid #e9d5ff', borderRadius: 8, padding: 16, background: '#faf5ff', marginBottom: 16 }, children: [_jsx("h4", { style: { margin: '0 0 12px', color: '#7c3aed' }, children: "\u2795 Add Product to Contract" }), _jsxs("div", { style: { marginBottom: 12 }, children: [_jsx("label", { style: { display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }, children: "Product Offering *" }), _jsxs("select", { style: { width: '100%', padding: '6px 8px' }, value: newPO, onChange: e => setNewPO(e.target.value), children: [_jsx("option", { value: "", children: "-- Select Product Offering --" }), poList.map((p) => _jsxs("option", { value: p.externalId, children: [p.name, " (", p.externalId, ")"] }, p.id || p.externalId))] })] }), newPO && (_jsxs(_Fragment, { children: [_jsxs("div", { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }, children: [_jsxs("div", { children: [_jsx("label", { style: { display: 'block', fontSize: 11, fontWeight: 600, marginBottom: 2 }, children: "Product External ID *" }), _jsx("input", { style: { width: '100%', padding: '4px 8px', fontSize: 12 }, value: newProductExtId, onChange: e => setNewProductExtId(e.target.value) })] }), _jsxs("div", { children: [_jsx("label", { style: { display: 'block', fontSize: 11, fontWeight: 600, marginBottom: 2 }, children: "Product Name" }), _jsx("input", { style: { width: '100%', padding: '4px 8px', fontSize: 12 }, value: newProductName, onChange: e => setNewProductName(e.target.value) })] })] }), _jsxs("div", { style: { marginBottom: 12, padding: '8px 10px', background: '#eff6ff', borderRadius: 6 }, children: [_jsx("div", { style: { fontSize: 11, fontWeight: 600, marginBottom: 6 }, children: "Billing Account References" }), _jsxs("div", { style: { fontSize: 11, color: '#666', marginBottom: 6 }, children: ["BA: ", baExtId || '(none found)'] }), _jsxs("label", { style: { display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, cursor: 'pointer' }, children: [_jsx("input", { type: "checkbox", checked: newProductBaRef, onChange: e => setNewProductBaRef(e.target.checked) }), "billingAccountReference"] }), _jsxs("label", { style: { display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, cursor: 'pointer', marginTop: 4 }, children: [_jsx("input", { type: "checkbox", checked: newProductBaRefRecurrence, onChange: e => setNewProductBaRefRecurrence(e.target.checked) }), "baRefForBillCycleAlignedRecurrence"] })] }), _jsxs("div", { style: { marginBottom: 12, padding: '8px 10px', background: '#f0fdf4', borderRadius: 6 }, children: [_jsx("label", { style: { fontSize: 12, fontWeight: 600, display: 'block', marginBottom: 4 }, children: "Product Status" }), _jsxs("select", { style: { width: '100%', padding: '4px 6px', fontSize: 12 }, value: newProductStatus, onChange: e => setNewProductStatus(e.target.value), children: [_jsx("option", { value: "ProductCreated", children: "ProductCreated" }), _jsx("option", { value: "ProductActive", children: "ProductActive" }), _jsx("option", { value: "ProductSuspend", children: "ProductSuspend" }), _jsx("option", { value: "ProductTerminated", children: "ProductTerminated" })] }), _jsx("div", { style: { fontSize: 10, color: '#666', marginTop: 3 }, children: "Initial status of the product when added. Default ProductCreated (auto-activates via lifecycle)." })] }), _jsxs("div", { style: { marginBottom: 12, padding: '8px 10px', background: '#fefce8', borderRadius: 6 }, children: [_jsxs("label", { style: { display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, cursor: 'pointer', fontWeight: 600 }, children: [_jsx("input", { type: "checkbox", checked: newProductValidFor.enabled, onChange: e => setNewProductValidFor({ ...newProductValidFor, enabled: e.target.checked }) }), "Product Status validFor"] }), newProductValidFor.enabled && (_jsxs("div", { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 6 }, children: [_jsxs("label", { style: { fontSize: 11 }, children: ["Start DateTime", _jsx("input", { type: "datetime-local", style: { width: '100%', padding: '4px 6px', fontSize: 11 }, value: newProductValidFor.startDateTime, onChange: e => setNewProductValidFor({ ...newProductValidFor, startDateTime: e.target.value }) })] }), _jsxs("label", { style: { fontSize: 11 }, children: ["End DateTime", _jsx("input", { type: "datetime-local", style: { width: '100%', padding: '4px 6px', fontSize: 11 }, value: newProductValidFor.endDateTime, onChange: e => setNewProductValidFor({ ...newProductValidFor, endDateTime: e.target.value }) })] })] }))] }), _jsxs("div", { style: { marginBottom: 12 }, children: [_jsxs("div", { style: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }, children: [_jsx("span", { style: { fontSize: 11, fontWeight: 600 }, children: "Characteristics" }), _jsx("button", { onClick: () => setNewProductChars(prev => [...prev, { charSpecExternalId: '', value: '' }]), style: { fontSize: 10, padding: '1px 6px', background: '#eee', border: '1px solid #ccc', borderRadius: 3, cursor: 'pointer' }, children: "+ Custom" })] }), (() => {
                                                 const po = poList.find((p) => p.externalId === newPO);
                                                 const chars = po?.characteristics || [];
                                                 const personalizable = chars.filter((c) => c.valueRegulator === 'mustBePersonalized' || c.valueRegulator === 'canBePersonalized' || c.valueRegulator === 'selection');
@@ -1508,28 +1573,16 @@ export function CRMView() {
                                                     const charExtId = c.externalId || c.id;
                                                     const idx = newProductChars.findIndex(ch => ch.charSpecExternalId === charExtId);
                                                     const val = idx >= 0 ? newProductChars[idx].value : '';
-                                                    const possVals = c.possibleValues || [];
-                                                    const isMust = c.valueRegulator === 'mustBePersonalized';
-                                                    const unit = c.unitOfMeasure || '';
-                                                    return (_jsxs("div", { style: { marginBottom: 6 }, children: [_jsxs("div", { style: { display: 'flex', alignItems: 'center', gap: 4, marginBottom: 2 }, children: [_jsx("span", { style: { fontSize: 11 }, children: c.name || charExtId }), isMust && _jsx("span", { style: { fontSize: 9, background: '#c60', color: '#fff', borderRadius: 3, padding: '0 4px' }, children: "required" }), !isMust && _jsx("span", { style: { fontSize: 9, background: '#0a7', color: '#fff', borderRadius: 3, padding: '0 4px' }, children: "optional" }), unit && _jsxs("span", { style: { fontSize: 9, color: '#888' }, children: ["[", unit, "]"] })] }), possVals.length > 0 ? (_jsxs("select", { style: { width: '100%', padding: '3px 6px', fontSize: 11 }, value: val, onChange: e => {
-                                                                    const updated = [...newProductChars];
-                                                                    if (idx >= 0) {
-                                                                        updated[idx].value = e.target.value;
-                                                                    }
-                                                                    else {
-                                                                        updated.push({ charSpecExternalId: charExtId, value: e.target.value });
-                                                                    }
-                                                                    setNewProductChars(updated);
-                                                                }, children: [_jsx("option", { value: "", children: "-- Select --" }), possVals.map((pv) => _jsxs("option", { value: pv.value, children: [pv.name || pv.value, pv.default ? ' ✓' : ''] }, pv.value))] })) : (_jsxs("div", { style: { display: 'flex', gap: 4, alignItems: 'center' }, children: [_jsx("input", { style: { flex: 1, padding: '3px 6px', fontSize: 11 }, placeholder: c.defaultValue || `Enter ${c.name || charExtId}`, value: val, onChange: e => {
-                                                                            const updated = [...newProductChars];
-                                                                            if (idx >= 0) {
-                                                                                updated[idx].value = e.target.value;
-                                                                            }
-                                                                            else {
-                                                                                updated.push({ charSpecExternalId: charExtId, value: e.target.value });
-                                                                            }
-                                                                            setNewProductChars(updated);
-                                                                        } }), unit && _jsx("span", { style: { fontSize: 10, color: '#888' }, children: unit })] }))] }, charExtId));
+                                                    return (_jsx(CharInput, { char: c, value: val, onChange: v => {
+                                                            const updated = [...newProductChars];
+                                                            if (idx >= 0) {
+                                                                updated[idx].value = v;
+                                                            }
+                                                            else {
+                                                                updated.push({ charSpecExternalId: charExtId, value: v });
+                                                            }
+                                                            setNewProductChars(updated);
+                                                        } }, charExtId));
                                                 }) : null;
                                             })(), newProductChars.filter(ch => {
                                                 const po = poList.find((p) => p.externalId === newPO);
