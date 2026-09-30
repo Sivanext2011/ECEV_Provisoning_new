@@ -183,6 +183,12 @@ export function CRMView() {
     const [rsResourceSpecExtId, setRsResourceSpecExtId] = useState('');
     const [rsProductExtId, setRsProductExtId] = useState('');
     const [rsUpdateContactMedium, setRsUpdateContactMedium] = useState(true);
+    // Add Identification Resource state (contract-level)
+    const [showAddResource, setShowAddResource] = useState(false);
+    const [arSpecExtId, setArSpecExtId] = useState('');
+    const [arResourceNumber, setArResourceNumber] = useState('');
+    const [arExternalId, setArExternalId] = useState('');
+    const [arProductExtId, setArProductExtId] = useState('');
     // Balance Adjustment state
     const [showBalanceAdj, setShowBalanceAdj] = useState(false);
     const [baAdjType, setBaAdjType] = useState('billing');
@@ -301,6 +307,21 @@ export function CRMView() {
     const resourceSpecs = specs?.resourceSpecifications || [];
     const contractSpecs = specs?.contractSpecifications || [];
     const commIdSpecs = specs?.communicationIdentifierSpecifications || [];
+    // Identification resource specs (MSISDN/IMSI) can be classified under either
+    // resourceSpecifications or communicationIdentifierSpecifications by the catalog parser.
+    // Merge both (dedupe by externalId) for the Add-Resource dropdown.
+    const identificationSpecs = (() => {
+        const seen = new Set();
+        const out = [];
+        for (const rs of [...resourceSpecs, ...commIdSpecs]) {
+            const ext = (rs.externalId || '').trim();
+            if (!ext || seen.has(ext))
+                continue;
+            seen.add(ext);
+            out.push(rs);
+        }
+        return out;
+    })();
     const msisdnValue = searchType === 'msisdn' ? searchValue : '';
     // Load PO spec when product offering is selected for Add Product
     useEffect(() => {
@@ -325,32 +346,24 @@ export function CRMView() {
         // Pre-populate resource specs from PO
         const resSpecs = po?.resourceSpecifications || [];
         setNewProductResources(resSpecs.map((rs) => ({ specExternalId: rs.externalId || rs.id || '', resourceNumber: '', externalId: '' })));
-        // Auto-detect sharing type from catalog offeringTypes
+        // Auto-detect sharing type from catalog offeringTypes.
+        // A product can be BOTH provider AND consumer (contract-internal provide+consume),
+        // so evaluate each independently rather than exclusively.
         const types = (po?.offeringTypes || []).map((t) => t.toUpperCase());
-        if (types.includes('SHARING_PROVIDER') || types.includes('PROVIDER') || (po?.name || '').toLowerCase().includes('technical')) {
-            setNewProductSharingProvider(true);
-            setNewProductSharingConsumer(false);
-        }
-        else if (types.includes('SHARING_CONSUMER') || types.includes('CONSUMER')) {
-            setNewProductSharingConsumer(true);
-            setNewProductSharingProvider(false);
-        }
-        else {
-            setNewProductSharingProvider(false);
-            setNewProductSharingConsumer(false);
-        }
-        // Also fetch live PO spec to check for sharingProviderSpecification
+        const isProvider = types.includes('SHARING_PROVIDER') || types.includes('PROVIDER') || (po?.name || '').toLowerCase().includes('technical');
+        const isConsumer = types.includes('SHARING_CONSUMER') || types.includes('CONSUMER');
+        setNewProductSharingProvider(isProvider);
+        setNewProductSharingConsumer(isConsumer);
+        // Also fetch live PO spec to check for sharing spec relations (additive, not exclusive)
         fetch(`${API}/spec/productOffering?externalId=${encodeURIComponent(newPO)}`)
             .then(r => r.ok ? r.json() : null)
             .then((data) => {
             const poSpec = Array.isArray(data) ? data[0] : data;
             if (poSpec?.sharingProviderSpecification || poSpec?.sharingProviderSpecificationExternalId) {
                 setNewProductSharingProvider(true);
-                setNewProductSharingConsumer(false);
             }
-            else if (poSpec?.sharingConsumerSpecification || poSpec?.sharingConsumerSpecificationExternalId) {
+            if (poSpec?.sharingConsumerSpecification || poSpec?.sharingConsumerSpecificationExternalId) {
                 setNewProductSharingConsumer(true);
-                setNewProductSharingProvider(false);
             }
         })
             .catch(() => { });
@@ -500,11 +513,15 @@ export function CRMView() {
         }
         // Add sharing consumer config
         if (newProductSharingConsumer) {
+            // If this product is ALSO the provider (contract-internal provide+consume),
+            // the consumer self-references this product and the consumer-list entry
+            // created above in sharingProvider. Otherwise it references a separate provider.
+            const selfConsumerListExtId = newProductConsumerListExtId || `Consumer_List_${newProductExtId}`;
             product.sharingConsumer = {
                 providerCustomerExternalId: custExtId,
                 providerContractExternalId: contractExtId,
-                providerProductExternalId: newProductProviderExtId,
-                consumerListEntryExternalId: newProductConsumerListExtId,
+                providerProductExternalId: newProductSharingProvider ? newProductExtId : (newProductProviderExtId || newProductExtId),
+                consumerListEntryExternalId: newProductSharingProvider ? selfConsumerListExtId : (newProductConsumerListExtId || selfConsumerListExtId),
             };
         }
         // Add POP price personalization
@@ -1196,6 +1213,30 @@ export function CRMView() {
         }
         setActionLoading(false);
     };
+    // === Add Identification Resource (contract-level) handler ===
+    const addIdentificationResource = () => {
+        if (!arSpecExtId || !arResourceNumber.trim()) {
+            setActionErr('Resource spec and number are required');
+            return;
+        }
+        const now = new Date().toISOString().replace(/\.\d{3}Z$/, '.000Z');
+        const res = {
+            resourceSpecificationExternalId: arSpecExtId,
+            resourceNumber: arResourceNumber.trim(),
+            externalId: arExternalId.trim() || `LRS_${arSpecExtId}_${arResourceNumber.trim()}`,
+        };
+        // Optionally tie to a product (correlation id)
+        if (arProductExtId) {
+            const prod = products.find((p) => p.externalId === arProductExtId);
+            const corr = prod?.correlationId || '1';
+            res.productCorrelationId = [corr];
+        }
+        patchContract({ resource: [res] });
+        setShowAddResource(false);
+        setArResourceNumber('');
+        setArExternalId('');
+        setArProductExtId('');
+    };
     // === Balance Adjustment handler ===
     const doBalanceAdjustment = async () => {
         setActionLoading(true);
@@ -1518,7 +1559,7 @@ export function CRMView() {
                                         const commId = cm.characteristic?.find((ch) => (ch.charSpecExternalId || '').toLowerCase().includes('communication'))?.value?.[0]?.value;
                                         const chType = cm.characteristic?.find((ch) => (ch.charSpecExternalId || '').toLowerCase().includes('channel'))?.value?.[0]?.value;
                                         return _jsx(InfoRow, { label: `Contact (${chType || cm.contactMediumSpecExternalId || i + 1})`, value: commId || cm.externalId }, i);
-                                    })] })), cu && (_jsxs(Card, { title: `Customer — ${cu.externalId || ''}`, icon: "\uD83C\uDFE2", color: "#3b82f6", rawData: cu, children: [_jsx(InfoRow, { label: "External ID", value: cu.externalId }), _jsx(InfoRow, { label: "Internal ID", value: cu.id }), _jsx(InfoRow, { label: "Spec", value: cu.customerSpecification?.externalId }), _jsx(InfoRow, { label: "Status", value: getCurrentStatus(cu.status) }), (cu.characteristic || []).map((ch, i) => (_jsx(InfoRow, { label: ch.charSpecExternalId || ch.name || `Char ${i + 1}`, value: ch.value?.[0]?.value ?? ch.value }, i))), (cu.account || []).map((a, i) => (_jsxs("div", { style: { marginTop: 8, padding: '6px 8px', background: '#eff6ff', borderRadius: 6, fontSize: 12 }, children: [_jsxs("div", { style: { fontWeight: 600, marginBottom: 4 }, children: ["\uD83D\uDCB3 Billing Account ", a.externalId] }), _jsx(InfoRow, { label: "Internal ID", value: a.id }), _jsx(InfoRow, { label: "Spec", value: a.billingAccountSpecExternalId }), _jsx(InfoRow, { label: "Status", value: getCurrentStatus(a.status) }), a.customerBillCycleSpecification?.map((bcs, j) => (_jsx(InfoRow, { label: "Bill Cycle Spec", value: bcs.billCycleSpecExternalId }, j)))] }, i)))] }))] }), _jsxs("div", { children: [c && (_jsxs(Card, { title: `Contract — ${c.externalId || ''}`, icon: "\uD83D\uDCC4", color: "#8b5cf6", rawData: c, children: [_jsxs("div", { style: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }, children: [_jsx(StatusBadge, { status: contractStatus }), _jsx("span", { style: { fontSize: 11, color: '#888' }, children: c.externalId })] }), _jsx(InfoRow, { label: "Internal ID", value: c.id }), _jsx(InfoRow, { label: "Spec", value: c.contractSpecification?.externalId }), _jsx(InfoRow, { label: "Valid From", value: fmtDate(c.validFor?.startDateTime) }), _jsx(InfoRow, { label: "Valid To", value: fmtDate(c.validFor?.endDateTime) }), _jsx(InfoRow, { label: "Home Time Zone", value: c.homeTimeZone?.[0]?.timeZone }), (c.characteristic || []).map((ch, i) => (_jsx(InfoRow, { label: ch.charSpecExternalId || `Char ${i + 1}`, value: ch.value?.[0]?.value ?? ch.value }, i))), (c.resource || []).map((r, i) => (_jsx(InfoRow, { label: `Resource (${r.resourceSpecificationExternalId || 'spec'})`, value: r.resourceNumber || r.externalId }, i))), _jsxs("div", { style: { display: 'flex', gap: 4, marginTop: 10, flexWrap: 'wrap' }, children: [_jsx("button", { disabled: actionLoading || contractStatus === 'Active', onClick: () => changeContractStatus('Active'), style: { fontSize: 10, padding: '3px 8px' }, children: "Activate" }), _jsx("button", { disabled: actionLoading || contractStatus === 'Halt', onClick: () => changeContractStatus('Halt'), style: { fontSize: 10, padding: '3px 8px' }, children: "Halt" }), _jsx("button", { disabled: actionLoading || contractStatus === 'Terminated', onClick: () => changeContractStatus('Terminated'), style: { fontSize: 10, padding: '3px 8px', color: 'red' }, children: "Terminate" })] }), products.length > 0 && (_jsxs("div", { style: { marginTop: 12 }, children: [_jsxs("div", { style: { fontSize: 12, fontWeight: 600, color: '#555', marginBottom: 6 }, children: ["\uD83D\uDCE6 Products (", products.length, ")"] }), products.map((p, i) => {
+                                    })] })), cu && (_jsxs(Card, { title: `Customer — ${cu.externalId || ''}`, icon: "\uD83C\uDFE2", color: "#3b82f6", rawData: cu, children: [_jsx(InfoRow, { label: "External ID", value: cu.externalId }), _jsx(InfoRow, { label: "Internal ID", value: cu.id }), _jsx(InfoRow, { label: "Spec", value: cu.customerSpecification?.externalId }), _jsx(InfoRow, { label: "Status", value: getCurrentStatus(cu.status) }), (cu.characteristic || []).map((ch, i) => (_jsx(InfoRow, { label: ch.charSpecExternalId || ch.name || `Char ${i + 1}`, value: ch.value?.[0]?.value ?? ch.value }, i))), (cu.account || []).map((a, i) => (_jsxs("div", { style: { marginTop: 8, padding: '6px 8px', background: '#eff6ff', borderRadius: 6, fontSize: 12 }, children: [_jsxs("div", { style: { fontWeight: 600, marginBottom: 4 }, children: ["\uD83D\uDCB3 Billing Account ", a.externalId] }), _jsx(InfoRow, { label: "Internal ID", value: a.id }), _jsx(InfoRow, { label: "Spec", value: a.billingAccountSpecExternalId }), _jsx(InfoRow, { label: "Status", value: getCurrentStatus(a.status) }), a.customerBillCycleSpecification?.map((bcs, j) => (_jsx(InfoRow, { label: "Bill Cycle Spec", value: bcs.billCycleSpecExternalId }, j)))] }, i)))] }))] }), _jsxs("div", { children: [c && (_jsxs(Card, { title: `Contract — ${c.externalId || ''}`, icon: "\uD83D\uDCC4", color: "#8b5cf6", rawData: c, children: [_jsxs("div", { style: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }, children: [_jsx(StatusBadge, { status: contractStatus }), _jsx("span", { style: { fontSize: 11, color: '#888' }, children: c.externalId })] }), _jsx(InfoRow, { label: "Internal ID", value: c.id }), _jsx(InfoRow, { label: "Spec", value: c.contractSpecification?.externalId }), _jsx(InfoRow, { label: "Valid From", value: fmtDate(c.validFor?.startDateTime) }), _jsx(InfoRow, { label: "Valid To", value: fmtDate(c.validFor?.endDateTime) }), _jsx(InfoRow, { label: "Home Time Zone", value: c.homeTimeZone?.[0]?.timeZone }), (c.characteristic || []).map((ch, i) => (_jsx(InfoRow, { label: ch.charSpecExternalId || `Char ${i + 1}`, value: ch.value?.[0]?.value ?? ch.value }, i))), (c.resource || []).map((r, i) => (_jsx(InfoRow, { label: `Resource (${r.resourceSpecificationExternalId || 'spec'})`, value: r.resourceNumber || r.externalId }, i))), _jsxs("div", { style: { marginTop: 6 }, children: [_jsx("button", { onClick: () => setShowAddResource(v => !v), style: { fontSize: 10, padding: '2px 8px', background: showAddResource ? '#0369a1' : '#e0f2fe', color: showAddResource ? '#fff' : '#0369a1', border: '1px solid #7dd3fc', borderRadius: 3, cursor: 'pointer' }, children: showAddResource ? '✕ Close' : '＋ Add Identification Resource' }), showAddResource && (_jsxs("div", { style: { marginTop: 6, padding: '8px 10px', background: '#f0f9ff', border: '1px solid #7dd3fc', borderRadius: 4 }, children: [_jsxs("label", { style: { display: 'block', fontSize: 11, marginBottom: 4 }, children: ["Resource Spec (MSISDN/IMSI)", _jsxs("select", { style: { width: '100%', padding: '3px 6px', fontSize: 11 }, value: arSpecExtId, onChange: e => setArSpecExtId(e.target.value), children: [_jsx("option", { value: "", children: "-- Select resource spec --" }), identificationSpecs.map((rs) => _jsxs("option", { value: rs.externalId, children: [rs.name, " (", rs.externalId, ")"] }, rs.id || rs.externalId))] })] }), _jsxs("label", { style: { display: 'block', fontSize: 11, marginBottom: 4 }, children: ["Resource Number (E.164 MSISDN / E.212 IMSI)", _jsx("input", { style: { width: '100%', padding: '3px 6px', fontSize: 11 }, value: arResourceNumber, onChange: e => setArResourceNumber(e.target.value), placeholder: "e.g. 8869xxxxxxxx" })] }), _jsxs("label", { style: { display: 'block', fontSize: 11, marginBottom: 4 }, children: ["External ID (optional)", _jsx("input", { style: { width: '100%', padding: '3px 6px', fontSize: 11 }, value: arExternalId, onChange: e => setArExternalId(e.target.value), placeholder: "auto if blank" })] }), _jsxs("label", { style: { display: 'block', fontSize: 11, marginBottom: 6 }, children: ["Link to Product (optional)", _jsxs("select", { style: { width: '100%', padding: '3px 6px', fontSize: 11 }, value: arProductExtId, onChange: e => setArProductExtId(e.target.value), children: [_jsx("option", { value: "", children: "-- None (contract-level) --" }), products.map((p) => _jsxs("option", { value: p.externalId, children: [p.productOfferingExternalId || p.name, " (", p.externalId, ")"] }, p.externalId))] })] }), _jsx("button", { disabled: actionLoading || !arSpecExtId || !arResourceNumber.trim(), onClick: addIdentificationResource, style: { fontSize: 10, padding: '3px 10px', background: '#0369a1', color: '#fff', border: 'none', borderRadius: 3, cursor: 'pointer' }, children: actionLoading ? '...' : 'Add Resource' })] }))] }), _jsxs("div", { style: { display: 'flex', gap: 4, marginTop: 10, flexWrap: 'wrap' }, children: [_jsx("button", { disabled: actionLoading || contractStatus === 'Active', onClick: () => changeContractStatus('Active'), style: { fontSize: 10, padding: '3px 8px' }, children: "Activate" }), _jsx("button", { disabled: actionLoading || contractStatus === 'Halt', onClick: () => changeContractStatus('Halt'), style: { fontSize: 10, padding: '3px 8px' }, children: "Halt" }), _jsx("button", { disabled: actionLoading || contractStatus === 'Terminated', onClick: () => changeContractStatus('Terminated'), style: { fontSize: 10, padding: '3px 8px', color: 'red' }, children: "Terminate" })] }), products.length > 0 && (_jsxs("div", { style: { marginTop: 12 }, children: [_jsxs("div", { style: { fontSize: 12, fontWeight: 600, color: '#555', marginBottom: 6 }, children: ["\uD83D\uDCE6 Products (", products.length, ")"] }), products.map((p, i) => {
                                                 const pStatus = getCurrentStatus(p.status) || '';
                                                 return (_jsxs("div", { style: { border: '1px solid #e9d5ff', borderRadius: 6, padding: '8px 10px', marginBottom: 8, background: '#faf5ff' }, children: [_jsxs("div", { style: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }, children: [_jsx("span", { style: { fontSize: 12, fontWeight: 600, flex: 1 }, children: p.productOfferingExternalId || p.name || p.externalId }), _jsx(StatusBadge, { status: pStatus })] }), _jsx(InfoRow, { label: "External ID", value: p.externalId }), _jsx(InfoRow, { label: "Internal ID", value: p.id }), _jsx(InfoRow, { label: "PO External ID", value: p.productOfferingExternalId }), _jsx(InfoRow, { label: "Valid From", value: fmtDate(p.validFor?.startDateTime) }), _jsx(InfoRow, { label: "Valid To", value: fmtDate(p.validFor?.endDateTime) }), _jsx(InfoRow, { label: "Billing Account", value: p.billingAccountReference?.externalId }), p.sharingProvider && (_jsxs("div", { style: { marginTop: 6, padding: '6px 8px', background: '#fef9c3', borderRadius: 4, border: '1px solid #fde047' }, children: [_jsx("div", { style: { fontSize: 11, fontWeight: 600, color: '#854d0e', marginBottom: 4 }, children: "\uD83D\uDD17 Sharing Provider" }), (p.sharingProvider.billingAccount || []).map((ba, j) => (_jsx(InfoRow, { label: "Provider BA", value: ba.externalId || ba.id }, `ba-${j}`))), (p.sharingProvider.consumerList || []).map((cl, j) => (_jsxs("div", { style: { marginTop: 4, padding: '4px 6px', background: '#fff', borderRadius: 3, border: '1px solid #fde68a' }, children: [_jsx(InfoRow, { label: "Consumer List", value: cl.externalId || cl.id }), _jsx(InfoRow, { label: "Consumer Customer", value: cl.consumerCustomerExternalId }), _jsx(InfoRow, { label: "Consumer Contract", value: cl.consumerContractExternalId }), _jsx(InfoRow, { label: "Status", value: getCurrentStatus(cl.status) })] }, j)))] })), p.sharingConsumer && (_jsxs("div", { style: { marginTop: 6, padding: '6px 8px', background: '#ede9fe', borderRadius: 4, border: '1px solid #c4b5fd' }, children: [_jsx("div", { style: { fontSize: 11, fontWeight: 600, color: '#5b21b6', marginBottom: 4 }, children: "\uD83D\uDD17 Sharing Consumer" }), _jsx(InfoRow, { label: "Provider Customer", value: p.sharingConsumer.providerCustomerExternalId }), _jsx(InfoRow, { label: "Provider Contract", value: p.sharingConsumer.providerContractExternalId }), _jsx(InfoRow, { label: "Provider Product", value: p.sharingConsumer.providerProductExternalId }), _jsx(InfoRow, { label: "Consumer List Entry", value: p.sharingConsumer.consumerListEntryExternalId })] })), (p.characteristic || []).map((ch, j) => (_jsx(InfoRow, { label: ch.charSpecExternalId || `Char ${j + 1}`, value: ch.value?.[0]?.value ?? ch.value }, j))), (() => {
                                                             const { products: prodBucketMap } = flattenBuckets(balance);

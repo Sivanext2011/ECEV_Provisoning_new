@@ -219,6 +219,13 @@ export function CRMView() {
   const [rsProductExtId, setRsProductExtId] = useState('')
   const [rsUpdateContactMedium, setRsUpdateContactMedium] = useState(true)
 
+  // Add Identification Resource state (contract-level)
+  const [showAddResource, setShowAddResource] = useState(false)
+  const [arSpecExtId, setArSpecExtId] = useState('')
+  const [arResourceNumber, setArResourceNumber] = useState('')
+  const [arExternalId, setArExternalId] = useState('')
+  const [arProductExtId, setArProductExtId] = useState('')
+
   // Balance Adjustment state
   const [showBalanceAdj, setShowBalanceAdj] = useState(false)
   const [baAdjType, setBaAdjType] = useState<'billing' | 'product'>('billing')
@@ -323,6 +330,20 @@ export function CRMView() {
   const resourceSpecs = specs?.resourceSpecifications || []
   const contractSpecs = specs?.contractSpecifications || []
   const commIdSpecs = specs?.communicationIdentifierSpecifications || []
+  // Identification resource specs (MSISDN/IMSI) can be classified under either
+  // resourceSpecifications or communicationIdentifierSpecifications by the catalog parser.
+  // Merge both (dedupe by externalId) for the Add-Resource dropdown.
+  const identificationSpecs = (() => {
+    const seen = new Set<string>()
+    const out: any[] = []
+    for (const rs of [...resourceSpecs, ...commIdSpecs]) {
+      const ext = (rs.externalId || '').trim()
+      if (!ext || seen.has(ext)) continue
+      seen.add(ext)
+      out.push(rs)
+    }
+    return out
+  })()
   const msisdnValue = searchType === 'msisdn' ? searchValue : ''
 
   // Load PO spec when product offering is selected for Add Product
@@ -339,24 +360,24 @@ export function CRMView() {
     // Pre-populate resource specs from PO
     const resSpecs = po?.resourceSpecifications || []
     setNewProductResources(resSpecs.map((rs: any) => ({ specExternalId: rs.externalId || rs.id || '', resourceNumber: '', externalId: '' })))
-    // Auto-detect sharing type from catalog offeringTypes
+    // Auto-detect sharing type from catalog offeringTypes.
+    // A product can be BOTH provider AND consumer (contract-internal provide+consume),
+    // so evaluate each independently rather than exclusively.
     const types = (po?.offeringTypes || []).map((t: string) => t.toUpperCase())
-    if (types.includes('SHARING_PROVIDER') || types.includes('PROVIDER') || (po?.name || '').toLowerCase().includes('technical')) {
-      setNewProductSharingProvider(true); setNewProductSharingConsumer(false)
-    } else if (types.includes('SHARING_CONSUMER') || types.includes('CONSUMER')) {
-      setNewProductSharingConsumer(true); setNewProductSharingProvider(false)
-    } else {
-      setNewProductSharingProvider(false); setNewProductSharingConsumer(false)
-    }
-    // Also fetch live PO spec to check for sharingProviderSpecification
+    const isProvider = types.includes('SHARING_PROVIDER') || types.includes('PROVIDER') || (po?.name || '').toLowerCase().includes('technical')
+    const isConsumer = types.includes('SHARING_CONSUMER') || types.includes('CONSUMER')
+    setNewProductSharingProvider(isProvider)
+    setNewProductSharingConsumer(isConsumer)
+    // Also fetch live PO spec to check for sharing spec relations (additive, not exclusive)
     fetch(`${API}/spec/productOffering?externalId=${encodeURIComponent(newPO)}`)
       .then(r => r.ok ? r.json() : null)
       .then((data: any) => {
         const poSpec = Array.isArray(data) ? data[0] : data
         if (poSpec?.sharingProviderSpecification || poSpec?.sharingProviderSpecificationExternalId) {
-          setNewProductSharingProvider(true); setNewProductSharingConsumer(false)
-        } else if (poSpec?.sharingConsumerSpecification || poSpec?.sharingConsumerSpecificationExternalId) {
-          setNewProductSharingConsumer(true); setNewProductSharingProvider(false)
+          setNewProductSharingProvider(true)
+        }
+        if (poSpec?.sharingConsumerSpecification || poSpec?.sharingConsumerSpecificationExternalId) {
+          setNewProductSharingConsumer(true)
         }
       })
       .catch(() => {})
@@ -486,11 +507,15 @@ export function CRMView() {
     }
     // Add sharing consumer config
     if (newProductSharingConsumer) {
+      // If this product is ALSO the provider (contract-internal provide+consume),
+      // the consumer self-references this product and the consumer-list entry
+      // created above in sharingProvider. Otherwise it references a separate provider.
+      const selfConsumerListExtId = newProductConsumerListExtId || `Consumer_List_${newProductExtId}`
       product.sharingConsumer = {
         providerCustomerExternalId: custExtId,
         providerContractExternalId: contractExtId,
-        providerProductExternalId: newProductProviderExtId,
-        consumerListEntryExternalId: newProductConsumerListExtId,
+        providerProductExternalId: newProductSharingProvider ? newProductExtId : (newProductProviderExtId || newProductExtId),
+        consumerListEntryExternalId: newProductSharingProvider ? selfConsumerListExtId : (newProductConsumerListExtId || selfConsumerListExtId),
       }
     }
 
@@ -1086,6 +1111,26 @@ export function CRMView() {
     setActionLoading(false)
   }
 
+  // === Add Identification Resource (contract-level) handler ===
+  const addIdentificationResource = () => {
+    if (!arSpecExtId || !arResourceNumber.trim()) { setActionErr('Resource spec and number are required'); return }
+    const now = new Date().toISOString().replace(/\.\d{3}Z$/, '.000Z')
+    const res: any = {
+      resourceSpecificationExternalId: arSpecExtId,
+      resourceNumber: arResourceNumber.trim(),
+      externalId: arExternalId.trim() || `LRS_${arSpecExtId}_${arResourceNumber.trim()}`,
+    }
+    // Optionally tie to a product (correlation id)
+    if (arProductExtId) {
+      const prod = products.find((p: any) => p.externalId === arProductExtId)
+      const corr = prod?.correlationId || '1'
+      res.productCorrelationId = [corr]
+    }
+    patchContract({ resource: [res] })
+    setShowAddResource(false)
+    setArResourceNumber(''); setArExternalId(''); setArProductExtId('')
+  }
+
   // === Balance Adjustment handler ===
   const doBalanceAdjustment = async () => {
     setActionLoading(true); setActionMsg(''); setActionErr('')
@@ -1518,6 +1563,39 @@ export function CRMView() {
                 {(c.resource || []).map((r: any, i: number) => (
                   <InfoRow key={i} label={`Resource (${r.resourceSpecificationExternalId || 'spec'})`} value={r.resourceNumber || r.externalId} />
                 ))}
+
+                {/* Add Identification Resource */}
+                <div style={{ marginTop: 6 }}>
+                  <button onClick={() => setShowAddResource(v => !v)} style={{ fontSize: 10, padding: '2px 8px', background: showAddResource ? '#0369a1' : '#e0f2fe', color: showAddResource ? '#fff' : '#0369a1', border: '1px solid #7dd3fc', borderRadius: 3, cursor: 'pointer' }}>
+                    {showAddResource ? '✕ Close' : '＋ Add Identification Resource'}
+                  </button>
+                  {showAddResource && (
+                    <div style={{ marginTop: 6, padding: '8px 10px', background: '#f0f9ff', border: '1px solid #7dd3fc', borderRadius: 4 }}>
+                      <label style={{ display: 'block', fontSize: 11, marginBottom: 4 }}>Resource Spec (MSISDN/IMSI)
+                        <select style={{ width: '100%', padding: '3px 6px', fontSize: 11 }} value={arSpecExtId} onChange={e => setArSpecExtId(e.target.value)}>
+                          <option value="">-- Select resource spec --</option>
+                          {identificationSpecs.map((rs: any) => <option key={rs.id || rs.externalId} value={rs.externalId}>{rs.name} ({rs.externalId})</option>)}
+                        </select>
+                      </label>
+                      <label style={{ display: 'block', fontSize: 11, marginBottom: 4 }}>Resource Number (E.164 MSISDN / E.212 IMSI)
+                        <input style={{ width: '100%', padding: '3px 6px', fontSize: 11 }} value={arResourceNumber} onChange={e => setArResourceNumber(e.target.value)} placeholder="e.g. 8869xxxxxxxx" />
+                      </label>
+                      <label style={{ display: 'block', fontSize: 11, marginBottom: 4 }}>External ID (optional)
+                        <input style={{ width: '100%', padding: '3px 6px', fontSize: 11 }} value={arExternalId} onChange={e => setArExternalId(e.target.value)} placeholder="auto if blank" />
+                      </label>
+                      <label style={{ display: 'block', fontSize: 11, marginBottom: 6 }}>Link to Product (optional)
+                        <select style={{ width: '100%', padding: '3px 6px', fontSize: 11 }} value={arProductExtId} onChange={e => setArProductExtId(e.target.value)}>
+                          <option value="">-- None (contract-level) --</option>
+                          {products.map((p: any) => <option key={p.externalId} value={p.externalId}>{p.productOfferingExternalId || p.name} ({p.externalId})</option>)}
+                        </select>
+                      </label>
+                      <button disabled={actionLoading || !arSpecExtId || !arResourceNumber.trim()} onClick={addIdentificationResource}
+                        style={{ fontSize: 10, padding: '3px 10px', background: '#0369a1', color: '#fff', border: 'none', borderRadius: 3, cursor: 'pointer' }}>
+                        {actionLoading ? '...' : 'Add Resource'}
+                      </button>
+                    </div>
+                  )}
+                </div>
 
                 {/* Contract Status Actions */}
                 <div style={{ display: 'flex', gap: 4, marginTop: 10, flexWrap: 'wrap' }}>

@@ -20,7 +20,7 @@ export function ApiLogsPanel() {
       url: log.url,
       status: log.status,
       request: {
-        headers: log.headers || { 'Content-Type': 'application/json', 'Authorization': 'Bearer ***' },
+        headers: log.request_headers || log.headers || { 'Content-Type': 'application/json', 'Authorization': 'Bearer ***' },
         body: log.request_body,
       },
       response: {
@@ -86,6 +86,7 @@ export function ApiLogsPanel() {
                       navigator.clipboard.writeText(text)
                     }} style={{ fontSize: 11, padding: '3px 10px', background: '#059669', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer' }}>📋 Copy to Clipboard</button>
                   </div>
+                  {l.request_headers && <><div style={{ fontSize: 11, fontWeight: 600, marginBottom: 4 }}>Request Headers:</div><pre style={{ fontSize: 11, margin: '0 0 8px', padding: 8, background: '#fff', border: '1px solid #e5e7eb', borderRadius: 4, maxHeight: 200, overflow: 'auto', whiteSpace: 'pre-wrap' }}>{JSON.stringify(l.request_headers, null, 2)}</pre></>}
                   {l.request_body && <><div style={{ fontSize: 11, fontWeight: 600, marginBottom: 4 }}>Request Body:</div><pre style={{ fontSize: 11, margin: '0 0 8px', padding: 8, background: '#fff', border: '1px solid #e5e7eb', borderRadius: 4, maxHeight: 300, overflow: 'auto', whiteSpace: 'pre-wrap' }}>{JSON.stringify(l.request_body, null, 2)}</pre></>}
                   <div style={{ fontSize: 11, fontWeight: 600, marginBottom: 4 }}>Response Body:</div>
                   <pre style={{ fontSize: 11, margin: 0, padding: 8, background: l.status >= 400 || l.status === 'ERROR' ? '#fef2f2' : '#f0fdf4', border: `1px solid ${l.status >= 400 || l.status === 'ERROR' ? '#fecaca' : '#bbf7d0'}`, borderRadius: 4, maxHeight: 400, overflow: 'auto', whiteSpace: 'pre-wrap' }}>{(() => { try { return JSON.stringify(JSON.parse(l.response_body), null, 2) } catch { return l.response_body } })()}</pre>

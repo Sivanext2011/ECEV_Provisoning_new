@@ -180,11 +180,36 @@ def _normalize(item: dict, catalog_key: str) -> dict:
 
 
 async def _list_spec_ids(spec_type: str) -> list[dict]:
-    """Step 1: Get all {id, externalId, name} for a given specificationType."""
+    """Step 1: Get all {id, externalId, name} for a given specificationType.
+
+    Drops entries whose externalId is DUPLICATED across the catalog (e.g. a
+    'Copy of ...' spec created with the same externalId). Querying BSSF by a
+    duplicated externalId returns 500 'Ambiguous result', so such entries are
+    skipped. Entries without an externalId (pre-installed system specs) are also
+    skipped since they are not part of the CHT design and can't be fetched
+    uniquely.
+    """
     try:
         data = await ericsson_client.request("spec_entity_list", query_params={"specificationType": spec_type})
         entries = data.get("entitySpecificationListEntry") or []
-        return [e for e in entries if e.get("externalId") or e.get("id")]
+        # Count externalId occurrences
+        ext_counts: dict[str, int] = {}
+        for e in entries:
+            ext = (e.get("externalId") or "").strip()
+            if ext:
+                ext_counts[ext] = ext_counts.get(ext, 0) + 1
+        result = []
+        for e in entries:
+            ext = (e.get("externalId") or "").strip()
+            if not ext:
+                logger.info(f"Skipping {spec_type} entry with no externalId (name={e.get('name')!r})")
+                continue
+            if ext_counts.get(ext, 0) > 1:
+                logger.warning(f"Skipping {spec_type} entry with DUPLICATE externalId {ext!r} "
+                               f"(name={e.get('name')!r}) - would cause ambiguous BSSF lookup")
+                continue
+            result.append(e)
+        return result
     except Exception as e:
         logger.warning(f"entitySpecificationList failed for {spec_type}: {e}")
         return []

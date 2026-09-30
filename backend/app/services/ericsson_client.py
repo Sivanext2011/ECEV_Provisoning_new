@@ -53,6 +53,7 @@ class EricssonClient:
         self.tls_cfg = cfg.get("tls", {})
         self.network_cfg = cfg.get("network", {})
         self.apis = cfg.get("apis", {})
+        self.defaults = cfg.get("defaults", {})
 
     def _build_client(self) -> httpx.AsyncClient:
         ca_cert = self.tls_cfg.get("ca_cert_path", "")
@@ -171,12 +172,22 @@ class EricssonClient:
 
         return url, method
 
-    def _log(self, method: str, url: str, status: int, req_body=None, resp_text=""):
+    def _log(self, method: str, url: str, status: int, req_body=None, resp_text="", headers=None):
+        req_headers = None
+        if headers:
+            # mask sensitive auth token; keep routing headers like ERICSSON.Partition-Id visible
+            req_headers = {}
+            for k, v in headers.items():
+                if k.lower() == "authorization":
+                    req_headers[k] = "Bearer ***"
+                else:
+                    req_headers[k] = v
         entry = {
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "method": method,
             "url": url,
             "status": status,
+            "request_headers": req_headers,
             "request_body": req_body,
             "response_body": resp_text[:50000] if resp_text else "",
         }
@@ -201,13 +212,17 @@ class EricssonClient:
         headers = {"Content-Type": "application/json", "Accept": "application/json"}
         if token:
             headers["Authorization"] = f"Bearer {token}"
+        # Partition routing header (required by CHA balance/charging APIs; harmless on others).
+        partition_id = (self.defaults or {}).get("partitionId", "")
+        if partition_id:
+            headers["ERICSSON.Partition-Id"] = str(partition_id)
 
         logger.info(f"{method} {url}")
 
         try:
             r = await self._do_request(method, url, headers, body, query_params)
         except Exception as e:
-            self._log(method, url, "ERROR", body, str(e))
+            self._log(method, url, "ERROR", body, str(e), headers=headers)
             raise
 
         # On 401, invalidate token and retry once
@@ -219,10 +234,10 @@ class EricssonClient:
             try:
                 r = await self._do_request(method, url, headers, body, query_params)
             except Exception as e:
-                self._log(method, url, "ERROR", body, str(e))
+                self._log(method, url, "ERROR", body, str(e), headers=headers)
                 raise
 
-        self._log(method, url, r.status_code, body, r.text)
+        self._log(method, url, r.status_code, body, r.text, headers=headers)
         r.raise_for_status()
 
         if r.status_code == 204 or not r.text:
