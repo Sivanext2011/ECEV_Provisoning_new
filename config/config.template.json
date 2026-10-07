@@ -328,6 +328,30 @@
       "method": "GET",
       "url": "{{ROOT_CPM_BATCH}}/eric-bss-cpm-batch/batch/v1/job"
     },
+    "batch_create_job": {
+      "method": "POST",
+      "url": "{{ROOT_CPM_BATCH}}/eric-bss-cpm-batch/batch/v1/job"
+    },
+    "batch_start_job": {
+      "method": "POST",
+      "url": "{{ROOT_CPM_BATCH}}/eric-bss-cpm-batch/batch/v1/job/{{jobId}}/start"
+    },
+    "batch_job_status": {
+      "method": "GET",
+      "url": "{{ROOT_CPM_BATCH}}/eric-bss-cpm-batch/batch/v1/job/{{jobId}}/status"
+    },
+    "batch_job_result": {
+      "method": "GET",
+      "url": "{{ROOT_CPM_BATCH}}/eric-bss-cpm-batch/batch/v1/job/{{jobId}}/result"
+    },
+    "batch_list_jobs": {
+      "method": "GET",
+      "url": "{{ROOT_CPM_BATCH}}/eric-bss-cpm-batch/batch/v1/job"
+    },
+    "batch_delete_job": {
+      "method": "DELETE",
+      "url": "{{ROOT_CPM_BATCH}}/eric-bss-cpm-batch/batch/v1/job/{{jobId}}"
+    },
     "rmca_entity_read_contact_medium_spec": {
       "method": "GET",
       "url": "{{ROOT_RMCA}}/rmca/entityRead/v1/contactMediumSpecification?externalId={{specExternalId}}"

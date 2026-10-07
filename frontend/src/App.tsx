@@ -3,6 +3,7 @@ import { ProvisionWizard } from './components/ProvisionWizard'
 import { CRMView } from './components/CRMView'
 import { CatalogPanel } from './components/CatalogPanel'
 import { OperationsPanel } from './components/OperationsPanel'
+import { BatchPanel } from './components/BatchPanel'
 import { POPublishPanel } from './components/POPublishPanel'
 import { SettingsPanel } from './components/SettingsPanel'
 import { ApiLogsPanel } from './components/ApiLogsPanel'
@@ -13,6 +14,7 @@ const tabs = [
   { key: '360', label: '360° View', icon: '🔍' },
   { key: 'catalog', label: 'Catalog', icon: '📋' },
   { key: 'operations', label: 'Operations', icon: '⚙️' },
+  { key: 'batch', label: 'CPM Batch', icon: '📦' },
   { key: 'trace', label: 'Trace & Traffic', icon: '📡' },
   { key: 'publish', label: 'PO Publish', icon: '📤' },
   { key: 'settings', label: 'Settings', icon: '🛠️' },
@@ -167,6 +169,8 @@ function App() {
         return <CatalogPanel />
       case 'operations':
         return <OperationsPanel />
+      case 'batch':
+        return <BatchPanel />
       case 'trace':
         return <TraceTraffic />
       case 'publish':
