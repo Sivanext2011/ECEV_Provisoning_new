@@ -13,12 +13,74 @@ import asyncio
 import logging
 
 from ..services.ericsson_client import ericsson_client, load_config
+from ..services import catalog_fetch as _cf
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1/batch", tags=["cpm-batch"])
 
 # In-memory registry of scheduled jobs: {schedule_id: {...}}
 _scheduled: dict = {}
+
+
+async def _fetch_required_chars(api_key: str, ext_param: str, ext_id: str) -> list:
+    """Fetch a spec by externalId and return its REQUIRED characteristics as
+    batch characteristic entries: [{charSpecExternalId, value:[{value,unitOfMeasure?}]}].
+    A required char with no usable value is still included with its default/first
+    possible value so the batch satisfies minCardinality."""
+    if not ext_id:
+        return []
+    try:
+        raw = await _cf._fetch_spec(api_key, ext_param, ext_id, "")
+    except Exception as e:
+        logger.warning(f"char fetch failed for {ext_id}: {e}")
+        return []
+    if not raw:
+        return []
+    chars = _cf._extract_chars(raw.get("specCharacteristic") or raw.get("characteristic") or [])
+    out = []
+    for c in chars:
+        if not c.get("required"):
+            continue
+        key = c.get("externalId") or c.get("name")
+        if not key:
+            continue
+        # choose a value: explicit default, else first possible value
+        val = c.get("defaultValue")
+        if not val:
+            pvs = c.get("possibleValues") or []
+            if pvs:
+                default_pv = next((p for p in pvs if p.get("default")), pvs[0])
+                val = default_pv.get("value")
+            elif c.get("valueFrom") not in (None, ""):
+                val = str(c.get("valueFrom"))
+        if val in (None, ""):
+            logger.warning(f"required char {key} on {ext_id} has no default/possible value; skipping")
+            continue
+        entry = {"charSpecExternalId": key, "value": [{"value": str(val)}]}
+        uom = c.get("unitOfMeasure")
+        if uom:
+            entry["value"][0]["unitOfMeasure"] = uom
+        out.append(entry)
+    return out
+
+
+async def _enrich_mandatory_chars(bf: dict) -> dict:
+    """Populate mandatory characteristics on the customer entity (and others)
+    by reading the spec characteristics from the catalog, so the batch satisfies
+    minCardinality constraints. Modifies and returns bf."""
+    d = _defaults()
+    cust_spec = d.get("customerSpecExternalId", "")
+    party_spec = d.get("partySpecExternalId", "")
+    cust_chars = await _fetch_required_chars("spec_customer", "customerSpecificationExternalId", cust_spec)
+    party_chars = await _fetch_required_chars("spec_individual", "individualSpecificationExternalId", party_spec)
+    for rec in bf.get("records", []):
+        for ent in rec.get("entities", []):
+            pl = ent.get("payload") or {}
+            if ent.get("entity") == "customer" and cust_chars and "characteristic" not in pl:
+                pl["characteristic"] = cust_chars
+            if ent.get("entity") == "party" and party_chars and "characteristic" not in pl:
+                pl["characteristic"] = party_chars
+    return bf
 
 
 def _now():
@@ -283,7 +345,8 @@ async def _fetch_result_stream(job_id: str) -> dict:
 @router.post("/build")
 async def build(body: dict = None):
     """Build and return the batch file JSON (preview, no submit)."""
-    return build_batch_file(body or {})
+    bf = build_batch_file(body or {})
+    return await _enrich_mandatory_chars(bf)
 
 
 @router.get("/template")
@@ -291,8 +354,10 @@ async def template(count: int = 1, adjustment: bool = True):
     """Return a ready-to-edit batch file TEMPLATE (party->customer->contract->adjustment).
 
     The user can download this, edit the resource payloads/externalIds, and upload it.
+    Mandatory spec characteristics are auto-populated from the catalog.
     """
-    return build_batch_file({"count": count, "adjustment": adjustment})
+    bf = build_batch_file({"count": count, "adjustment": adjustment})
+    return await _enrich_mandatory_chars(bf)
 
 
 @router.post("/upload")
@@ -351,6 +416,8 @@ async def schedule_batch(body: dict = None):
     """
     body = body or {}
     batch_file = body.get("batchFile") or build_batch_file(body)
+    if not body.get("batchFile"):
+        batch_file = await _enrich_mandatory_chars(batch_file)
     delay = int(body.get("delaySeconds") or 0)
     auto_start = bool(body.get("autoStart", True))
     schedule_id = uuid.uuid4().hex[:12]
@@ -392,6 +459,8 @@ async def create_job(body: dict = None):
     """Build (if raw file not supplied) and submit a batch job -> returns jobId."""
     body = body or {}
     batch_file = body.get("batchFile") or build_batch_file(body)
+    if not body.get("batchFile"):
+        batch_file = await _enrich_mandatory_chars(batch_file)
     try:
         return await _submit_raw(batch_file)
     except Exception as e:
