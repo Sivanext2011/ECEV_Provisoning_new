@@ -72,7 +72,7 @@ def build_batch_file(body: dict) -> dict:
             {"entityType": "party"}, {"entityType": "customer"},
             {"entityType": "contract"},
         ] + ([{"entityType": "bucketAdjustment"}] if do_adjust else []),
-        "ServiceDefs": [
+        "serviceDefs": [
             {"serviceGroupName": "bae-rest", "name": "BSSF_Individual_Party_Management",
              "ServiceRegistry": {"serviceType": "REST", "environment": "PROD",
                                  "serviceName": "BSSF_Individual_Party_Management", "version": "2"},
