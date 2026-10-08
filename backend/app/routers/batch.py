@@ -300,10 +300,12 @@ async def _submit_raw(batch_file: dict) -> dict:
     import httpx
     await ericsson_client._ensure_client()
     url, _ = ericsson_client._resolve_url("batch_create_job")
-    token = await ericsson_client._get_token()
+    # Cert-based batch route is mTLS-only; sending a bearer token causes 401.
     headers = {"Content-Type": "application/octet-stream", "Accept": "application/json"}
-    if token:
-        headers["Authorization"] = f"Bearer {token}"
+    if not (ericsson_client.apis.get("batch_create_job", {}) or {}).get("no_auth"):
+        token = await ericsson_client._get_token()
+        if token:
+            headers["Authorization"] = f"Bearer {token}"
     partition_id = (ericsson_client.defaults or {}).get("partitionId", "")
     if partition_id:
         headers["ERICSSON.Partition-Id"] = str(partition_id)
@@ -343,10 +345,11 @@ async def _fetch_result_stream(job_id: str) -> dict:
     return a structured summary: {records:[...], summary:{...}}."""
     await ericsson_client._ensure_client()
     url, _ = ericsson_client._resolve_url("batch_job_result", path_params={"jobId": job_id})
-    token = await ericsson_client._get_token()
     headers = {"Accept": "application/json"}
-    if token:
-        headers["Authorization"] = f"Bearer {token}"
+    if not (ericsson_client.apis.get("batch_job_result", {}) or {}).get("no_auth"):
+        token = await ericsson_client._get_token()
+        if token:
+            headers["Authorization"] = f"Bearer {token}"
     partition_id = (ericsson_client.defaults or {}).get("partitionId", "")
     if partition_id:
         headers["ERICSSON.Partition-Id"] = str(partition_id)

@@ -223,7 +223,9 @@ class EricssonClient:
         token = await self._get_token()
 
         headers = {"Content-Type": "application/json", "Accept": "application/json"}
-        if token:
+        api_cfg = self.apis.get(api_key, {})
+        no_auth = bool(api_cfg.get("no_auth"))
+        if token and not no_auth:
             headers["Authorization"] = f"Bearer {token}"
         # Partition routing header (required by CHA balance/charging APIs; harmless on others).
         partition_id = (self.defaults or {}).get("partitionId", "")
@@ -239,7 +241,7 @@ class EricssonClient:
             raise
 
         # On 401, invalidate token and retry once
-        if r.status_code == 401:
+        if r.status_code == 401 and not no_auth:
             self._invalidate_token()
             token = await self._get_token()
             if token:

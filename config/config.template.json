@@ -330,27 +330,33 @@
     },
     "batch_create_job": {
       "method": "POST",
-      "url": "{{ROOT_CPM_BATCH}}/eric-bss-cpm-batch/batch/v1/job"
+      "url": "{{ROOT_CPM_BATCH}}/eric-bss-cpm-batch/batch/v1/job",
+      "no_auth": true
     },
     "batch_start_job": {
       "method": "POST",
-      "url": "{{ROOT_CPM_BATCH}}/eric-bss-cpm-batch/batch/v1/job/{{jobId}}/start"
+      "url": "{{ROOT_CPM_BATCH}}/eric-bss-cpm-batch/batch/v1/job/{{jobId}}/start",
+      "no_auth": true
     },
     "batch_job_status": {
       "method": "GET",
-      "url": "{{ROOT_CPM_BATCH}}/eric-bss-cpm-batch/batch/v1/job/{{jobId}}/status"
+      "url": "{{ROOT_CPM_BATCH}}/eric-bss-cpm-batch/batch/v1/job/{{jobId}}/status",
+      "no_auth": true
     },
     "batch_job_result": {
       "method": "GET",
-      "url": "{{ROOT_CPM_BATCH}}/eric-bss-cpm-batch/batch/v1/job/{{jobId}}/result"
+      "url": "{{ROOT_CPM_BATCH}}/eric-bss-cpm-batch/batch/v1/job/{{jobId}}/result",
+      "no_auth": true
     },
     "batch_list_jobs": {
       "method": "GET",
-      "url": "{{ROOT_CPM_BATCH}}/eric-bss-cpm-batch/batch/v1/job"
+      "url": "{{ROOT_CPM_BATCH}}/eric-bss-cpm-batch/batch/v1/job",
+      "no_auth": true
     },
     "batch_delete_job": {
       "method": "DELETE",
-      "url": "{{ROOT_CPM_BATCH}}/eric-bss-cpm-batch/batch/v1/job/{{jobId}}"
+      "url": "{{ROOT_CPM_BATCH}}/eric-bss-cpm-batch/batch/v1/job/{{jobId}}",
+      "no_auth": true
     },
     "rmca_entity_read_contact_medium_spec": {
       "method": "GET",
