@@ -186,6 +186,76 @@ export function BatchPanel() {
     } catch (e: any) { setErr(`Build failed: ${e.message}`) }
   }
 
+  // ---- Bulk Excel workflow (multi-entry, multi-combo) ----
+  const [showBulk, setShowBulk] = useState(false)
+  const [bulkCombos, setBulkCombos] = useState<Array<any>>([])
+  const [bulkSampleRows, setBulkSampleRows] = useState('5')
+  const [bulkBatchFile, setBulkBatchFile] = useState<any>(null)
+  const [bulkRecordCount, setBulkRecordCount] = useState<number | null>(null)
+  const [bulkFileName, setBulkFileName] = useState('')
+  const bulkFileRef = useRef<HTMLInputElement>(null)
+
+  // snapshot the current wizard spec selection as a named combo
+  const addCurrentAsCombo = () => {
+    const name = `combo${bulkCombos.length + 1}`
+    const rsEntries = wResources.filter(r => r.specExtId).map(r => ({ externalId: r.specExtId, id: r.specId || '' }))
+    setBulkCombos([...bulkCombos, {
+      comboName: name,
+      partySpecExternalId: wPartySpec, customerSpecExternalId: wCustSpec,
+      billingAccountSpecExternalId: wBASpec, billCycleSpecExternalId: wBCSpec,
+      contractSpecExternalId: wContractSpec, productOfferingExternalId: wPO,
+      contactMediumSpecExternalId: wContactMedia[0]?.specExtId || '',
+      resourceSpecs: rsEntries,
+      includeBaRef: wIncludeBaRef, includeBaRefRecurrence: wIncludeBaRefRecurrence,
+    }])
+  }
+
+  const downloadExcelTemplate = async () => {
+    setErr(''); setMsg('')
+    const combos = bulkCombos.length ? bulkCombos : [{
+      comboName: 'default',
+      partySpecExternalId: wPartySpec, customerSpecExternalId: wCustSpec,
+      billingAccountSpecExternalId: wBASpec, billCycleSpecExternalId: wBCSpec,
+      contractSpecExternalId: wContractSpec, productOfferingExternalId: wPO,
+      contactMediumSpecExternalId: wContactMedia[0]?.specExtId || '',
+      resourceSpecs: wResources.filter(r => r.specExtId).map(r => ({ externalId: r.specExtId, id: r.specId || '' })),
+      includeBaRef: wIncludeBaRef, includeBaRefRecurrence: wIncludeBaRefRecurrence,
+    }]
+    try {
+      const r = await fetch(`${API}/batch/excel-template`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ combos, sampleRows: Number(bulkSampleRows) || 5 }),
+      })
+      if (!r.ok) { const d = await r.json().catch(() => ({})); throw new Error(d.detail || `HTTP ${r.status}`) }
+      const blob = await r.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url; a.download = 'cpm_batch_bulk_template.xlsx'; a.click()
+      URL.revokeObjectURL(url)
+      setMsg(`Excel template downloaded (${combos.length} combo(s)). Fill the Entries sheet and upload it below.`)
+    } catch (e: any) { setErr(`Excel template failed: ${e.message}`) }
+  }
+
+  const onBulkFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0]
+    if (!f) return
+    setErr(''); setMsg(''); setBulkFileName(f.name); setLoading(true); setBulkBatchFile(null); setBulkRecordCount(null)
+    try {
+      const fd = new FormData(); fd.append('file', f)
+      const r = await fetch(`${API}/batch/excel-upload`, { method: 'POST', body: fd })
+      const d = await r.json()
+      if (!r.ok) throw new Error(d.detail || `HTTP ${r.status}`)
+      setBulkBatchFile(d.batchFile); setBulkRecordCount(d.recordCount)
+      setMsg(`Parsed "${f.name}": ${d.recordCount} record(s) across combos [${(d.combos || []).join(', ')}]`)
+    } catch (e: any) { setErr(`Excel upload failed: ${e.message}`) }
+    setLoading(false)
+  }
+
+  const scheduleBulk = () => {
+    if (!bulkBatchFile) { setErr('Upload a filled Excel first'); return }
+    schedule({ batchFile: bulkBatchFile })
+  }
+
   // ---- Poll schedule status ----
   useEffect(() => {
     if (!scheduleId) return
@@ -446,6 +516,67 @@ export function BatchPanel() {
             <p style={{ fontSize: 11, color: '#888', margin: 0 }}>Mandatory spec characteristics auto-fill from the catalog if left blank. * = must be personalized. BA refs are off by default (match verified working pattern).</p>
           </div>
         ))}
+      </div>
+
+      {/* Bulk Excel workflow (multi-entry, multi-combo) */}
+      <div style={card}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+          <span style={{ fontWeight: 600 }}>📊 Bulk via Excel (multiple entries / combos)</span>
+          <button onClick={() => setShowBulk(s => !s)} style={{ ...btn, background: '#0891b2', padding: '3px 10px' }}>{showBulk ? 'Hide' : 'Open'}</button>
+        </div>
+        {showBulk && (
+          <div style={{ display: 'grid', gap: 10 }}>
+            <p style={{ fontSize: 12, color: '#555', margin: 0 }}>
+              1) Define spec combination(s). 2) Download the Excel template (columns come from the specs). 3) Fill one row per subscriber in the <b>Entries</b> sheet (set <b>comboName</b> to pick a combo per row). 4) Upload &amp; schedule — one record per row.
+            </p>
+
+            {/* combos */}
+            <div style={{ border: '1px solid #eee', borderRadius: 6, padding: 8 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                <span style={{ fontSize: 12, fontWeight: 600 }}>Spec combinations</span>
+                <button onClick={addCurrentAsCombo} style={{ ...btn, background: '#7c3aed', padding: '3px 10px' }}>+ Add current wizard selection as a combo</button>
+              </div>
+              {bulkCombos.length === 0 ? (
+                <div style={{ fontSize: 11, color: '#888' }}>No combos added — the current wizard spec selection will be used as a single "default" combo. Add multiple to support different spec sets per row.</div>
+              ) : (
+                <table style={{ width: '100%', fontSize: 11, borderCollapse: 'collapse' }}>
+                  <thead><tr style={{ background: '#f3f4f6' }}>
+                    <th style={{ textAlign: 'left', padding: 4 }}>Combo</th><th style={{ textAlign: 'left', padding: 4 }}>Party</th><th style={{ textAlign: 'left', padding: 4 }}>Customer</th><th style={{ textAlign: 'left', padding: 4 }}>Contract</th><th style={{ textAlign: 'left', padding: 4 }}>PO</th><th style={{ textAlign: 'left', padding: 4 }}>Resources</th><th></th>
+                  </tr></thead>
+                  <tbody>{bulkCombos.map((c, i) => (
+                    <tr key={i} style={{ borderBottom: '1px solid #f0f0f0' }}>
+                      <td style={{ padding: 4 }}><input style={{ width: 90, fontSize: 11 }} value={c.comboName} onChange={e => { const u = [...bulkCombos]; u[i] = { ...u[i], comboName: e.target.value }; setBulkCombos(u) }} /></td>
+                      <td style={{ padding: 4 }}>{c.partySpecExternalId}</td>
+                      <td style={{ padding: 4 }}>{c.customerSpecExternalId}</td>
+                      <td style={{ padding: 4 }}>{c.contractSpecExternalId}</td>
+                      <td style={{ padding: 4 }}>{c.productOfferingExternalId}</td>
+                      <td style={{ padding: 4 }}>{(c.resourceSpecs || []).map((r: any) => r.externalId).join(', ')}</td>
+                      <td style={{ padding: 4 }}><button onClick={() => setBulkCombos(bulkCombos.filter((_, k) => k !== i))} style={{ fontSize: 11 }}>✕</button></td>
+                    </tr>
+                  ))}</tbody>
+                </table>
+              )}
+            </div>
+
+            <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+              <label style={{ fontSize: 12 }}>Blank sample rows<input type="number" min={1} style={{ width: 70, ...sel }} value={bulkSampleRows} onChange={e => setBulkSampleRows(e.target.value)} /></label>
+              <button onClick={downloadExcelTemplate} style={{ ...btn, background: '#6b7280' }}>⬇️ Download Excel template</button>
+            </div>
+
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: 12, fontWeight: 600 }}>Upload filled Excel:</span>
+              <input ref={bulkFileRef} type="file" accept=".xlsx" onChange={onBulkFile} style={{ fontSize: 12 }} />
+              {bulkFileName && bulkRecordCount !== null && <span style={{ fontSize: 12, color: '#059669' }}>{bulkRecordCount} record(s) parsed</span>}
+            </div>
+
+            {bulkBatchFile && (
+              <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                <button onClick={scheduleBulk} disabled={loading} style={{ ...btn, background: '#16a34a' }}>🕒 Schedule bulk batch ({bulkRecordCount} records)</button>
+                <button onClick={() => { const blob = new Blob([JSON.stringify(bulkBatchFile, null, 2)], { type: 'application/json' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'cpm_bulk_batch.json'; a.click(); URL.revokeObjectURL(url) }} style={{ ...btn, background: '#6b7280' }}>⬇️ Download built batch (JSON)</button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Template + upload (manual path) */}

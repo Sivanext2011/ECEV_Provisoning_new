@@ -5,12 +5,14 @@ party -> customer(+billing account) -> contract(+product) -> balance adjustment,
 and proxies the batch job lifecycle (create / start / status / result / list / delete)
 through ericsson_client (which handles auth, mTLS, partition header, logging).
 """
-from fastapi import APIRouter, HTTPException, UploadFile, File
+from fastapi import APIRouter, HTTPException, UploadFile, File, Body
+from fastapi.responses import Response
 from datetime import datetime, timezone
 import uuid
 import json
 import asyncio
 import logging
+import io
 
 from ..services.ericsson_client import ericsson_client, load_config
 from ..services import catalog_fetch as _cf
@@ -790,3 +792,370 @@ async def delete_job(job_id: str):
         return await ericsson_client.request("batch_delete_job", path_params={"jobId": job_id})
     except Exception as e:
         raise HTTPException(status_code=502, detail=str(e))
+
+
+
+# ============================================================================
+# Excel bulk workflow: spec-driven template -> fill multiple rows -> build
+# a multi-record batch. Supports multiple spec combinations (named combos).
+# ============================================================================
+
+# Fixed per-row columns (always present on the Entries sheet)
+_FIXED_COLS = ["comboName", "givenName", "familyName", "msisdn", "imsi"]
+# Char column prefixes per entity
+_ENTITY_PREFIX = {"party": "party.", "customer": "customer.", "contract": "contract.", "cm": "cm."}
+
+
+def _spec_chars_for_columns(spec: dict) -> list:
+    """Personalizable characteristics of a spec that should become template columns."""
+    out = []
+    for c in (spec.get("characteristics") or []):
+        ext = (c.get("externalId") or "").strip()
+        if not ext:
+            continue
+        if c.get("valueRegulator") == "fixed":
+            continue
+        out.append(c)
+    return out
+
+
+def _find(specs: dict, key: str, ext: str) -> dict:
+    for s in (specs.get(key) or []):
+        if s.get("externalId") == ext:
+            return s
+    return {}
+
+
+def _combo_columns(specs: dict, combos: list) -> list:
+    """Union of characteristic/contact-medium columns across all combos."""
+    cols = []
+    seen = set()
+
+    def add(prefix, ext, label):
+        key = f"{prefix}{ext}"
+        if key not in seen:
+            seen.add(key)
+            cols.append((key, label))
+
+    key_map = {
+        "partySpecExternalId": ("individualPartySpecifications", "party."),
+        "customerSpecExternalId": ("customerSpecifications", "customer."),
+        "contractSpecExternalId": ("contractSpecifications", "contract."),
+    }
+    for combo in combos:
+        for field, (spec_key, prefix) in key_map.items():
+            ext = combo.get(field)
+            if not ext:
+                continue
+            spec = _find(specs, spec_key, ext)
+            for c in _spec_chars_for_columns(spec):
+                add(prefix, c["externalId"], f'{prefix}{c["externalId"]}')
+        # contact medium
+        cm_ext = combo.get("contactMediumSpecExternalId")
+        if cm_ext:
+            spec = _find(specs, "contactMediumSpecifications", cm_ext)
+            for c in _spec_chars_for_columns(spec):
+                add("cm.", c["externalId"], f'cm.{c["externalId"]}')
+    return cols
+
+
+@router.post("/excel-template")
+async def excel_template(body: dict = Body(default=None)):
+    """Generate a spec-driven Excel template for bulk entry.
+
+    body: {
+      combos: [ { comboName, partySpecExternalId, customerSpecExternalId,
+                  billingAccountSpecExternalId, billCycleSpecExternalId,
+                  contractSpecExternalId, productOfferingExternalId,
+                  contactMediumSpecExternalId?,
+                  resourceSpecs?: [ {externalId, id} ],  // e.g. RS_MSISDN/RS_IMSI
+                  includeBaRef?, includeBaRefRecurrence? } ],
+      sampleRows?: int   // number of blank entry rows to add (default 5)
+    }
+    Columns on the Entries sheet are derived from the characteristics of the
+    specs referenced by the combos.
+    """
+    try:
+        import openpyxl
+        from openpyxl.styles import Font, PatternFill
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"openpyxl not available: {e}")
+
+    body = body or {}
+    combos = body.get("combos") or []
+    if not combos:
+        # fall back to a single combo from config defaults
+        d = _defaults()
+        combos = [{
+            "comboName": "default",
+            "partySpecExternalId": d.get("partySpecExternalId", ""),
+            "customerSpecExternalId": d.get("customerSpecExternalId", ""),
+            "billingAccountSpecExternalId": d.get("billingAccountSpecExternalId", ""),
+            "billCycleSpecExternalId": d.get("billCycleSpecExternalId", ""),
+            "contractSpecExternalId": d.get("contractSpecExternalId", ""),
+            "productOfferingExternalId": d.get("basePlanProductOfferingExternalId", ""),
+        }]
+    sample_rows = int(body.get("sampleRows") or 5)
+
+    # load catalog specs to derive columns
+    try:
+        from ..services.catalog import get_catalog
+        specs = get_catalog()
+    except Exception:
+        specs = {}
+
+    wb = openpyxl.Workbook()
+    header_font = Font(bold=True, color="FFFFFF")
+    header_fill = PatternFill("solid", fgColor="2563EB")
+    combo_fill = PatternFill("solid", fgColor="7C3AED")
+
+    # ---- Combos sheet ----
+    ws_c = wb.active
+    ws_c.title = "Combos"
+    combo_cols = ["comboName", "partySpecExternalId", "customerSpecExternalId",
+                  "billingAccountSpecExternalId", "billCycleSpecExternalId",
+                  "contractSpecExternalId", "productOfferingExternalId",
+                  "contactMediumSpecExternalId", "resourceSpecs",
+                  "includeBaRef", "includeBaRefRecurrence"]
+    for ci, name in enumerate(combo_cols, 1):
+        cell = ws_c.cell(row=1, column=ci, value=name)
+        cell.font = header_font
+        cell.fill = combo_fill
+    for ri, combo in enumerate(combos, 2):
+        rs = combo.get("resourceSpecs") or []
+        # resourceSpecs encoded as "RS_MSISDN:id|RS_IMSI:id"
+        rs_enc = "|".join(f'{r.get("externalId","")}:{r.get("id","")}' for r in rs)
+        row_vals = [
+            combo.get("comboName", f"combo{ri-1}"),
+            combo.get("partySpecExternalId", ""),
+            combo.get("customerSpecExternalId", ""),
+            combo.get("billingAccountSpecExternalId", ""),
+            combo.get("billCycleSpecExternalId", ""),
+            combo.get("contractSpecExternalId", ""),
+            combo.get("productOfferingExternalId", ""),
+            combo.get("contactMediumSpecExternalId", ""),
+            rs_enc,
+            combo.get("includeBaRef", True),
+            combo.get("includeBaRefRecurrence", True),
+        ]
+        for ci, v in enumerate(row_vals, 1):
+            ws_c.cell(row=ri, column=ci, value=v)
+    for ci in range(1, len(combo_cols) + 1):
+        ws_c.column_dimensions[openpyxl.utils.get_column_letter(ci)].width = 26
+
+    # ---- Entries sheet ----
+    ws = wb.create_sheet("Entries")
+    char_cols = _combo_columns(specs, combos)
+    all_cols = _FIXED_COLS + [c[0] for c in char_cols]
+    for ci, name in enumerate(all_cols, 1):
+        cell = ws.cell(row=1, column=ci, value=name)
+        cell.font = header_font
+        cell.fill = header_fill
+        ws.column_dimensions[openpyxl.utils.get_column_letter(ci)].width = max(16, len(name) + 2)
+    # sample blank rows with comboName prefilled to first combo
+    first_combo = combos[0].get("comboName", "default")
+    for r in range(2, 2 + sample_rows):
+        ws.cell(row=r, column=1, value=first_combo)
+
+    # ---- Instructions sheet ----
+    ws_i = wb.create_sheet("Instructions")
+    notes = [
+        "CPM Batch — bulk entry template",
+        "",
+        "1. 'Combos' sheet: each row is a named spec combination. Edit or add combos.",
+        "   - resourceSpecs format: RS_MSISDN:<id>|RS_IMSI:<id>  (id optional).",
+        "2. 'Entries' sheet: one row per subscriber.",
+        "   - comboName: which combo (from the Combos sheet) this row uses.",
+        "   - msisdn / imsi: resource numbers (IMSI must be 15 digits).",
+        "   - party.* / customer.* / contract.* / cm.* columns = characteristic values.",
+        "     Leave blank to skip; mandatory chars auto-fill from the catalog.",
+        "3. Save and upload via the CPM Batch tab -> 'Upload filled Excel'.",
+        "   Each Entries row becomes one record in the batch.",
+    ]
+    for ri, line in enumerate(notes, 1):
+        ws_i.cell(row=ri, column=1, value=line)
+    ws_i.column_dimensions["A"].width = 90
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    return Response(
+        content=buf.read(),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": "attachment; filename=cpm_batch_bulk_template.xlsx"},
+    )
+
+
+def _row_to_body(row: dict, combo: dict) -> dict:
+    """Convert one Entries row + its combo into a build_batch_file body (count=1)."""
+    def chars_for(prefix):
+        out = []
+        for k, v in row.items():
+            if not k.startswith(prefix):
+                continue
+            if v is None or str(v).strip() == "":
+                continue
+            ext = k[len(prefix):]
+            out.append({"charSpecExternalId": ext, "value": [{"value": str(v)}]})
+        return out
+
+    # resources from combo.resourceSpecs + row msisdn/imsi
+    resources = []
+    for rs in (combo.get("resourceSpecs") or []):
+        ext = rs.get("externalId", "")
+        num = ""
+        low = ext.lower()
+        if "imsi" in low:
+            num = str(row.get("imsi") or "").strip()
+        elif "msisdn" in low or "msisdn" in low:
+            num = str(row.get("msisdn") or "").strip()
+        else:
+            num = str(row.get("msisdn") or "").strip()
+        if not num:
+            continue
+        r = {"resourceSpecificationExternalId": ext, "resourceNumber": num}
+        if rs.get("id"):
+            r["resourceSpecificationId"] = rs["id"]
+        resources.append(r)
+
+    cm_chars = chars_for("cm.")
+    contact_media = []
+    if combo.get("contactMediumSpecExternalId") and cm_chars:
+        contact_media = [{"contactMediumSpecExternalId": combo["contactMediumSpecExternalId"],
+                          "characteristics": cm_chars}]
+
+    body = {
+        "count": 1,
+        "givenName": row.get("givenName") or "Batch",
+        "familyName": row.get("familyName") or "Test",
+        "adjustment": False,
+        "partySpecExternalId": combo.get("partySpecExternalId") or None,
+        "customerSpecExternalId": combo.get("customerSpecExternalId") or None,
+        "billingAccountSpecExternalId": combo.get("billingAccountSpecExternalId") or None,
+        "billCycleSpecExternalId": combo.get("billCycleSpecExternalId") or None,
+        "contractSpecExternalId": combo.get("contractSpecExternalId") or None,
+        "productOfferingExternalId": combo.get("productOfferingExternalId") or None,
+        "includeBaRef": bool(combo.get("includeBaRef", True)),
+        "includeBaRefRecurrence": bool(combo.get("includeBaRefRecurrence", True)),
+        "partyCharacteristics": chars_for("party."),
+        "customerCharacteristics": chars_for("customer."),
+        "contractCharacteristics": chars_for("contract."),
+        "resources": resources,
+        "contactMedia": contact_media,
+    }
+    return body
+
+
+async def _build_multi(rows: list, combos_map: dict) -> dict:
+    """Build a single batch file whose records come from multiple rows,
+    each row using its named spec combination. Returns the merged batch file."""
+    merged_header = None
+    merged_records = []
+    for idx, row in enumerate(rows):
+        combo_name = (row.get("comboName") or "").strip() or next(iter(combos_map), "")
+        combo = combos_map.get(combo_name)
+        if not combo:
+            raise HTTPException(status_code=400, detail=f"Row {idx+1}: unknown comboName '{combo_name}'")
+        single_body = _row_to_body(row, combo)
+        bf = build_batch_file(single_body)
+        bf = await _enrich_mandatory_chars(bf)
+        if merged_header is None:
+            merged_header = bf["header"]
+        # re-number the record and append
+        for rec in bf.get("records", []):
+            rec["recordNumber"] = len(merged_records) + 1
+            merged_records.append(rec)
+    if merged_header is None:
+        raise HTTPException(status_code=400, detail="No rows to build")
+    # union entityTypes across records
+    merged_header["entityTypes"] = [{"entityType": "party"}, {"entityType": "customer"}, {"entityType": "contract"}]
+    return {"header": merged_header, "records": merged_records, "trailer": {"numberOfRecords": len(merged_records)}}
+
+
+@router.post("/excel-upload")
+async def excel_upload(file: UploadFile = File(...)):
+    """Parse an uploaded bulk Excel (Combos + Entries sheets) into a multi-record
+    batch file. Returns {valid, recordCount, batchFile} ready to schedule."""
+    try:
+        import openpyxl
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"openpyxl not available: {e}")
+    content = await file.read()
+    if not content:
+        raise HTTPException(status_code=400, detail="Empty file")
+    try:
+        wb = openpyxl.load_workbook(io.BytesIO(content), data_only=True)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Invalid Excel: {e}")
+
+    if "Combos" not in wb.sheetnames or "Entries" not in wb.sheetnames:
+        raise HTTPException(status_code=400, detail="Workbook must contain 'Combos' and 'Entries' sheets")
+
+    # parse Combos
+    ws_c = wb["Combos"]
+    c_rows = list(ws_c.iter_rows(values_only=True))
+    if not c_rows:
+        raise HTTPException(status_code=400, detail="Combos sheet is empty")
+    c_hdr = [str(h or "").strip() for h in c_rows[0]]
+    combos_map = {}
+    for r in c_rows[1:]:
+        if not any(v not in (None, "") for v in r):
+            continue
+        rec = {c_hdr[i]: r[i] for i in range(len(c_hdr)) if i < len(r)}
+        name = str(rec.get("comboName") or "").strip()
+        if not name:
+            continue
+        # decode resourceSpecs "RS_MSISDN:id|RS_IMSI:id"
+        rs_enc = str(rec.get("resourceSpecs") or "").strip()
+        rslist = []
+        for part in rs_enc.split("|"):
+            part = part.strip()
+            if not part:
+                continue
+            if ":" in part:
+                ext, rid = part.split(":", 1)
+            else:
+                ext, rid = part, ""
+            rslist.append({"externalId": ext.strip(), "id": rid.strip()})
+        def _as_bool(v, default=True):
+            if v is None or v == "":
+                return default
+            return str(v).strip().lower() in ("true", "1", "yes", "y")
+        combos_map[name] = {
+            "comboName": name,
+            "partySpecExternalId": rec.get("partySpecExternalId") or "",
+            "customerSpecExternalId": rec.get("customerSpecExternalId") or "",
+            "billingAccountSpecExternalId": rec.get("billingAccountSpecExternalId") or "",
+            "billCycleSpecExternalId": rec.get("billCycleSpecExternalId") or "",
+            "contractSpecExternalId": rec.get("contractSpecExternalId") or "",
+            "productOfferingExternalId": rec.get("productOfferingExternalId") or "",
+            "contactMediumSpecExternalId": rec.get("contactMediumSpecExternalId") or "",
+            "resourceSpecs": rslist,
+            "includeBaRef": _as_bool(rec.get("includeBaRef")),
+            "includeBaRefRecurrence": _as_bool(rec.get("includeBaRefRecurrence")),
+        }
+    if not combos_map:
+        raise HTTPException(status_code=400, detail="No combos defined in Combos sheet")
+
+    # parse Entries
+    ws = wb["Entries"]
+    e_rows = list(ws.iter_rows(values_only=True))
+    if len(e_rows) < 2:
+        raise HTTPException(status_code=400, detail="Entries sheet has no data rows")
+    e_hdr = [str(h or "").strip() for h in e_rows[0]]
+    rows = []
+    for r in e_rows[1:]:
+        if not any(v not in (None, "") for v in r):
+            continue
+        row = {e_hdr[i]: r[i] for i in range(len(e_hdr)) if i < len(r)}
+        # skip rows that only have comboName prefilled but no actual subscriber data
+        data_fields = [k for k in row if k != "comboName"]
+        if not any(str(row.get(k) or "").strip() for k in data_fields):
+            continue
+        rows.append(row)
+    if not rows:
+        raise HTTPException(status_code=400, detail="No data rows in Entries sheet")
+
+    bf = await _build_multi(rows, combos_map)
+    return {"valid": True, "recordCount": len(bf.get("records", [])), "batchFile": bf,
+            "combos": list(combos_map.keys())}
