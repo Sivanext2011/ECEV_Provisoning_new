@@ -175,6 +175,19 @@ def build_batch_file(body: dict) -> dict:
     user_cust_chars = body.get("customerCharacteristics") or []
     user_contract_chars = body.get("contractCharacteristics") or []
 
+    # Identification/logical resources for the contract product (MSISDN/IMSI).
+    # Each: {resourceSpecificationExternalId, resourceNumber, resourceSpecificationId?}
+    resources_in = body.get("resources") or []
+    # Communication identifier spec externalId + optional id (uses first resourceNumber as communicationId)
+    comm_id_spec = body.get("communicationIdentifierSpecExternalId") or ""
+    comm_id_value = body.get("communicationId") or ""
+    # Contact medium specs for the party. Each: {contactMediumSpecExternalId, characteristics:[{charSpecExternalId,value:[...]}], externalId?}
+    contact_media = body.get("contactMedia") or []
+    # Contact medium association (customer + contract)
+    include_cma = bool(body.get("includeContactMediumAssociation", False))
+    cma_language = body.get("contactMediumAssociationLanguage") or "en"
+    home_time_zone = body.get("homeTimeZone") or ""
+
     now = _now()
 
     header = {
@@ -233,6 +246,62 @@ def build_batch_file(body: dict) -> dict:
         bcs_ext = f"bcs-{ref}"
         contract_ext = f"contract-{ref}"
         prod_ext = f"product-{ref}"
+        corr_id = "1"  # base-plan product correlation id; resources link via productCorrelationId
+
+        # ----- Contact media for the party -----
+        party_contact_medium = []
+        for idx, cm in enumerate(contact_media):
+            spec = cm.get("contactMediumSpecExternalId")
+            if not spec:
+                continue
+            cm_ext = cm.get("externalId") or f"cm_{idx}_{ref}"
+            entry = {
+                "contactMediumSpecExternalId": spec,
+                "externalId": cm_ext,
+                "validFor": {"startDateTime": now},
+            }
+            chars = cm.get("characteristics") or []
+            if chars:
+                entry["characteristic"] = chars
+            party_contact_medium.append(entry)
+
+        # ----- Contact medium associations (customer + contract) -----
+        def _cma_list():
+            out = []
+            for idx, cm in enumerate(contact_media):
+                spec = cm.get("contactMediumSpecExternalId")
+                if not spec:
+                    continue
+                cm_ext = cm.get("externalId") or f"cm_{idx}_{ref}"
+                out.append({
+                    "contactRole": "Notification",
+                    "language": cma_language,
+                    "contactMediumExternalId": cm_ext,
+                    "enabled": True,
+                    "validFor": {"startDateTime": now},
+                })
+            return out
+
+        # ----- Identification/logical resources for the contract -----
+        contract_resources = []
+        first_resource_number = ""
+        for ridx, rs in enumerate(resources_in):
+            rspec = rs.get("resourceSpecificationExternalId")
+            rnum = (rs.get("resourceNumber") or "").strip()
+            if not rspec or not rnum:
+                continue
+            if not first_resource_number:
+                first_resource_number = rnum
+            rlabel = "".join(c for c in rspec if c.isalnum() or c in "_-")
+            res = {
+                "externalId": f"{rlabel}-{ref}",
+                "resourceNumber": rnum,
+                "resourceSpecificationExternalId": rspec,
+                "productCorrelationId": [corr_id],
+            }
+            if rs.get("resourceSpecificationId"):
+                res["resourceSpecificationId"] = rs["resourceSpecificationId"]
+            contract_resources.append(res)
 
         entities = [
             {"entity": "party", "operation": "create",
@@ -242,6 +311,7 @@ def build_batch_file(body: dict) -> dict:
                  "givenName": given, "familyName": f"{family}{i+1}",
                  "individualSpecification": {"externalId": party_spec},
                  "status": [{"status": "PartyActive", "validFor": {"startDateTime": now}}],
+                 **({"contactMedium": party_contact_medium} if party_contact_medium else {}),
              }}},
             {"entity": "customer", "operation": "create",
              "responseKeys": {"customerId": "id", "customerExternalId": "externalId"},
@@ -258,7 +328,9 @@ def build_batch_file(body: dict) -> dict:
                      "customerBillCycleSpecification": [{
                          "externalId": bcs_ext, "billCycleSpecExternalId": bc_spec,
                          "validFor": {"startDateTime": now}}],
+                     **({"contactMediumAssociation": _cma_list()} if include_cma and _cma_list() else {}),
                  }],
+                 **({"contactMediumAssociation": _cma_list()} if include_cma and _cma_list() else {}),
              }}},
             {"entity": "contract", "operation": "create",
              "responseKeys": {"contractId": "id"},
@@ -267,9 +339,17 @@ def build_batch_file(body: dict) -> dict:
                  "externalId": contract_ext,
                  **({"contractSpecification": {"externalId": contract_spec}} if contract_spec else {}),
                  "status": [{"status": "Active", "validFor": {"startDateTime": now}}],
+                 **({"resource": contract_resources} if contract_resources else {}),
+                 **({"communicationIdentifier": [{
+                        "communicationIdentifierSpecExternalId": comm_id_spec,
+                        "communicationId": comm_id_value or first_resource_number,
+                    }]} if comm_id_spec and (comm_id_value or first_resource_number) else {}),
+                 **({"homeTimeZone": [{"timeZone": home_time_zone}]} if home_time_zone else {}),
+                 **({"contactMediumAssociation": _cma_list()} if include_cma and _cma_list() else {}),
                  "product": [{
                      "externalId": prod_ext,
                      "productOfferingExternalId": po_ext,
+                     "correlationId": corr_id,
                      "status": [{"status": "ProductCreated"}],
                      "billingAccountReference": {"externalId": ba_ext},
                      "baRefForBillCycleAlignedRecurrence": {"externalId": ba_ext},
