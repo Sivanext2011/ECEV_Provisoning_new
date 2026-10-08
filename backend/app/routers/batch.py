@@ -91,10 +91,20 @@ async def _fetch_required_chars(api_key: str, ext_param: str, ext_id: str) -> li
 async def _enrich_mandatory_chars(bf: dict) -> dict:
     """Populate mandatory characteristics on the customer entity (and others)
     by reading the spec characteristics from the catalog, so the batch satisfies
-    minCardinality constraints. Modifies and returns bf."""
-    d = _defaults()
-    cust_spec = d.get("customerSpecExternalId", "")
-    party_spec = d.get("partySpecExternalId", "")
+    minCardinality constraints. Modifies and returns bf.
+
+    The spec externalIds are taken from the BUILT entities (not config defaults)
+    so enrichment always matches the spec the batch actually uses.
+    """
+    # discover the actual spec externalIds used in the built batch
+    cust_spec = party_spec = ""
+    for rec in bf.get("records", []):
+        for ent in rec.get("entities", []):
+            pl = ent.get("payload") or {}
+            if ent.get("entity") == "customer" and not cust_spec:
+                cust_spec = (pl.get("customerSpecification") or {}).get("externalId", "")
+            if ent.get("entity") == "party" and not party_spec:
+                party_spec = (pl.get("individualSpecification") or {}).get("externalId", "")
     cust_chars = await _fetch_required_chars("spec_customer", "customerSpecificationExternalId", cust_spec)
     party_chars = await _fetch_required_chars("spec_individual", "individualSpecificationExternalId", party_spec)
 
