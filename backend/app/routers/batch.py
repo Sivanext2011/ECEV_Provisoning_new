@@ -5,13 +5,20 @@ party -> customer(+billing account) -> contract(+product) -> balance adjustment,
 and proxies the batch job lifecycle (create / start / status / result / list / delete)
 through ericsson_client (which handles auth, mTLS, partition header, logging).
 """
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, UploadFile, File
 from datetime import datetime, timezone
 import uuid
+import json
+import asyncio
+import logging
 
 from ..services.ericsson_client import ericsson_client, load_config
 
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1/batch", tags=["cpm-batch"])
+
+# In-memory registry of scheduled jobs: {schedule_id: {...}}
+_scheduled: dict = {}
 
 
 def _now():
@@ -178,6 +185,107 @@ def build_batch_file(body: dict) -> dict:
 async def build(body: dict = None):
     """Build and return the batch file JSON (preview, no submit)."""
     return build_batch_file(body or {})
+
+
+@router.get("/template")
+async def template(count: int = 1, adjustment: bool = True):
+    """Return a ready-to-edit batch file TEMPLATE (party->customer->contract->adjustment).
+
+    The user can download this, edit the resource payloads/externalIds, and upload it.
+    """
+    return build_batch_file({"count": count, "adjustment": adjustment})
+
+
+@router.post("/upload")
+async def upload_batch(file: UploadFile = File(...)):
+    """Validate an uploaded batch JSON file and return it parsed (no submit).
+
+    Accepts the generic batch file with header/records/trailer.
+    """
+    content = await file.read()
+    if not content:
+        raise HTTPException(status_code=400, detail="Empty file")
+    try:
+        parsed = json.loads(content.decode("utf-8"))
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Invalid JSON: {e}")
+    # light structural validation
+    missing = [k for k in ("header", "records") if k not in parsed]
+    if missing:
+        raise HTTPException(status_code=400, detail=f"Batch file missing section(s): {', '.join(missing)}")
+    recs = parsed.get("records") or []
+    return {"valid": True, "recordCount": len(recs), "batchFile": parsed,
+            "batchJobId": (parsed.get("header") or {}).get("batchJobId")}
+
+
+async def _run_schedule(schedule_id: str, batch_file: dict, delay_seconds: int, auto_start: bool):
+    """Background task: wait delay, create job, optionally start it, record status."""
+    sched = _scheduled.get(schedule_id)
+    try:
+        if delay_seconds > 0:
+            sched["state"] = "WAITING"
+            await asyncio.sleep(delay_seconds)
+        sched["state"] = "CREATING"
+        created = await ericsson_client.request("batch_create_job", body=batch_file)
+        job_id = created.get("jobId") or created.get("id") or (created.get("job") or {}).get("jobId")
+        sched["jobId"] = job_id
+        sched["createResponse"] = created
+        if auto_start and job_id:
+            sched["state"] = "STARTING"
+            start_resp = await ericsson_client.request("batch_start_job", path_params={"jobId": job_id})
+            sched["startResponse"] = start_resp
+            sched["state"] = "STARTED"
+        else:
+            sched["state"] = "CREATED"
+    except Exception as e:
+        sched["state"] = "ERROR"
+        sched["error"] = str(e)
+        logger.error(f"Scheduled batch {schedule_id} failed: {e}")
+
+
+@router.post("/schedule")
+async def schedule_batch(body: dict = None):
+    """Schedule a batch job: create (+optionally start) now or after a delay.
+
+    body: { batchFile?: {...}, delaySeconds?: int, autoStart?: bool, ...builder params }
+    Returns a scheduleId to poll via GET /batch/schedule/{id}.
+    """
+    body = body or {}
+    batch_file = body.get("batchFile") or build_batch_file(body)
+    delay = int(body.get("delaySeconds") or 0)
+    auto_start = bool(body.get("autoStart", True))
+    schedule_id = uuid.uuid4().hex[:12]
+    _scheduled[schedule_id] = {
+        "scheduleId": schedule_id,
+        "state": "SCHEDULED",
+        "delaySeconds": delay,
+        "autoStart": auto_start,
+        "batchJobId": (batch_file.get("header") or {}).get("batchJobId"),
+        "createdAt": _now(),
+        "jobId": None,
+    }
+    asyncio.create_task(_run_schedule(schedule_id, batch_file, delay, auto_start))
+    return {"scheduleId": schedule_id, "state": "SCHEDULED", "delaySeconds": delay, "autoStart": auto_start}
+
+
+@router.get("/schedule")
+async def list_schedules():
+    return list(_scheduled.values())
+
+
+@router.get("/schedule/{schedule_id}")
+async def schedule_status(schedule_id: str):
+    s = _scheduled.get(schedule_id)
+    if not s:
+        raise HTTPException(status_code=404, detail="Unknown scheduleId")
+    # if a job exists, enrich with live job status
+    if s.get("jobId"):
+        try:
+            live = await ericsson_client.request("batch_job_status", path_params={"jobId": s["jobId"]})
+            s["jobStatus"] = live
+        except Exception as e:
+            s["jobStatusError"] = str(e)
+    return s
 
 
 @router.post("/jobs/create")
