@@ -208,8 +208,8 @@ export function BatchPanel() {
     includeBaRef: true, includeBaRefRecurrence: true,
   })
   const addCombo = () => setBulkCombos([...bulkCombos, makeCombo(`combo${bulkCombos.length + 1}`)])
-  const updateCombo = (i: number, patch: any) => { const u = [...bulkCombos]; u[i] = { ...u[i], ...patch }; setBulkCombos(u) }
-  const removeCombo = (i: number) => setBulkCombos(bulkCombos.filter((_, k) => k !== i))
+  const updateCombo = (i: number, patch: any) => setBulkCombos(prev => prev.map((c, k) => k === i ? { ...c, ...patch } : c))
+  const removeCombo = (i: number) => setBulkCombos(prev => prev.filter((_, k) => k !== i))
 
   // fetch POP personalization for a combo's PO and store on the combo
   const fetchComboPop = async (i: number, poExtId: string) => {
@@ -221,8 +221,8 @@ export function BatchPanel() {
       const defaults: Record<string, { value: string; unit: string }> = {}
       for (const pop of pops) for (const row of (pop.rows || [])) for (const ch of (row.chars || []))
         defaults[`${pop.popId}_${row.rowId}_${ch.id}`] = { value: ch.defaultValue || '', unit: ch.defaultUnit || (ch.units?.[0] || '') }
-      updateCombo(i, { pop: pops, popValues: defaults, popLoading: false })
-    } catch (e: any) { updateCombo(i, { popLoading: false, popError: e.message }) }
+      updateCombo(i, { pop: pops, popValues: defaults, popLoading: false, popFetched: true })
+    } catch (e: any) { updateCombo(i, { popLoading: false, popError: e.message, popFetched: true }) }
   }
 
   // build the product price (POP) array for a combo, like ProvisionWizard
@@ -489,6 +489,12 @@ export function BatchPanel() {
         })()}
 
         {/* POP personalization (combo-level, like the provisioning flow) */}
+        {c.productOfferingExternalId && (
+          <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <button type="button" onClick={() => fetchComboPop(i, c.productOfferingExternalId)} style={{ ...btn, background: '#a21caf', padding: '2px 8px' }}>↻ Load POP personalization</button>
+            {!c.popLoading && !c.popError && (c.pop || []).length === 0 && c.popFetched && <span style={{ fontSize: 10, color: '#888' }}>No POP personalization for this PO.</span>}
+          </div>
+        )}
         {c.popLoading && <div style={{ fontSize: 11, color: '#888', marginTop: 6 }}>⏳ Loading POP…</div>}
         {c.popError && <div style={{ fontSize: 11, color: '#c00', marginTop: 6 }}>⚠ {c.popError}</div>}
         {(c.pop || []).length > 0 && (
