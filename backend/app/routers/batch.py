@@ -181,6 +181,52 @@ def build_batch_file(body: dict) -> dict:
     return {"header": header, "records": records, "trailer": trailer}
 
 
+def serialize_batch_file(bf: dict) -> str:
+    """Serialize {header, records, trailer} into the CPM Batch raw format:
+    concatenated JSON objects — HEADER, then each RECORD, then TRAILER
+    (NOT a single wrapping object). This is what the batch parser expects.
+    Accepts either the wrapped {header,records,trailer} form or an already-raw string.
+    """
+    if isinstance(bf, str):
+        return bf
+    parts = []
+    if "header" in bf and "records" in bf:
+        parts.append(json.dumps(bf["header"]))
+        for rec in bf.get("records", []):
+            parts.append(json.dumps(rec))
+        if bf.get("trailer") is not None:
+            parts.append(json.dumps(bf["trailer"]))
+    else:
+        # already in some other shape; best-effort
+        parts.append(json.dumps(bf))
+    return "\n".join(parts)
+
+
+async def _submit_raw(batch_file: dict) -> dict:
+    """POST the batch file to CPM Batch with Content-Type application/octet-stream
+    and the concatenated raw body (per Batch REST Interface 1.1)."""
+    import httpx
+    await ericsson_client._ensure_client()
+    url, _ = ericsson_client._resolve_url("batch_create_job")
+    token = await ericsson_client._get_token()
+    headers = {"Content-Type": "application/octet-stream", "Accept": "application/json"}
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+    partition_id = (ericsson_client.defaults or {}).get("partitionId", "")
+    if partition_id:
+        headers["ERICSSON.Partition-Id"] = str(partition_id)
+    raw = serialize_batch_file(batch_file).encode("utf-8")
+    r = await ericsson_client._client.post(url, content=raw, headers=headers)
+    ericsson_client._log("POST", url, r.status_code, {"octet-stream": True, "bytes": len(raw)}, r.text, headers=headers)
+    r.raise_for_status()
+    if r.status_code == 204 or not r.text:
+        return {"status": "ok"}
+    try:
+        return r.json()
+    except Exception:
+        return {"raw": r.text}
+
+
 @router.post("/build")
 async def build(body: dict = None):
     """Build and return the batch file JSON (preview, no submit)."""
@@ -226,7 +272,7 @@ async def _run_schedule(schedule_id: str, batch_file: dict, delay_seconds: int, 
             sched["state"] = "WAITING"
             await asyncio.sleep(delay_seconds)
         sched["state"] = "CREATING"
-        created = await ericsson_client.request("batch_create_job", body=batch_file)
+        created = await _submit_raw(batch_file)
         job_id = created.get("jobId") or created.get("id") or (created.get("job") or {}).get("jobId")
         sched["jobId"] = job_id
         sched["createResponse"] = created
@@ -294,7 +340,7 @@ async def create_job(body: dict = None):
     body = body or {}
     batch_file = body.get("batchFile") or build_batch_file(body)
     try:
-        return await ericsson_client.request("batch_create_job", body=batch_file)
+        return await _submit_raw(batch_file)
     except Exception as e:
         raise HTTPException(status_code=502, detail=str(e))
 
