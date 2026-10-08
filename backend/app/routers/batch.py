@@ -169,6 +169,12 @@ def build_batch_file(body: dict) -> dict:
     adj_unit = body.get("adjustmentUnit", "byte")
     bucket_spec = body.get("bucketSpecExternalId", "")
 
+    # User-supplied characteristics (spec-driven wizard). Each is a list of
+    # {charSpecExternalId, value:[{value, unitOfMeasure?}], validFor?}.
+    user_party_chars = body.get("partyCharacteristics") or []
+    user_cust_chars = body.get("customerCharacteristics") or []
+    user_contract_chars = body.get("contractCharacteristics") or []
+
     now = _now()
 
     header = {
@@ -301,6 +307,15 @@ def build_batch_file(body: dict) -> dict:
             pl = ent.get("payload")
             if isinstance(pl, dict) and set(pl.keys()) == {"resource"} and isinstance(pl["resource"], dict):
                 ent["payload"] = pl["resource"]
+
+    # Apply user-supplied characteristics (spec-driven wizard). These are merged
+    # onto the entity payload and take precedence over auto-enrichment.
+    _char_map = {"party": user_party_chars, "customer": user_cust_chars, "contract": user_contract_chars}
+    for rec in bf["records"]:
+        for ent in rec.get("entities", []):
+            chars = _char_map.get(ent.get("entity"))
+            if chars:
+                ent.setdefault("payload", {})["characteristic"] = chars
     return bf
 
 
@@ -341,7 +356,11 @@ async def _submit_raw(batch_file: dict) -> dict:
     if partition_id:
         headers["ERICSSON.Partition-Id"] = str(partition_id)
     raw = serialize_batch_file(batch_file).encode("utf-8")
-    r = await batch_client.post(url, content=raw, headers=headers)
+    try:
+        r = await batch_client.post(url, content=raw, headers=headers)
+    except Exception as e:
+        ericsson_client._log("POST", url, "ERROR", {"octet-stream": True, "bytes": len(raw)}, str(e), headers=headers)
+        raise
     ericsson_client._log("POST", url, r.status_code, {"octet-stream": True, "bytes": len(raw)}, r.text, headers=headers)
     r.raise_for_status()
     if r.status_code == 204 or not r.text:
@@ -540,12 +559,124 @@ async def job_result(job_id: str):
         raise HTTPException(status_code=502, detail=str(e))
 
 
-@router.get("/jobs")
-async def list_jobs():
+def _extract_failure_reason(resp_text: str) -> str:
+    """Pull a concise, human-readable reason out of a CPM/BSSF error response
+    (which is a JSON string possibly nested several levels deep)."""
+    if not resp_text:
+        return ""
+    reason = resp_text
+    # unwrap nested JSON-in-string up to a few levels, collecting the deepest "details"/"message"
+    for _ in range(6):
+        try:
+            obj = json.loads(reason) if isinstance(reason, str) else reason
+        except Exception:
+            break
+        if isinstance(obj, dict):
+            msgs = obj.get("messages")
+            if isinstance(msgs, list) and msgs:
+                # Prefer the message carrying the real cause: one that has a
+                # 'source' (e.g. CPM) or whose details reference a downstream
+                # system; fall back to the last message with details.
+                def _score(m):
+                    det = m.get("details") or ""
+                    s = 0
+                    if m.get("source"):
+                        s += 2
+                    if "downstream" in det or "Missing" in det or "Details:" in det:
+                        s += 3
+                    s += min(len(det), 300) / 300.0
+                    return s
+                with_details = [m for m in msgs if m.get("details") or m.get("message")]
+                detailed = max(with_details, key=_score) if with_details else msgs[-1]
+                reason = detailed.get("details") or detailed.get("message") or json.dumps(detailed)
+                continue
+            nxt = obj.get("details") or obj.get("message")
+            if nxt and nxt != reason:
+                reason = nxt
+                continue
+            break
+        else:
+            break
+    if isinstance(reason, str) and reason.strip().startswith("Unexpected response received from downstream system. Details:"):
+        reason = reason.split("Details:", 1)[1].strip()
+    return reason if isinstance(reason, str) else json.dumps(reason)
+
+
+@router.get("/jobs/{job_id}/failures")
+async def job_failures(job_id: str):
+    """Return a readable per-entity failure summary for a job: which record/entity
+    failed and the extracted reason. Also returns overall counts."""
     try:
-        return await ericsson_client.request("batch_list_jobs")
+        data = await _fetch_result_stream(job_id)
     except Exception as e:
         raise HTTPException(status_code=502, detail=str(e))
+    objects = data.get("objects", [])
+    records, failures, total, ok = [], [], 0, 0
+    for o in objects:
+        if "entities" not in o:
+            continue
+        rec_no = o.get("recordNumber")
+        for en in o.get("entities", []):
+            total += 1
+            etype = en.get("entityType") or en.get("entity") or f"entity {en.get('entityNumber')}"
+            if en.get("success"):
+                ok += 1
+                continue
+            reason = _extract_failure_reason(en.get("response") or "") or en.get("errorMessage") or ""
+            failures.append({
+                "recordNumber": rec_no,
+                "entityNumber": en.get("entityNumber"),
+                "entity": etype,
+                "responseCode": en.get("responseCode"),
+                "reason": reason,
+            })
+    return {
+        "jobId": job_id,
+        "total": total,
+        "success": ok,
+        "failed": len(failures),
+        "failures": failures,
+    }
+
+
+@router.get("/jobs")
+async def list_jobs(sort: str = "created_desc"):
+    """List batch jobs. sort options:
+    created_desc (default, newest first), created_asc, name_asc, name_desc,
+    status_asc, status_desc."""
+    try:
+        jobs = await ericsson_client.request("batch_list_jobs")
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=str(e))
+    if not isinstance(jobs, list):
+        return jobs
+    # parse creationDate (e.g. "Jul 23, 2026, 7:54:52 AM") into a sortable epoch
+    import time as _time
+    def _epoch(j):
+        s = j.get("creationDate") or ""
+        for fmt in ("%b %d, %Y, %I:%M:%S %p", "%b %d, %Y, %H:%M:%S",
+                    "%Y-%m-%dT%H:%M:%S.%f%z", "%Y-%m-%dT%H:%M:%S%z", "%Y-%m-%dT%H:%M:%S"):
+            try:
+                return _time.mktime(_time.strptime(s.replace("\u202f", " ").strip(), fmt))
+            except Exception:
+                continue
+        return 0.0
+    for j in jobs:
+        j["_createdEpoch"] = _epoch(j)
+    key_map = {
+        "created_desc": (lambda j: j["_createdEpoch"], True),
+        "created_asc": (lambda j: j["_createdEpoch"], False),
+        "name_asc": (lambda j: (j.get("batchName") or "").lower(), False),
+        "name_desc": (lambda j: (j.get("batchName") or "").lower(), True),
+        "status_asc": (lambda j: (j.get("status") or "").lower(), False),
+        "status_desc": (lambda j: (j.get("status") or "").lower(), True),
+    }
+    keyfn, rev = key_map.get(sort, key_map["created_desc"])
+    try:
+        jobs.sort(key=keyfn, reverse=rev)
+    except Exception:
+        pass
+    return jobs
 
 
 @router.delete("/jobs/{job_id}")
