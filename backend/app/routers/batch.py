@@ -360,7 +360,7 @@ def build_batch_file(body: dict) -> dict:
                      "correlationId": corr_id,
                      "status": [{"status": product_status}],
                      "billingAccountReference": {"externalId": ba_ext},
-                     "baRefForBillCycleAlignedRecurrence": {"externalId": ba_ext},
+                     "baRefForBillCycleAlignedRecurrence": {"externalId": ba_ext, "isProratingRequired": bool(body.get("isProratingRequired", False))},
                  }],
              }}},
         ]
