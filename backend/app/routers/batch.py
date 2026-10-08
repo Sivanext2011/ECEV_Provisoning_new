@@ -109,16 +109,14 @@ async def _enrich_mandatory_chars(bf: dict) -> dict:
         return _now()
 
     def _stamp(chars: list, start: str) -> list:
-        """Deep-copy chars and add validFor covering the entity validity so CPM's
+        """Deep-copy chars and add validFor (on the characteristic object, per the
+        BAE customer schema) covering the entity validity so CPM's
         entityTimePeriodNotCoveredByCharacteristicValues check passes."""
         out = []
         for ch in chars:
-            vals = []
-            for v in ch.get("value", []):
-                nv = dict(v)
-                nv.setdefault("validFor", {"startDateTime": start})
-                vals.append(nv)
-            out.append({**ch, "value": vals})
+            nc = {**ch, "value": [dict(v) for v in ch.get("value", [])]}
+            nc.setdefault("validFor", {"startDateTime": start})
+            out.append(nc)
         return out
 
     for rec in bf.get("records", []):
