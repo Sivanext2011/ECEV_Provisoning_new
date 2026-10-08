@@ -359,8 +359,10 @@ def build_batch_file(body: dict) -> dict:
                      "productOfferingExternalId": po_ext,
                      "correlationId": corr_id,
                      "status": [{"status": product_status}],
-                     "billingAccountReference": {"externalId": ba_ext},
-                     "baRefForBillCycleAlignedRecurrence": {"externalId": ba_ext, "isProratingRequired": bool(body.get("isProratingRequired", False))},
+                     **({"billingAccountReference": {"externalId": ba_ext}} if body.get("includeBaRef", True) else {}),
+                     **({"baRefForBillCycleAlignedRecurrence": {"externalId": ba_ext,
+                         **({"isProratingRequired": bool(body["isProratingRequired"])} if "isProratingRequired" in body else {})}}
+                        if body.get("includeBaRefRecurrence", True) else {}),
                  }],
              }}},
         ]
