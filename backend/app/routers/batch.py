@@ -954,8 +954,13 @@ async def excel_template(body: dict = Body(default=None)):
         ws.column_dimensions[openpyxl.utils.get_column_letter(ci)].width = max(16, len(name) + 2)
     # sample blank rows with comboName prefilled to first combo
     first_combo = combos[0].get("comboName", "default")
+    # msisdn (col 4) and imsi (col 5) must be TEXT to preserve exact digits
+    # (avoid Excel scientific notation / leading-zero loss / float coercion)
+    text_col_idxs = [i + 1 for i, name in enumerate(all_cols) if name in ("msisdn", "imsi")]
     for r in range(2, 2 + sample_rows):
         ws.cell(row=r, column=1, value=first_combo)
+        for ci in text_col_idxs:
+            ws.cell(row=r, column=ci).number_format = "@"  # text
 
     # ---- Instructions sheet ----
     ws_i = wb.create_sheet("Instructions")
@@ -1000,17 +1005,29 @@ def _row_to_body(row: dict, combo: dict) -> dict:
         return out
 
     # resources from combo.resourceSpecs + row msisdn/imsi
+    def _num(v):
+        """Coerce an Excel cell (which may come back as float like 4.6e14) to a
+        clean digit string, preserving the full number without scientific notation."""
+        if v is None:
+            return ""
+        if isinstance(v, float):
+            # drop trailing .0 and avoid exponent form
+            return format(int(v), "d") if v == int(v) else repr(v)
+        if isinstance(v, int):
+            return str(v)
+        return str(v).strip()
+
     resources = []
     for rs in (combo.get("resourceSpecs") or []):
         ext = rs.get("externalId", "")
         num = ""
         low = ext.lower()
         if "imsi" in low:
-            num = str(row.get("imsi") or "").strip()
-        elif "msisdn" in low or "msisdn" in low:
-            num = str(row.get("msisdn") or "").strip()
+            num = _num(row.get("imsi"))
+        elif "msisdn" in low:
+            num = _num(row.get("msisdn"))
         else:
-            num = str(row.get("msisdn") or "").strip()
+            num = _num(row.get("msisdn"))
         if not num:
             continue
         r = {"resourceSpecificationExternalId": ext, "resourceNumber": num}
