@@ -70,8 +70,17 @@ async def _fetch_required_chars(api_key: str, ext_param: str, ext_id: str) -> li
                 val = str(pv["value"])
                 uom = uom or pv.get("unitOfMeasure") or ""
         if val in (None, ""):
-            logger.warning(f"required char {key} on {ext_id} has no default/possible value; skipping")
-            continue
+            # Required char with no spec default/possible value: inject a
+            # type-appropriate placeholder so minCardinality is satisfied.
+            # (User can edit the value in the downloaded template.)
+            vtype = (c.get("valueType") or "").lower()
+            if any(t in vtype for t in ("int", "number", "numeric", "float", "decimal")):
+                val = "1"
+            elif "bool" in vtype:
+                val = "true"
+            else:
+                val = "1"
+            logger.info(f"required char {key} on {ext_id} has no spec default; injecting placeholder '{val}'")
         entry = {"charSpecExternalId": key, "value": [{"value": val}]}
         if uom:
             entry["value"][0]["unitOfMeasure"] = uom
