@@ -36,35 +36,43 @@ async def _fetch_required_chars(api_key: str, ext_param: str, ext_id: str) -> li
         return []
     if not raw:
         return []
-    chars = _cf._extract_chars(raw.get("specCharacteristic") or raw.get("characteristic") or [])
+    raw_chars = raw.get("specCharacteristic") or raw.get("characteristic") or []
     out = []
-    _PERSONALIZABLE = {"canBePersonalized", "mustBePersonalized", "selection"}
-    for c in chars:
-        if not c.get("required"):
-            continue
+    _PERSONALIZABLE = {"CAN_BE_PERSONALIZED", "MUST_BE_PERSONALIZED", "SELECTION",
+                       "canBePersonalized", "mustBePersonalized", "selection"}
+    for c in raw_chars:
+        try:
+            mn = int(c.get("minCardinality") or 0)
+        except (TypeError, ValueError):
+            mn = 0
+        if mn < 1:
+            continue  # not mandatory
         # Only client-settable chars: must be personalizable AND have a real
         # externalId. NO_PERSONALIZATION/fixed chars are set by the system; chars
         # without an externalId cannot be addressed via charSpecExternalId and
         # rely on the spec's own default to satisfy minCardinality.
         if c.get("valueRegulator") not in _PERSONALIZABLE:
             continue
-        if not (c.get("externalId") or "").strip():
+        key = (c.get("externalId") or "").strip()
+        if not key:
             continue
-        key = c["externalId"].strip()
-        # choose a value: explicit default, else first possible value
-        val = c.get("defaultValue")
-        if not val:
-            pvs = c.get("possibleValues") or []
-            if pvs:
-                default_pv = next((p for p in pvs if p.get("default")), pvs[0])
-                val = default_pv.get("value")
-            elif c.get("valueFrom") not in (None, ""):
-                val = str(c.get("valueFrom"))
+        # choose a value from the spec: default value, else first possible value
+        val = None
+        uom = c.get("unitOfMeasure") or ""
+        for pv in (c.get("specCharacteristicValue") or []):
+            if pv.get("value") is None:
+                continue
+            if pv.get("isDefault") or pv.get("default"):
+                val = str(pv["value"])
+                uom = uom or pv.get("unitOfMeasure") or ""
+                break
+            if val is None:
+                val = str(pv["value"])
+                uom = uom or pv.get("unitOfMeasure") or ""
         if val in (None, ""):
             logger.warning(f"required char {key} on {ext_id} has no default/possible value; skipping")
             continue
-        entry = {"charSpecExternalId": key, "value": [{"value": str(val)}]}
-        uom = c.get("unitOfMeasure")
+        entry = {"charSpecExternalId": key, "value": [{"value": val}]}
         if uom:
             entry["value"][0]["unitOfMeasure"] = uom
         out.append(entry)
