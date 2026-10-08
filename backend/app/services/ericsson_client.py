@@ -44,6 +44,7 @@ class EricssonClient:
         self._token_expiry: float = 0
         self._token_lock = asyncio.Lock()
         self._client: httpx.AsyncClient | None = None
+        self._batch_client: httpx.AsyncClient | None = None
         self._reload_config()
 
     def _reload_config(self):
@@ -51,15 +52,19 @@ class EricssonClient:
         self.env = cfg.get("environment", {})
         self.auth_cfg = cfg.get("auth", {})
         self.tls_cfg = cfg.get("tls", {})
+        # Dedicated TLS for the cert-based CPM Batch route (different client cert
+        # than BAE). Falls back to the main tls_cfg if batch_tls is not configured.
+        self.batch_tls_cfg = cfg.get("batch_tls", {}) or self.tls_cfg
         self.network_cfg = cfg.get("network", {})
         self.apis = cfg.get("apis", {})
         self.defaults = cfg.get("defaults", {})
 
-    def _build_client(self) -> httpx.AsyncClient:
-        ca_cert = self.tls_cfg.get("ca_cert_path", "")
-        client_cert = self.tls_cfg.get("client_cert_path", "")
-        client_key = self.tls_cfg.get("client_key_path", "")
-        ssl_verify = self.tls_cfg.get("ssl_verify", False)
+    def _build_client(self, tls_cfg: dict = None) -> httpx.AsyncClient:
+        tls_cfg = tls_cfg if tls_cfg is not None else self.tls_cfg
+        ca_cert = tls_cfg.get("ca_cert_path", "")
+        client_cert = tls_cfg.get("client_cert_path", "")
+        client_key = tls_cfg.get("client_key_path", "")
+        ssl_verify = tls_cfg.get("ssl_verify", False)
 
         # Build SSL context with mTLS support
         if client_cert and Path(client_cert).exists():
@@ -99,7 +104,18 @@ class EricssonClient:
 
     async def _ensure_client(self):
         if not self._client:
-            self._client = self._build_client()
+            self._client = self._build_client(self.tls_cfg)
+
+    async def _ensure_batch_client(self):
+        if not self._batch_client:
+            self._batch_client = self._build_client(self.batch_tls_cfg)
+        return self._batch_client
+
+    def _client_for(self, api_key: str) -> httpx.AsyncClient:
+        """Return the batch (cert-based) client for batch_* APIs, else the main client."""
+        if api_key and api_key.startswith("batch_"):
+            return self._batch_client or self._client
+        return self._client
 
     async def _get_token(self) -> str:
         """Get OAuth2 token using password grant with lock to prevent race conditions."""
@@ -216,6 +232,8 @@ class EricssonClient:
 
     async def request(self, api_key: str, body: dict = None, path_params: dict = None, query_params: dict = None) -> dict:
         await self._ensure_client()
+        if api_key and api_key.startswith("batch_"):
+            await self._ensure_batch_client()
         url, method = self._resolve_url(api_key, path_params)
         # Use defaultBody from config if no body provided
         if body is None and "defaultBody" in self.apis.get(api_key, {}):
@@ -234,8 +252,9 @@ class EricssonClient:
 
         logger.info(f"{method} {url}")
 
+        sel_client = self._client_for(api_key)
         try:
-            r = await self._do_request(method, url, headers, body, query_params)
+            r = await self._do_request(method, url, headers, body, query_params, client=sel_client)
         except Exception as e:
             self._log(method, url, "ERROR", body, str(e), headers=headers)
             raise
@@ -247,7 +266,7 @@ class EricssonClient:
             if token:
                 headers["Authorization"] = f"Bearer {token}"
             try:
-                r = await self._do_request(method, url, headers, body, query_params)
+                r = await self._do_request(method, url, headers, body, query_params, client=sel_client)
             except Exception as e:
                 self._log(method, url, "ERROR", body, str(e), headers=headers)
                 raise
@@ -259,17 +278,18 @@ class EricssonClient:
             return {"status": "ok"}
         return r.json()
 
-    async def _do_request(self, method: str, url: str, headers: dict, body: dict = None, query_params: dict = None) -> httpx.Response:
+    async def _do_request(self, method: str, url: str, headers: dict, body: dict = None, query_params: dict = None, client: httpx.AsyncClient = None) -> httpx.Response:
+        c = client or self._client
         if method == "GET":
-            return await self._client.get(url, headers=headers, params=query_params)
+            return await c.get(url, headers=headers, params=query_params)
         elif method == "POST":
-            return await self._client.post(url, json=body, headers=headers, params=query_params)
+            return await c.post(url, json=body, headers=headers, params=query_params)
         elif method == "PUT":
-            return await self._client.put(url, json=body, headers=headers, params=query_params)
+            return await c.put(url, json=body, headers=headers, params=query_params)
         elif method == "PATCH":
-            return await self._client.patch(url, json=body, headers=headers, params=query_params)
+            return await c.patch(url, json=body, headers=headers, params=query_params)
         elif method == "DELETE":
-            return await self._client.delete(url, headers=headers, params=query_params)
+            return await c.delete(url, headers=headers, params=query_params)
         raise ValueError(f"Unsupported method: {method}")
 
     def reinit(self):
@@ -279,6 +299,7 @@ class EricssonClient:
         self._token = ""
         self._token_expiry = 0
         self._client = None
+        self._batch_client = None
 
     async def close(self):
         if self._client:

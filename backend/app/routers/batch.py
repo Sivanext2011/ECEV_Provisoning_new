@@ -298,7 +298,7 @@ async def _submit_raw(batch_file: dict) -> dict:
     """POST the batch file to CPM Batch with Content-Type application/octet-stream
     and the concatenated raw body (per Batch REST Interface 1.1)."""
     import httpx
-    await ericsson_client._ensure_client()
+    batch_client = await ericsson_client._ensure_batch_client()
     url, _ = ericsson_client._resolve_url("batch_create_job")
     # Cert-based batch route is mTLS-only; sending a bearer token causes 401.
     headers = {"Content-Type": "application/octet-stream", "Accept": "application/json"}
@@ -310,7 +310,7 @@ async def _submit_raw(batch_file: dict) -> dict:
     if partition_id:
         headers["ERICSSON.Partition-Id"] = str(partition_id)
     raw = serialize_batch_file(batch_file).encode("utf-8")
-    r = await ericsson_client._client.post(url, content=raw, headers=headers)
+    r = await batch_client.post(url, content=raw, headers=headers)
     ericsson_client._log("POST", url, r.status_code, {"octet-stream": True, "bytes": len(raw)}, r.text, headers=headers)
     r.raise_for_status()
     if r.status_code == 204 or not r.text:
@@ -343,7 +343,7 @@ def _parse_json_stream(text: str) -> list:
 async def _fetch_result_stream(job_id: str) -> dict:
     """GET the batch job result (a stream of concatenated JSON objects) and
     return a structured summary: {records:[...], summary:{...}}."""
-    await ericsson_client._ensure_client()
+    batch_client = await ericsson_client._ensure_batch_client()
     url, _ = ericsson_client._resolve_url("batch_job_result", path_params={"jobId": job_id})
     headers = {"Accept": "application/json"}
     if not (ericsson_client.apis.get("batch_job_result", {}) or {}).get("no_auth"):
@@ -353,7 +353,7 @@ async def _fetch_result_stream(job_id: str) -> dict:
     partition_id = (ericsson_client.defaults or {}).get("partitionId", "")
     if partition_id:
         headers["ERICSSON.Partition-Id"] = str(partition_id)
-    r = await ericsson_client._client.get(url, headers=headers)
+    r = await batch_client.get(url, headers=headers)
     ericsson_client._log("GET", url, r.status_code, None, r.text[:2000], headers=headers)
     r.raise_for_status()
     objs = _parse_json_stream(r.text)

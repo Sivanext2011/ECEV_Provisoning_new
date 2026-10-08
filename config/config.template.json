@@ -29,6 +29,12 @@
     "client_cert_path": "",
     "client_key_path": ""
   },
+  "batch_tls": {
+    "ssl_verify": false,
+    "ca_cert_path": "",
+    "client_cert_path": "",
+    "client_key_path": ""
+  },
   "network": {
     "socks5_proxy": "socks5://127.0.0.1:1234",
     "timeout_seconds": 30,
