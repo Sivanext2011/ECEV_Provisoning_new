@@ -51,6 +51,11 @@ export function BatchPanel() {
   const [wIncludeCma, setWIncludeCma] = useState(false)
   const [wCmaLang, setWCmaLang] = useState('en')
   const [wContactMedia, setWContactMedia] = useState<Array<{ specExtId: string; externalId: string; charVals: Record<string, string> }>>([])
+  // product / status options (parity with provisioning flow)
+  const [wIncludeBaRef, setWIncludeBaRef] = useState(true)
+  const [wIncludeBaRefRecurrence, setWIncludeBaRefRecurrence] = useState(true)
+  const [wContractStatus, setWContractStatus] = useState('Created')
+  const [wProductStatus, setWProductStatus] = useState('ProductCreated')
 
   useEffect(() => {
     fetch(`${API}/specs`).then(r => r.ok ? r.json() : null).then(setSpecs).catch(() => {})
@@ -143,6 +148,10 @@ export function BatchPanel() {
     homeTimeZone: wHomeTz || undefined,
     includeContactMediumAssociation: wIncludeCma,
     contactMediumAssociationLanguage: wCmaLang,
+    includeBaRef: wIncludeBaRef,
+    includeBaRefRecurrence: wIncludeBaRefRecurrence,
+    contractStatus: wContractStatus || undefined,
+    productStatus: wProductStatus || undefined,
     contactMedia: wContactMedia
       .filter(c => c.specExtId)
       .map(c => ({
@@ -407,11 +416,20 @@ export function BatchPanel() {
               {wIncludeCma && <label style={{ fontSize: 12 }}>Association language<input style={sel} value={wCmaLang} onChange={e => setWCmaLang(e.target.value)} /></label>}
             </div>
 
+            {/* Product & status options */}
+            <div style={{ borderTop: '1px dashed #e5e7eb', paddingTop: 8, display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'center' }}>
+              <span style={{ fontSize: 12, fontWeight: 600 }}>Product/status options:</span>
+              <label style={{ fontSize: 12 }}>Contract status<input style={sel} value={wContractStatus} onChange={e => setWContractStatus(e.target.value)} /></label>
+              <label style={{ fontSize: 12 }}>Product status<input style={sel} value={wProductStatus} onChange={e => setWProductStatus(e.target.value)} /></label>
+              <label style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 4 }}><input type="checkbox" checked={wIncludeBaRef} onChange={e => setWIncludeBaRef(e.target.checked)} /> billingAccountReference</label>
+              <label style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 4 }}><input type="checkbox" checked={wIncludeBaRefRecurrence} onChange={e => setWIncludeBaRefRecurrence(e.target.checked)} /> baRefForBillCycleAlignedRecurrence</label>
+            </div>
+
             <div style={{ display: 'flex', gap: 10 }}>
               <button onClick={previewWizard} style={{ ...btn, background: '#6b7280' }}>⬇️ Build &amp; Download (preview)</button>
               <button onClick={scheduleFromWizard} disabled={loading} style={{ ...btn, background: '#16a34a' }}>🕒 Schedule this batch</button>
             </div>
-            <p style={{ fontSize: 11, color: '#888', margin: 0 }}>Mandatory spec characteristics are auto-filled from the catalog if left blank. * = must be personalized.</p>
+            <p style={{ fontSize: 11, color: '#888', margin: 0 }}>Mandatory spec characteristics are auto-filled from the catalog if left blank. * = must be personalized. Contract initial status defaults to <b>Created</b>.</p>
           </div>
         ))}
       </div>
