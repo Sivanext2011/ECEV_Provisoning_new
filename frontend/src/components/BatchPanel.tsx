@@ -363,7 +363,12 @@ export function BatchPanel() {
   const cmSpecs = specs?.contactMediumSpecifications || []
 
   const findSpec = (list: any[], ext: string) => list.find((s: any) => s.externalId === ext)
-  const personalizable = (chars: any[]) => (chars || []).filter((c: any) => (c.externalId || '').trim() !== '' && c.valueRegulator !== 'fixed')
+  const personalizable = (chars: any[]) => (chars || []).filter((c: any) => {
+    const ext = (c.externalId || '').trim()
+    // real settable char: has externalId, no spaces (not a display-name fallback), personalizable
+    if (!ext || ext.includes(' ')) return false
+    return ['canBePersonalized', 'mustBePersonalized', 'selection'].includes(c.valueRegulator)
+  })
 
   // When a PO with resourceSpecifications is selected, auto-populate the resource rows
   // (identification resources) from the PO's linked resource specs.

@@ -814,13 +814,24 @@ _ENTITY_PREFIX = {"party": "party.", "customer": "customer.", "contract": "contr
 
 
 def _spec_chars_for_columns(spec: dict) -> list:
-    """Personalizable characteristics of a spec that should become template columns."""
+    """Personalizable characteristics of a spec that should become template columns.
+    Only chars with a REAL externalId (client-settable) are included — chars whose
+    'externalId' is actually a display name (contains spaces) or that are
+    non-personalizable are system-managed and must not be sent as charSpecExternalId.
+    """
+    personalizable = {"canBePersonalized", "mustBePersonalized", "selection",
+                      "CAN_BE_PERSONALIZED", "MUST_BE_PERSONALIZED", "SELECTION"}
     out = []
     for c in (spec.get("characteristics") or []):
         ext = (c.get("externalId") or "").strip()
+        name = (c.get("name") or "").strip()
         if not ext:
             continue
-        if c.get("valueRegulator") == "fixed":
+        if " " in ext or ext == name and " " in name:
+            # externalId fell back to a display name -> not a real settable char
+            continue
+        reg = c.get("valueRegulator")
+        if reg not in personalizable:
             continue
         out.append(c)
     return out
