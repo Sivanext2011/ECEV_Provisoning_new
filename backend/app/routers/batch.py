@@ -242,6 +242,44 @@ async def _submit_raw(batch_file: dict) -> dict:
         return {"raw": r.text}
 
 
+def _parse_json_stream(text: str) -> list:
+    """Parse a stream of concatenated JSON objects (CPM batch result format)
+    into a list of dicts."""
+    dec = json.JSONDecoder()
+    out, idx, n = [], 0, len(text)
+    while idx < n:
+        while idx < n and text[idx] in " \t\r\n":
+            idx += 1
+        if idx >= n:
+            break
+        try:
+            obj, end = dec.raw_decode(text, idx)
+        except ValueError:
+            break
+        out.append(obj)
+        idx = end
+    return out
+
+
+async def _fetch_result_stream(job_id: str) -> dict:
+    """GET the batch job result (a stream of concatenated JSON objects) and
+    return a structured summary: {records:[...], summary:{...}}."""
+    await ericsson_client._ensure_client()
+    url, _ = ericsson_client._resolve_url("batch_job_result", path_params={"jobId": job_id})
+    token = await ericsson_client._get_token()
+    headers = {"Accept": "application/json"}
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+    partition_id = (ericsson_client.defaults or {}).get("partitionId", "")
+    if partition_id:
+        headers["ERICSSON.Partition-Id"] = str(partition_id)
+    r = await ericsson_client._client.get(url, headers=headers)
+    ericsson_client._log("GET", url, r.status_code, None, r.text[:2000], headers=headers)
+    r.raise_for_status()
+    objs = _parse_json_stream(r.text)
+    return {"objects": objs, "count": len(objs)}
+
+
 @router.post("/build")
 async def build(body: dict = None):
     """Build and return the batch file JSON (preview, no submit)."""
@@ -379,7 +417,7 @@ async def job_status(job_id: str):
 @router.get("/jobs/{job_id}/result")
 async def job_result(job_id: str):
     try:
-        return await ericsson_client.request("batch_job_result", path_params={"jobId": job_id})
+        return await _fetch_result_stream(job_id)
     except Exception as e:
         raise HTTPException(status_code=502, detail=str(e))
 
