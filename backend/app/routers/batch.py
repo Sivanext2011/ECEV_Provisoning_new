@@ -885,24 +885,32 @@ def _sample_row_for_combo(specs: dict, combo: dict, idx: int) -> dict:
         "customerSpecExternalId": ("customerSpecifications", "customer."),
         "contractSpecExternalId": ("contractSpecifications", "contract."),
     }
+    def _is_must(c):
+        return c.get("valueRegulator") in ("mustBePersonalized", "MUST_BE_PERSONALIZED")
     for field, (spec_key, prefix) in key_map.items():
         ext = combo.get(field)
         if not ext:
             continue
         spec = _find(specs, spec_key, ext)
         for c in _spec_chars_for_columns(spec):
-            row[f'{prefix}{c["externalId"]}'] = _sample_char_value(c)
+            # only pre-fill sample values for MUST-personalize chars; leave
+            # optional (canBePersonalized/selection) blank so we don't send
+            # characteristics the spec doesn't actually accept ("Missing recipe").
+            if _is_must(c):
+                row[f'{prefix}{c["externalId"]}'] = _sample_char_value(c)
     cm_ext = combo.get("contactMediumSpecExternalId")
     if cm_ext:
         spec = _find(specs, "contactMediumSpecifications", cm_ext)
         for c in _spec_chars_for_columns(spec):
-            row[f'cm.{c["externalId"]}'] = _sample_char_value(c)
-    # product (PO) characteristics
+            if _is_must(c):
+                row[f'cm.{c["externalId"]}'] = _sample_char_value(c)
+    # product (PO) characteristics — only must-personalize prefilled
     po_ext = combo.get("productOfferingExternalId")
     if po_ext:
         po = _find(specs, "productOfferings", po_ext)
         for c in _spec_chars_for_columns(po):
-            row[f'product.{c["externalId"]}'] = _sample_char_value(c)
+            if _is_must(c):
+                row[f'product.{c["externalId"]}'] = _sample_char_value(c)
     return row
 
 
