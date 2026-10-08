@@ -38,12 +38,19 @@ async def _fetch_required_chars(api_key: str, ext_param: str, ext_id: str) -> li
         return []
     chars = _cf._extract_chars(raw.get("specCharacteristic") or raw.get("characteristic") or [])
     out = []
+    _PERSONALIZABLE = {"canBePersonalized", "mustBePersonalized", "selection"}
     for c in chars:
         if not c.get("required"):
             continue
-        key = c.get("externalId") or c.get("name")
-        if not key:
+        # Only client-settable chars: must be personalizable AND have a real
+        # externalId. NO_PERSONALIZATION/fixed chars are set by the system; chars
+        # without an externalId cannot be addressed via charSpecExternalId and
+        # rely on the spec's own default to satisfy minCardinality.
+        if c.get("valueRegulator") not in _PERSONALIZABLE:
             continue
+        if not (c.get("externalId") or "").strip():
+            continue
+        key = c["externalId"].strip()
         # choose a value: explicit default, else first possible value
         val = c.get("defaultValue")
         if not val:
