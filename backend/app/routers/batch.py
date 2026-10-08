@@ -25,6 +25,11 @@ def _now():
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z")
 
 
+def _now_header():
+    # Batch HEADER creationDate: yyyy-MM-dd'T'HH:mm:ss.SSSZ with numeric offset, no colon
+    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "+0000"
+
+
 def _short():
     return uuid.uuid4().hex[:8]
 
@@ -60,14 +65,14 @@ def build_batch_file(body: dict) -> dict:
 
     header = {
         "batchJobId": body.get("batchJobId") or f"ECEV_BATCH_{_short()}",
-        "creationDate": now,
+        "creationDate": _now_header(),
         "interfaceVersion": "1.1",
         "readTimeout": "30",
         "entityTypes": [
             {"entityType": "party"}, {"entityType": "customer"},
             {"entityType": "contract"},
         ] + ([{"entityType": "bucketAdjustment"}] if do_adjust else []),
-        "serviceDefs": [
+        "ServiceDefs": [
             {"serviceGroupName": "bae-rest", "name": "BSSF_Individual_Party_Management",
              "ServiceRegistry": {"serviceType": "REST", "environment": "PROD",
                                  "serviceName": "BSSF_Individual_Party_Management", "version": "2"},
@@ -178,7 +183,17 @@ def build_batch_file(body: dict) -> dict:
         records.append({"recordNumber": i + 1, "entities": entities})
 
     trailer = {"numberOfRecords": count}
-    return {"header": header, "records": records, "trailer": trailer}
+    bf = {"header": header, "records": records, "trailer": trailer}
+
+    # Batch REST Interface 1.1: the standard /job API expects each entity's
+    # body directly under "payload" (the {"resource": {...}} wrapper is only for
+    # the massResource endpoint). Unwrap payload.resource -> payload.
+    for rec in bf["records"]:
+        for ent in rec.get("entities", []):
+            pl = ent.get("payload")
+            if isinstance(pl, dict) and set(pl.keys()) == {"resource"} and isinstance(pl["resource"], dict):
+                ent["payload"] = pl["resource"]
+    return bf
 
 
 def serialize_batch_file(bf: dict) -> str:
