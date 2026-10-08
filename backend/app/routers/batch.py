@@ -1099,8 +1099,11 @@ async def excel_template(body: dict = Body(default=None)):
     )
 
 
-def _row_to_body(row: dict, combo: dict) -> dict:
-    """Convert one Entries row + its combo into a build_batch_file body (count=1)."""
+def _row_to_body(row: dict, combo: dict, unit_lookup: dict = None) -> dict:
+    """Convert one Entries row + its combo into a build_batch_file body (count=1).
+    unit_lookup maps a prefixed column key (e.g. 'product.<ext>') -> unitOfMeasure."""
+    unit_lookup = unit_lookup or {}
+
     def chars_for(prefix):
         out = []
         for k, v in row.items():
@@ -1109,7 +1112,11 @@ def _row_to_body(row: dict, combo: dict) -> dict:
             if v is None or str(v).strip() == "":
                 continue
             ext = k[len(prefix):]
-            out.append({"charSpecExternalId": ext, "value": [{"value": str(v)}]})
+            val = {"value": str(v)}
+            uom = unit_lookup.get(k)
+            if uom:
+                val["unitOfMeasure"] = uom
+            out.append({"charSpecExternalId": ext, "value": [val]})
         return out
 
     # resources from combo.resourceSpecs + row msisdn/imsi
@@ -1176,6 +1183,42 @@ def _row_to_body(row: dict, combo: dict) -> dict:
 async def _build_multi(rows: list, combos_map: dict) -> dict:
     """Build a single batch file whose records come from multiple rows,
     each row using its named spec combination. Returns the merged batch file."""
+    try:
+        from ..services.catalog import get_catalog
+        specs = get_catalog()
+    except Exception:
+        specs = {}
+
+    def _char_unit(c: dict) -> str:
+        """Best-effort unit of measure for a characteristic (from possible values or spec)."""
+        for pv in (c.get("possibleValues") or c.get("specCharacteristicValue") or []):
+            if pv.get("unitOfMeasure"):
+                return pv["unitOfMeasure"]
+        return c.get("unitOfMeasure") or ""
+
+    def _unit_lookup(combo: dict) -> dict:
+        """Map prefixed column key -> unitOfMeasure for the combo's spec chars."""
+        lut = {}
+        pairs = [
+            ("party.", "individualPartySpecifications", combo.get("partySpecExternalId")),
+            ("customer.", "customerSpecifications", combo.get("customerSpecExternalId")),
+            ("contract.", "contractSpecifications", combo.get("contractSpecExternalId")),
+            ("product.", "productOfferings", combo.get("productOfferingExternalId")),
+            ("cm.", "contactMediumSpecifications", combo.get("contactMediumSpecExternalId")),
+        ]
+        for prefix, key, ext in pairs:
+            if not ext:
+                continue
+            spec = _find(specs, key, ext)
+            for c in (spec.get("characteristics") or []):
+                cext = (c.get("externalId") or "").strip()
+                if not cext:
+                    continue
+                u = _char_unit(c)
+                if u:
+                    lut[f"{prefix}{cext}"] = u
+        return lut
+
     merged_header = None
     merged_records = []
     for idx, row in enumerate(rows):
@@ -1183,7 +1226,7 @@ async def _build_multi(rows: list, combos_map: dict) -> dict:
         combo = combos_map.get(combo_name)
         if not combo:
             raise HTTPException(status_code=400, detail=f"Row {idx+1}: unknown comboName '{combo_name}'")
-        single_body = _row_to_body(row, combo)
+        single_body = _row_to_body(row, combo, _unit_lookup(combo))
         bf = build_batch_file(single_body)
         bf = await _enrich_mandatory_chars(bf)
         if merged_header is None:
