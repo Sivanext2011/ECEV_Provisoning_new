@@ -169,6 +169,14 @@ def build_batch_file(body: dict) -> dict:
     adj_unit = body.get("adjustmentUnit", "byte")
     bucket_spec = body.get("bucketSpecExternalId", "")
 
+    # Entity statuses (defaults match the provisioning flow). Contract initial
+    # status MUST be a valid initial status for the spec — "Created", not "Active".
+    party_status = body.get("partyStatus") or "PartyActive"
+    customer_status = body.get("customerStatus") or "CustomerActive"
+    ba_status = body.get("billingAccountStatus") or "BillingAccountActive"
+    contract_status = body.get("contractStatus") or "Created"
+    product_status = body.get("productStatus") or "ProductCreated"
+
     # User-supplied characteristics (spec-driven wizard). Each is a list of
     # {charSpecExternalId, value:[{value, unitOfMeasure?}], validFor?}.
     user_party_chars = body.get("partyCharacteristics") or []
@@ -310,7 +318,7 @@ def build_batch_file(body: dict) -> dict:
                  "externalId": party_ext, "partitionId": partition,
                  "givenName": given, "familyName": f"{family}{i+1}",
                  "individualSpecification": {"externalId": party_spec},
-                 "status": [{"status": "PartyActive", "validFor": {"startDateTime": now}}],
+                 "status": [{"status": party_status, "validFor": {"startDateTime": now}}],
                  **({"contactMedium": party_contact_medium} if party_contact_medium else {}),
              }}},
             {"entity": "customer", "operation": "create",
@@ -320,11 +328,11 @@ def build_batch_file(body: dict) -> dict:
                  "externalId": cust_ext,
                  "customerSpecification": {"externalId": cust_spec},
                  "engagedParty": {"externalId": "@PARTYEXTID@", "@referredType": "Individual"},
-                 "status": [{"status": "CustomerActive", "validFor": {"startDateTime": now}}],
+                 "status": [{"status": customer_status, "validFor": {"startDateTime": now}}],
                  "account": [{
                      "externalId": ba_ext,
                      "billingAccountSpecExternalId": ba_spec,
-                     "status": [{"status": "BillingAccountActive", "validFor": {"startDateTime": now}}],
+                     "status": [{"status": ba_status, "validFor": {"startDateTime": now}}],
                      "customerBillCycleSpecification": [{
                          "externalId": bcs_ext, "billCycleSpecExternalId": bc_spec,
                          "validFor": {"startDateTime": now}}],
@@ -338,7 +346,7 @@ def build_batch_file(body: dict) -> dict:
              "payload": {"resource": {
                  "externalId": contract_ext,
                  **({"contractSpecification": {"externalId": contract_spec}} if contract_spec else {}),
-                 "status": [{"status": "Active", "validFor": {"startDateTime": now}}],
+                 "status": [{"status": contract_status, "validFor": {"startDateTime": now}}],
                  **({"resource": contract_resources} if contract_resources else {}),
                  **({"communicationIdentifier": [{
                         "communicationIdentifierSpecExternalId": comm_id_spec,
@@ -350,7 +358,7 @@ def build_batch_file(body: dict) -> dict:
                      "externalId": prod_ext,
                      "productOfferingExternalId": po_ext,
                      "correlationId": corr_id,
-                     "status": [{"status": "ProductCreated"}],
+                     "status": [{"status": product_status}],
                      "billingAccountReference": {"externalId": ba_ext},
                      "baRefForBillCycleAlignedRecurrence": {"externalId": ba_ext},
                  }],
