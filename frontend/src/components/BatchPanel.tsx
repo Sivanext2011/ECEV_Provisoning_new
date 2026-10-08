@@ -187,44 +187,48 @@ export function BatchPanel() {
   }
 
   // ---- Bulk Excel workflow (multi-entry, multi-combo) ----
+  // Each combo is a full, independent spec selection (its own specs + resources).
   const [showBulk, setShowBulk] = useState(false)
   const [bulkCombos, setBulkCombos] = useState<Array<any>>([])
-  const [bulkSampleRows, setBulkSampleRows] = useState('5')
+  const [bulkSampleRows, setBulkSampleRows] = useState('3')
   const [bulkBatchFile, setBulkBatchFile] = useState<any>(null)
   const [bulkRecordCount, setBulkRecordCount] = useState<number | null>(null)
   const [bulkFileName, setBulkFileName] = useState('')
   const bulkFileRef = useRef<HTMLInputElement>(null)
 
-  // snapshot the current wizard spec selection as a named combo
-  const addCurrentAsCombo = () => {
-    const name = `combo${bulkCombos.length + 1}`
-    const rsEntries = wResources.filter(r => r.specExtId).map(r => ({ externalId: r.specExtId, id: r.specId || '' }))
-    setBulkCombos([...bulkCombos, {
-      comboName: name,
-      partySpecExternalId: wPartySpec, customerSpecExternalId: wCustSpec,
-      billingAccountSpecExternalId: wBASpec, billCycleSpecExternalId: wBCSpec,
-      contractSpecExternalId: wContractSpec, productOfferingExternalId: wPO,
-      contactMediumSpecExternalId: wContactMedia[0]?.specExtId || '',
-      resourceSpecs: rsEntries,
-      includeBaRef: wIncludeBaRef, includeBaRefRecurrence: wIncludeBaRefRecurrence,
-    }])
-  }
+  // make a blank combo seeded from the current wizard selection (which itself
+  // starts from config defaults) — user then adjusts each combo independently
+  const makeCombo = (name: string) => ({
+    comboName: name,
+    partySpecExternalId: wPartySpec, customerSpecExternalId: wCustSpec,
+    billingAccountSpecExternalId: wBASpec, billCycleSpecExternalId: wBCSpec,
+    contractSpecExternalId: wContractSpec, productOfferingExternalId: wPO,
+    contactMediumSpecExternalId: '',
+    resources: [{ specExtId: '', specId: '', value: '' }],
+    includeBaRef: true, includeBaRefRecurrence: true,
+  })
+  const addCombo = () => setBulkCombos([...bulkCombos, makeCombo(`combo${bulkCombos.length + 1}`)])
+  const updateCombo = (i: number, patch: any) => { const u = [...bulkCombos]; u[i] = { ...u[i], ...patch }; setBulkCombos(u) }
+  const removeCombo = (i: number) => setBulkCombos(bulkCombos.filter((_, k) => k !== i))
+
+  // serialize combos to the backend shape
+  const combosPayload = () => (bulkCombos.length ? bulkCombos : [makeCombo('default')]).map(c => ({
+    comboName: c.comboName,
+    partySpecExternalId: c.partySpecExternalId, customerSpecExternalId: c.customerSpecExternalId,
+    billingAccountSpecExternalId: c.billingAccountSpecExternalId, billCycleSpecExternalId: c.billCycleSpecExternalId,
+    contractSpecExternalId: c.contractSpecExternalId, productOfferingExternalId: c.productOfferingExternalId,
+    contactMediumSpecExternalId: c.contactMediumSpecExternalId || '',
+    resourceSpecs: (c.resources || []).filter((r: any) => r.specExtId).map((r: any) => ({ externalId: r.specExtId, id: r.specId || '' })),
+    includeBaRef: c.includeBaRef, includeBaRefRecurrence: c.includeBaRefRecurrence,
+  }))
 
   const downloadExcelTemplate = async () => {
     setErr(''); setMsg('')
-    const combos = bulkCombos.length ? bulkCombos : [{
-      comboName: 'default',
-      partySpecExternalId: wPartySpec, customerSpecExternalId: wCustSpec,
-      billingAccountSpecExternalId: wBASpec, billCycleSpecExternalId: wBCSpec,
-      contractSpecExternalId: wContractSpec, productOfferingExternalId: wPO,
-      contactMediumSpecExternalId: wContactMedia[0]?.specExtId || '',
-      resourceSpecs: wResources.filter(r => r.specExtId).map(r => ({ externalId: r.specExtId, id: r.specId || '' })),
-      includeBaRef: wIncludeBaRef, includeBaRefRecurrence: wIncludeBaRefRecurrence,
-    }]
+    const combos = combosPayload()
     try {
       const r = await fetch(`${API}/batch/excel-template`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ combos, sampleRows: Number(bulkSampleRows) || 5 }),
+        body: JSON.stringify({ combos, sampleRows: Number(bulkSampleRows) || 3 }),
       })
       if (!r.ok) { const d = await r.json().catch(() => ({})); throw new Error(d.detail || `HTTP ${r.status}`) }
       const blob = await r.blob()
@@ -232,7 +236,7 @@ export function BatchPanel() {
       const a = document.createElement('a')
       a.href = url; a.download = 'cpm_batch_bulk_template.xlsx'; a.click()
       URL.revokeObjectURL(url)
-      setMsg(`Excel template downloaded (${combos.length} combo(s)). Fill the Entries sheet and upload it below.`)
+      setMsg(`Excel template downloaded (${combos.length} combo(s), with a filled sample row each). Edit the Entries sheet and upload it below.`)
     } catch (e: any) { setErr(`Excel template failed: ${e.message}`) }
   }
 
@@ -345,6 +349,76 @@ export function BatchPanel() {
             </div>
           )
         })}
+      </div>
+    )
+  }
+
+  // Full spec-driven editor for ONE bulk combo (independent spec selection).
+  const renderComboEditor = (c: any, i: number) => {
+    const poRs = findSpec(poList, c.productOfferingExternalId)?.resourceSpecifications || []
+    const poHasRs = poRs.length > 0
+    const resources = c.resources || []
+    const specSel = (label: string, field: string, list: any[]) => (
+      <label style={{ fontSize: 12 }}>{label}
+        <select style={{ ...sel, width: '100%' }} value={c[field] || ''} onChange={e => updateCombo(i, { [field]: e.target.value })}>
+          <option value="">(none)</option>
+          {list.map((s: any) => <option key={s.externalId} value={s.externalId}>{s.name || s.externalId}</option>)}
+        </select>
+      </label>
+    )
+    return (
+      <div key={i} style={{ border: '1px solid #c7d2fe', borderRadius: 6, padding: 10, marginBottom: 10, background: '#fbfbff' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+          <span style={{ fontSize: 12, fontWeight: 700 }}>Combo</span>
+          <input style={{ fontSize: 12, width: 120 }} value={c.comboName} onChange={e => updateCombo(i, { comboName: e.target.value })} />
+          <button onClick={() => removeCombo(i)} style={{ ...btn, background: '#dc2626', padding: '2px 8px' }}>Remove</button>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+          {specSel('Party spec', 'partySpecExternalId', partySpecs)}
+          {specSel('Customer spec', 'customerSpecExternalId', custSpecs)}
+          {specSel('Billing account spec', 'billingAccountSpecExternalId', baSpecs)}
+          {specSel('Bill cycle spec', 'billCycleSpecExternalId', bcSpecs)}
+          {specSel('Contract spec', 'contractSpecExternalId', contractSpecs)}
+          <label style={{ fontSize: 12 }}>Product offering
+            <select style={{ ...sel, width: '100%' }} value={c.productOfferingExternalId || ''} onChange={e => {
+              const po = e.target.value
+              const rs = (findSpec(poList, po)?.resourceSpecifications || [])
+              updateCombo(i, { productOfferingExternalId: po, resources: rs.length ? rs.map((r: any) => ({ specExtId: r.externalId, specId: r.id || '', value: '' })) : [{ specExtId: '', specId: '', value: '' }] })
+            }}>
+              <option value="">(none)</option>
+              {poList.map((s: any) => <option key={s.externalId} value={s.externalId}>{s.name || s.externalId}</option>)}
+            </select>
+          </label>
+          {specSel('Contact medium spec', 'contactMediumSpecExternalId', cmSpecs)}
+        </div>
+
+        {/* identification resources */}
+        <div style={{ marginTop: 8 }}>
+          <div style={{ fontSize: 11, fontWeight: 600, marginBottom: 4 }}>Identification resource spec(s) (MSISDN / IMSI){poHasRs ? ' — from PO' : ''}</div>
+          {resources.map((r: any, ri: number) => (
+            <div key={ri} style={{ display: 'flex', gap: 6, marginBottom: 4, alignItems: 'center' }}>
+              {poHasRs ? (
+                <span style={{ flex: 2, fontSize: 11, padding: '3px 6px', background: '#f0f4ff', border: '1px solid #c7d2fe', borderRadius: 4 }}>{r.specExtId}</span>
+              ) : (
+                <select style={{ flex: 2, fontSize: 11 }} value={r.specExtId} onChange={e => {
+                  const s = commIdSpecs.find((x: any) => x.externalId === e.target.value)
+                  const u = [...resources]; u[ri] = { ...u[ri], specExtId: e.target.value, specId: s?.id || '' }; updateCombo(i, { resources: u })
+                }}>
+                  <option value="">-- resource / CommID spec --</option>
+                  {commIdSpecs.map((s: any) => <option key={s.id || s.externalId} value={s.externalId}>{s.name || s.externalId}</option>)}
+                </select>
+              )}
+              {!poHasRs && resources.length > 1 && <button type="button" onClick={() => updateCombo(i, { resources: resources.filter((_: any, k: number) => k !== ri) })} style={{ fontSize: 11 }}>✕</button>}
+            </div>
+          ))}
+          {!poHasRs && <button type="button" style={{ fontSize: 11 }} onClick={() => updateCombo(i, { resources: [...resources, { specExtId: '', specId: '', value: '' }] })}>+ Add resource spec</button>}
+          <div style={{ fontSize: 10, color: '#888', marginTop: 2 }}>Numbers (MSISDN/IMSI values) are entered per-row in the Excel, not here.</div>
+        </div>
+
+        <div style={{ display: 'flex', gap: 14, marginTop: 8, flexWrap: 'wrap' }}>
+          <label style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 4 }}><input type="checkbox" checked={c.includeBaRef} onChange={e => updateCombo(i, { includeBaRef: e.target.checked })} /> billingAccountReference</label>
+          <label style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 4 }}><input type="checkbox" checked={c.includeBaRefRecurrence} onChange={e => updateCombo(i, { includeBaRefRecurrence: e.target.checked })} /> baRefForBillCycleAlignedRecurrence</label>
+        </div>
       </div>
     )
   }
@@ -530,37 +604,22 @@ export function BatchPanel() {
               1) Define spec combination(s). 2) Download the Excel template (columns come from the specs). 3) Fill one row per subscriber in the <b>Entries</b> sheet (set <b>comboName</b> to pick a combo per row). 4) Upload &amp; schedule — one record per row.
             </p>
 
-            {/* combos */}
+            {/* combos — each is a full independent spec selection */}
             <div style={{ border: '1px solid #eee', borderRadius: 6, padding: 8 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
                 <span style={{ fontSize: 12, fontWeight: 600 }}>Spec combinations</span>
-                <button onClick={addCurrentAsCombo} style={{ ...btn, background: '#7c3aed', padding: '3px 10px' }}>+ Add current wizard selection as a combo</button>
+                <button onClick={addCombo} style={{ ...btn, background: '#7c3aed', padding: '3px 10px' }}>+ Add combo (choose specs)</button>
               </div>
               {bulkCombos.length === 0 ? (
-                <div style={{ fontSize: 11, color: '#888' }}>No combos added — the current wizard spec selection will be used as a single "default" combo. Add multiple to support different spec sets per row.</div>
+                <div style={{ fontSize: 11, color: '#888' }}>No combos yet — a single "default" combo (current wizard specs) will be used. Click "+ Add combo" to define one or more spec combinations, each with its own specs &amp; resources.</div>
               ) : (
-                <table style={{ width: '100%', fontSize: 11, borderCollapse: 'collapse' }}>
-                  <thead><tr style={{ background: '#f3f4f6' }}>
-                    <th style={{ textAlign: 'left', padding: 4 }}>Combo</th><th style={{ textAlign: 'left', padding: 4 }}>Party</th><th style={{ textAlign: 'left', padding: 4 }}>Customer</th><th style={{ textAlign: 'left', padding: 4 }}>Contract</th><th style={{ textAlign: 'left', padding: 4 }}>PO</th><th style={{ textAlign: 'left', padding: 4 }}>Resources</th><th></th>
-                  </tr></thead>
-                  <tbody>{bulkCombos.map((c, i) => (
-                    <tr key={i} style={{ borderBottom: '1px solid #f0f0f0' }}>
-                      <td style={{ padding: 4 }}><input style={{ width: 90, fontSize: 11 }} value={c.comboName} onChange={e => { const u = [...bulkCombos]; u[i] = { ...u[i], comboName: e.target.value }; setBulkCombos(u) }} /></td>
-                      <td style={{ padding: 4 }}>{c.partySpecExternalId}</td>
-                      <td style={{ padding: 4 }}>{c.customerSpecExternalId}</td>
-                      <td style={{ padding: 4 }}>{c.contractSpecExternalId}</td>
-                      <td style={{ padding: 4 }}>{c.productOfferingExternalId}</td>
-                      <td style={{ padding: 4 }}>{(c.resourceSpecs || []).map((r: any) => r.externalId).join(', ')}</td>
-                      <td style={{ padding: 4 }}><button onClick={() => setBulkCombos(bulkCombos.filter((_, k) => k !== i))} style={{ fontSize: 11 }}>✕</button></td>
-                    </tr>
-                  ))}</tbody>
-                </table>
+                bulkCombos.map((c, i) => renderComboEditor(c, i))
               )}
             </div>
 
             <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
-              <label style={{ fontSize: 12 }}>Blank sample rows<input type="number" min={1} style={{ width: 70, ...sel }} value={bulkSampleRows} onChange={e => setBulkSampleRows(e.target.value)} /></label>
-              <button onClick={downloadExcelTemplate} style={{ ...btn, background: '#6b7280' }}>⬇️ Download Excel template</button>
+              <label style={{ fontSize: 12 }}>Extra blank rows<input type="number" min={0} style={{ width: 70, ...sel }} value={bulkSampleRows} onChange={e => setBulkSampleRows(e.target.value)} /></label>
+              <button onClick={downloadExcelTemplate} style={{ ...btn, background: '#6b7280' }}>⬇️ Download Excel template (with 1 sample row per combo)</button>
             </div>
 
             <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>

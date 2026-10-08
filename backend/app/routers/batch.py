@@ -826,6 +826,62 @@ def _find(specs: dict, key: str, ext: str) -> dict:
     return {}
 
 
+def _sample_char_value(c: dict) -> str:
+    """Produce a realistic sample value for a characteristic column."""
+    # explicit default
+    for pv in (c.get("possibleValues") or c.get("specCharacteristicValue") or []):
+        if pv.get("isDefault") or pv.get("default"):
+            if pv.get("value") not in (None, ""):
+                return str(pv["value"])
+    # first possible value (enum/selection)
+    for pv in (c.get("possibleValues") or c.get("specCharacteristicValue") or []):
+        if pv.get("value") not in (None, ""):
+            return str(pv["value"])
+    # range min
+    if c.get("valueFrom") not in (None, ""):
+        return str(c.get("valueFrom"))
+    # by type
+    vtype = (c.get("valueType") or "").lower()
+    if any(t in vtype for t in ("int", "long", "number", "numeric", "float", "double", "decimal")):
+        return "1"
+    if "bool" in vtype:
+        return "true"
+    if "date" in vtype:
+        return _now()
+    return "sample"
+
+
+def _sample_row_for_combo(specs: dict, combo: dict, idx: int) -> dict:
+    """Build a sample Entries row (column->value) for one combo: example values
+    for that combo's characteristics + a sample MSISDN/IMSI."""
+    imsi = ("46001000000" + f"{idx:04d}")
+    row = {
+        "comboName": combo.get("comboName", f"combo{idx}"),
+        "givenName": "Sample",
+        "familyName": f"User{idx}",
+        "msisdn": f"4670000{idx:04d}",
+        "imsi": (imsi + "000000000")[:15],
+    }
+    key_map = {
+        "partySpecExternalId": ("individualPartySpecifications", "party."),
+        "customerSpecExternalId": ("customerSpecifications", "customer."),
+        "contractSpecExternalId": ("contractSpecifications", "contract."),
+    }
+    for field, (spec_key, prefix) in key_map.items():
+        ext = combo.get(field)
+        if not ext:
+            continue
+        spec = _find(specs, spec_key, ext)
+        for c in _spec_chars_for_columns(spec):
+            row[f'{prefix}{c["externalId"]}'] = _sample_char_value(c)
+    cm_ext = combo.get("contactMediumSpecExternalId")
+    if cm_ext:
+        spec = _find(specs, "contactMediumSpecifications", cm_ext)
+        for c in _spec_chars_for_columns(spec):
+            row[f'cm.{c["externalId"]}'] = _sample_char_value(c)
+    return row
+
+
 def _combo_columns(specs: dict, combos: list) -> list:
     """Union of characteristic/contact-medium columns across all combos."""
     cols = []
@@ -952,15 +1008,27 @@ async def excel_template(body: dict = Body(default=None)):
         cell.font = header_font
         cell.fill = header_fill
         ws.column_dimensions[openpyxl.utils.get_column_letter(ci)].width = max(16, len(name) + 2)
-    # sample blank rows with comboName prefilled to first combo
+    # One filled SAMPLE row per combo (example values from the specs) + a few
+    # blank rows (comboName prefilled to first combo) for the user to fill.
+    col_index = {name: i + 1 for i, name in enumerate(all_cols)}
+    text_col_idxs = [col_index[n] for n in ("msisdn", "imsi") if n in col_index]
+    r = 2
+    for idx, combo in enumerate(combos, 1):
+        sample = _sample_row_for_combo(specs, combo, idx)
+        for col_name, val in sample.items():
+            ci = col_index.get(col_name)
+            if not ci:
+                continue
+            cell = ws.cell(row=r, column=ci, value=val)
+            if ci in text_col_idxs:
+                cell.number_format = "@"
+        r += 1
     first_combo = combos[0].get("comboName", "default")
-    # msisdn (col 4) and imsi (col 5) must be TEXT to preserve exact digits
-    # (avoid Excel scientific notation / leading-zero loss / float coercion)
-    text_col_idxs = [i + 1 for i, name in enumerate(all_cols) if name in ("msisdn", "imsi")]
-    for r in range(2, 2 + sample_rows):
+    for _ in range(sample_rows):
         ws.cell(row=r, column=1, value=first_combo)
         for ci in text_col_idxs:
-            ws.cell(row=r, column=ci).number_format = "@"  # text
+            ws.cell(row=r, column=ci).number_format = "@"
+        r += 1
 
     # ---- Instructions sheet ----
     ws_i = wb.create_sheet("Instructions")
