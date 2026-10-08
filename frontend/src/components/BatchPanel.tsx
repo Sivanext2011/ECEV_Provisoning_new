@@ -211,6 +211,49 @@ export function BatchPanel() {
   const updateCombo = (i: number, patch: any) => { const u = [...bulkCombos]; u[i] = { ...u[i], ...patch }; setBulkCombos(u) }
   const removeCombo = (i: number) => setBulkCombos(bulkCombos.filter((_, k) => k !== i))
 
+  // fetch POP personalization for a combo's PO and store on the combo
+  const fetchComboPop = async (i: number, poExtId: string) => {
+    updateCombo(i, { popLoading: true, popError: '', pop: [], popEnabled: false, popSelected: {}, popValues: {} })
+    try {
+      const r = await fetch(`${API}/spec/productOffering/popPersonalization?externalId=${encodeURIComponent(poExtId)}`)
+      if (!r.ok) throw new Error(`HTTP ${r.status}`)
+      const pops = await r.json()
+      const defaults: Record<string, { value: string; unit: string }> = {}
+      for (const pop of pops) for (const row of (pop.rows || [])) for (const ch of (row.chars || []))
+        defaults[`${pop.popId}_${row.rowId}_${ch.id}`] = { value: ch.defaultValue || '', unit: ch.defaultUnit || (ch.units?.[0] || '') }
+      updateCombo(i, { pop: pops, popValues: defaults, popLoading: false })
+    } catch (e: any) { updateCombo(i, { popLoading: false, popError: e.message }) }
+  }
+
+  // build the product price (POP) array for a combo, like ProvisionWizard
+  const buildComboPrice = (c: any) => {
+    const popValues = c.popValues || {}
+    const popSelected = c.popSelected || {}
+    if (!c.popEnabled) return []
+    return (c.pop || [])
+      .filter((pop: any) => popSelected[pop.popId])
+      .map((pop: any) => {
+        const priceRow = (pop.rows || []).map((row: any) => {
+          const priceAction = (row.chars || []).map((ch: any) => {
+            const val = popValues[`${pop.popId}_${row.rowId}_${ch.id}`]
+            if (!val?.value?.toString().trim()) return null
+            if (val.value.toString().trim() === (ch.defaultValue || '').toString().trim()) return null
+            const charObj: any = { value: [{ value: val.value }] }
+            if (val.unit) charObj.value[0].unitOfMeasure = val.unit
+            if (ch.externalId) charObj.charSpecExternalId = ch.externalId; else charObj.charSpecId = ch.id
+            const action: any = { characteristic: [charObj] }
+            if (ch.actionExternalId) action.action = { externalId: String(ch.actionExternalId) }
+            else if (ch.actionId) action.action = { id: String(ch.actionId) }
+            return action
+          }).filter(Boolean)
+          if (!priceAction.length) return null
+          return { ...(row.rowExternalId ? { productOfferingPriceRow: { externalId: row.rowExternalId } } : row.rowId ? { productOfferingPriceRow: { id: row.rowId } } : {}), priceAction }
+        }).filter(Boolean)
+        if (!priceRow.length) return null
+        return { productOfferingPrice: { id: pop.popId, ...(pop.popExternalId ? { externalId: pop.popExternalId } : {}) }, priceRow }
+      }).filter(Boolean)
+  }
+
   // serialize combos to the backend shape
   const combosPayload = () => (bulkCombos.length ? bulkCombos : [makeCombo('default')]).map(c => ({
     comboName: c.comboName,
@@ -220,6 +263,7 @@ export function BatchPanel() {
     contactMediumSpecExternalId: c.contactMediumSpecExternalId || '',
     resourceSpecs: (c.resources || []).filter((r: any) => r.specExtId).map((r: any) => ({ externalId: r.specExtId, id: r.specId || '' })),
     includeBaRef: c.includeBaRef, includeBaRefRecurrence: c.includeBaRefRecurrence,
+    productPrice: buildComboPrice(c),
   }))
 
   const downloadExcelTemplate = async () => {
@@ -383,7 +427,8 @@ export function BatchPanel() {
             <select style={{ ...sel, width: '100%' }} value={c.productOfferingExternalId || ''} onChange={e => {
               const po = e.target.value
               const rs = (findSpec(poList, po)?.resourceSpecifications || [])
-              updateCombo(i, { productOfferingExternalId: po, resources: rs.length ? rs.map((r: any) => ({ specExtId: r.externalId, specId: r.id || '', value: '' })) : [{ specExtId: '', specId: '', value: '' }] })
+              updateCombo(i, { productOfferingExternalId: po, resources: rs.length ? rs.map((r: any) => ({ specExtId: r.externalId, specId: r.id || '', value: '' })) : [{ specExtId: '', specId: '', value: '' }], poCharVals: {} })
+              if (po) fetchComboPop(i, po)
             }}>
               <option value="">(none)</option>
               {poList.map((s: any) => <option key={s.externalId} value={s.externalId}>{s.name || s.externalId}</option>)}
@@ -414,6 +459,66 @@ export function BatchPanel() {
           {!poHasRs && <button type="button" style={{ fontSize: 11 }} onClick={() => updateCombo(i, { resources: [...resources, { specExtId: '', specId: '', value: '' }] })}>+ Add resource spec</button>}
           <div style={{ fontSize: 10, color: '#888', marginTop: 2 }}>Numbers (MSISDN/IMSI values) are entered per-row in the Excel, not here.</div>
         </div>
+
+        {/* PO characteristics (become product.* columns in Excel; defaults shown here) */}
+        {c.productOfferingExternalId && (() => {
+          const po = findSpec(poList, c.productOfferingExternalId)
+          const poChars = personalizable(po?.characteristics || [])
+          if (!poChars.length) return null
+          const vals = c.poCharVals || {}
+          return (
+            <div style={{ marginTop: 8, border: '1px solid #eee', borderRadius: 6, padding: 8, background: '#f9fafb' }}>
+              <div style={{ fontSize: 11, fontWeight: 600, marginBottom: 4 }}>Product characteristics (base plan) — these become <code>product.*</code> columns</div>
+              {poChars.map((ch: any) => {
+                const key = ch.externalId || ch.id
+                return (
+                  <div key={key}>
+                    <div style={{ fontSize: 11, fontWeight: 600 }}>{ch.name || key}{ch.valueRegulator === 'mustBePersonalized' && <span style={{ color: '#dc2626' }}> *</span>}</div>
+                    <CharInput char={ch} value={vals[key] || ''} onChange={(v) => updateCombo(i, { poCharVals: { ...vals, [key]: v } })} />
+                  </div>
+                )
+              })}
+              <div style={{ fontSize: 10, color: '#888', marginTop: 2 }}>Values here seed the Excel sample row; edit per subscriber in the sheet.</div>
+            </div>
+          )
+        })()}
+
+        {/* POP personalization (combo-level, like the provisioning flow) */}
+        {c.popLoading && <div style={{ fontSize: 11, color: '#888', marginTop: 6 }}>⏳ Loading POP…</div>}
+        {c.popError && <div style={{ fontSize: 11, color: '#c00', marginTop: 6 }}>⚠ {c.popError}</div>}
+        {(c.pop || []).length > 0 && (
+          <div style={{ marginTop: 8, border: '1px solid #f0abfc', borderRadius: 6, padding: 8, background: '#fdf4ff' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 600, color: '#1d4ed8', cursor: 'pointer' }}>
+              <input type="checkbox" checked={!!c.popEnabled} onChange={e => updateCombo(i, { popEnabled: e.target.checked })} />
+              POP Personalization ({(c.pop || []).length})
+            </label>
+            {c.popEnabled && (c.pop || []).map((pop: any) => (
+              <div key={pop.popId} style={{ marginLeft: 12, marginTop: 4 }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 10, fontWeight: 600, cursor: 'pointer' }}>
+                  <input type="checkbox" checked={!!(c.popSelected || {})[pop.popId]} onChange={e => updateCombo(i, { popSelected: { ...(c.popSelected || {}), [pop.popId]: e.target.checked } })} />
+                  {pop.popName || pop.popExternalId}
+                </label>
+                {(c.popSelected || {})[pop.popId] && (pop.rows || []).map((row: any) => (
+                  <div key={row.rowId} style={{ marginLeft: 12, marginTop: 2 }}>
+                    {(row.chars || []).map((ch: any) => {
+                      const key = `${pop.popId}_${row.rowId}_${ch.id}`
+                      const val = (c.popValues || {})[key] || { value: '', unit: ch.defaultUnit || '' }
+                      return (
+                        <div key={ch.id} style={{ display: 'flex', gap: 4, marginBottom: 2, alignItems: 'center' }}>
+                          <span style={{ fontSize: 10, minWidth: 90, color: '#555' }}>{ch.name}</span>
+                          <input style={{ flex: 1, padding: '2px 4px', fontSize: 10 }} placeholder={ch.defaultValue || 'value'} value={val.value}
+                            onChange={e => updateCombo(i, { popValues: { ...(c.popValues || {}), [key]: { ...val, value: e.target.value } } })} />
+                          <input style={{ width: 70, padding: '2px 4px', fontSize: 9 }} placeholder={ch.defaultUnit || 'unit'} value={val.unit}
+                            onChange={e => updateCombo(i, { popValues: { ...(c.popValues || {}), [key]: { ...val, unit: e.target.value } } })} />
+                        </div>
+                      )
+                    })}
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+        )}
 
         <div style={{ display: 'flex', gap: 14, marginTop: 8, flexWrap: 'wrap' }}>
           <label style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 4 }}><input type="checkbox" checked={c.includeBaRef} onChange={e => updateCombo(i, { includeBaRef: e.target.checked })} /> billingAccountReference</label>

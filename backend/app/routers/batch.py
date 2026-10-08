@@ -208,6 +208,11 @@ def build_batch_file(body: dict) -> dict:
     cma_language = body.get("contactMediumAssociationLanguage") or "en"
     home_time_zone = body.get("homeTimeZone") or ""
 
+    # Product-level characteristics (PO chars) and price (POP personalization).
+    # product_price is passed through already-shaped like the provisioning flow.
+    product_chars = body.get("productCharacteristics") or []
+    product_price = body.get("productPrice") or []
+
     now = _now()
 
     header = {
@@ -380,6 +385,8 @@ def build_batch_file(body: dict) -> dict:
                      **({"baRefForBillCycleAlignedRecurrence": {"externalId": ba_ext,
                          **({"isProratingRequired": bool(body["isProratingRequired"])} if "isProratingRequired" in body else {})}}
                         if body.get("includeBaRefRecurrence", False) else {}),
+                     **({"characteristic": product_chars} if product_chars else {}),
+                     **({"price": product_price} if product_price else {}),
                  }],
              }}},
         ]
@@ -879,6 +886,12 @@ def _sample_row_for_combo(specs: dict, combo: dict, idx: int) -> dict:
         spec = _find(specs, "contactMediumSpecifications", cm_ext)
         for c in _spec_chars_for_columns(spec):
             row[f'cm.{c["externalId"]}'] = _sample_char_value(c)
+    # product (PO) characteristics
+    po_ext = combo.get("productOfferingExternalId")
+    if po_ext:
+        po = _find(specs, "productOfferings", po_ext)
+        for c in _spec_chars_for_columns(po):
+            row[f'product.{c["externalId"]}'] = _sample_char_value(c)
     return row
 
 
@@ -912,6 +925,12 @@ def _combo_columns(specs: dict, combos: list) -> list:
             spec = _find(specs, "contactMediumSpecifications", cm_ext)
             for c in _spec_chars_for_columns(spec):
                 add("cm.", c["externalId"], f'cm.{c["externalId"]}')
+        # product (PO) characteristics
+        po_ext = combo.get("productOfferingExternalId")
+        if po_ext:
+            po = _find(specs, "productOfferings", po_ext)
+            for c in _spec_chars_for_columns(po):
+                add("product.", c["externalId"], f'product.{c["externalId"]}')
     return cols
 
 
@@ -972,7 +991,7 @@ async def excel_template(body: dict = Body(default=None)):
                   "billingAccountSpecExternalId", "billCycleSpecExternalId",
                   "contractSpecExternalId", "productOfferingExternalId",
                   "contactMediumSpecExternalId", "resourceSpecs",
-                  "includeBaRef", "includeBaRefRecurrence"]
+                  "includeBaRef", "includeBaRefRecurrence", "productPrice"]
     for ci, name in enumerate(combo_cols, 1):
         cell = ws_c.cell(row=1, column=ci, value=name)
         cell.font = header_font
@@ -981,6 +1000,7 @@ async def excel_template(body: dict = Body(default=None)):
         rs = combo.get("resourceSpecs") or []
         # resourceSpecs encoded as "RS_MSISDN:id|RS_IMSI:id"
         rs_enc = "|".join(f'{r.get("externalId","")}:{r.get("id","")}' for r in rs)
+        pop = combo.get("productPrice") or []
         row_vals = [
             combo.get("comboName", f"combo{ri-1}"),
             combo.get("partySpecExternalId", ""),
@@ -993,6 +1013,7 @@ async def excel_template(body: dict = Body(default=None)):
             rs_enc,
             combo.get("includeBaRef", True),
             combo.get("includeBaRefRecurrence", True),
+            json.dumps(pop) if pop else "",
         ]
         for ci, v in enumerate(row_vals, 1):
             ws_c.cell(row=ri, column=ci, value=v)
@@ -1040,8 +1061,8 @@ async def excel_template(body: dict = Body(default=None)):
         "2. 'Entries' sheet: one row per subscriber.",
         "   - comboName: which combo (from the Combos sheet) this row uses.",
         "   - msisdn / imsi: resource numbers (IMSI must be 15 digits).",
-        "   - party.* / customer.* / contract.* / cm.* columns = characteristic values.",
-        "     Leave blank to skip; mandatory chars auto-fill from the catalog.",
+        "   - party.* / customer.* / contract.* / cm.* / product.* columns = characteristic values.",
+        "     product.* = base-plan PO characteristics. Leave blank to skip; mandatory chars auto-fill.",
         "3. Save and upload via the CPM Batch tab -> 'Upload filled Excel'.",
         "   Each Entries row becomes one record in the batch.",
     ]
@@ -1125,6 +1146,8 @@ def _row_to_body(row: dict, combo: dict) -> dict:
         "partyCharacteristics": chars_for("party."),
         "customerCharacteristics": chars_for("customer."),
         "contractCharacteristics": chars_for("contract."),
+        "productCharacteristics": chars_for("product."),
+        "productPrice": combo.get("productPrice") or [],
         "resources": resources,
         "contactMedia": contact_media,
     }
@@ -1206,6 +1229,13 @@ async def excel_upload(file: UploadFile = File(...)):
             if v is None or v == "":
                 return default
             return str(v).strip().lower() in ("true", "1", "yes", "y")
+        pop = []
+        pp_raw = rec.get("productPrice")
+        if pp_raw and str(pp_raw).strip():
+            try:
+                pop = json.loads(str(pp_raw))
+            except Exception:
+                pop = []
         combos_map[name] = {
             "comboName": name,
             "partySpecExternalId": rec.get("partySpecExternalId") or "",
@@ -1218,6 +1248,7 @@ async def excel_upload(file: UploadFile = File(...)):
             "resourceSpecs": rslist,
             "includeBaRef": _as_bool(rec.get("includeBaRef")),
             "includeBaRefRecurrence": _as_bool(rec.get("includeBaRefRecurrence")),
+            "productPrice": pop,
         }
     if not combos_map:
         raise HTTPException(status_code=400, detail="No combos defined in Combos sheet")
