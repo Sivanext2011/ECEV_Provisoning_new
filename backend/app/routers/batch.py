@@ -358,11 +358,16 @@ def build_batch_file(body: dict) -> dict:
                      "externalId": prod_ext,
                      "productOfferingExternalId": po_ext,
                      "correlationId": corr_id,
+                     "name": po_ext,
                      "status": [{"status": product_status}],
-                     **({"billingAccountReference": {"externalId": ba_ext}} if body.get("includeBaRef", True) else {}),
+                     # Match the verified successful provisioning pattern: these
+                     # BA references are OFF by default (sending baRefForBillCycleAlignedRecurrence
+                     # triggers CPM's "Missing BillCycleAlignedStrategy" on envs without
+                     # featureBillingAccountChangeSupport). Opt in only when needed.
+                     **({"billingAccountReference": {"externalId": ba_ext}} if body.get("includeBaRef", False) else {}),
                      **({"baRefForBillCycleAlignedRecurrence": {"externalId": ba_ext,
                          **({"isProratingRequired": bool(body["isProratingRequired"])} if "isProratingRequired" in body else {})}}
-                        if body.get("includeBaRefRecurrence", True) else {}),
+                        if body.get("includeBaRefRecurrence", False) else {}),
                  }],
              }}},
         ]
