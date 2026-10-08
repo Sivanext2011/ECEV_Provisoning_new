@@ -97,13 +97,37 @@ async def _enrich_mandatory_chars(bf: dict) -> dict:
     party_spec = d.get("partySpecExternalId", "")
     cust_chars = await _fetch_required_chars("spec_customer", "customerSpecificationExternalId", cust_spec)
     party_chars = await _fetch_required_chars("spec_individual", "individualSpecificationExternalId", party_spec)
+
+    def _entity_start(ent: dict) -> str:
+        """The entity's validity start (from its status[0].validFor) so each
+        characteristic value can carry a validFor that covers the entity."""
+        pl = ent.get("payload") or {}
+        for st in (pl.get("status") or []):
+            vf = st.get("validFor") or {}
+            if vf.get("startDateTime"):
+                return vf["startDateTime"]
+        return _now()
+
+    def _stamp(chars: list, start: str) -> list:
+        """Deep-copy chars and add validFor covering the entity validity so CPM's
+        entityTimePeriodNotCoveredByCharacteristicValues check passes."""
+        out = []
+        for ch in chars:
+            vals = []
+            for v in ch.get("value", []):
+                nv = dict(v)
+                nv.setdefault("validFor", {"startDateTime": start})
+                vals.append(nv)
+            out.append({**ch, "value": vals})
+        return out
+
     for rec in bf.get("records", []):
         for ent in rec.get("entities", []):
             pl = ent.get("payload") or {}
             if ent.get("entity") == "customer" and cust_chars and "characteristic" not in pl:
-                pl["characteristic"] = cust_chars
+                pl["characteristic"] = _stamp(cust_chars, _entity_start(ent))
             if ent.get("entity") == "party" and party_chars and "characteristic" not in pl:
-                pl["characteristic"] = party_chars
+                pl["characteristic"] = _stamp(party_chars, _entity_start(ent))
     return bf
 
 
