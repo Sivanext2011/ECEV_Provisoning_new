@@ -1,0 +1,17 @@
+[
+  {
+    "comboName": "voice",
+    "partySpecExternalId": "Party_Individual_CHT",
+    "customerSpecExternalId": "Test_Customer",
+    "billingAccountSpecExternalId": "CHT_BillingAccount_Spec",
+    "billCycleSpecExternalId": "BillCycle_01",
+    "contractSpecExternalId": "CONTRACT_1399_5G",
+    "productOfferingExternalId": "po_notiftesting",
+    "resourceSpecs": [
+      {"externalId": "RS_MSISDN", "id": "8aabb378-affe-4bda-8ba6-55a53ccf4549"},
+      {"externalId": "RS_IMSI", "id": "a35baba8-c815-4c2b-b418-09f8a161bff1"}
+    ],
+    "includeBaRef": true,
+    "includeBaRefRecurrence": true
+  }
+]
