@@ -27,9 +27,22 @@ from app.services import provisioning as prov_svc  # noqa: E402
 from app.routers import batch as batch_mod  # noqa: E402
 
 
+_LOOP = None
+
+
 def run(coro):
-    """Run an async coroutine from a sync click command."""
-    return asyncio.run(coro)
+    """Run an async coroutine on a single persistent event loop.
+
+    The shared `ericsson_client` caches httpx.AsyncClient instances bound to the
+    loop they were created on. Using asyncio.run() per call creates/closes a new
+    loop each time, which breaks the cached clients ("Event loop is closed").
+    So we keep ONE loop for the whole CLI process.
+    """
+    global _LOOP
+    if _LOOP is None or _LOOP.is_closed():
+        _LOOP = asyncio.new_event_loop()
+        asyncio.set_event_loop(_LOOP)
+    return _LOOP.run_until_complete(coro)
 
 
 # ----------------------------- output helpers -----------------------------
