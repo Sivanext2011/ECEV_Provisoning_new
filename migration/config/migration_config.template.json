@@ -1,0 +1,32 @@
+{
+  "ucip": {
+    "_comment": "AIR UCIP/ACIP is XML-RPC over HTTP(S) per CPI (AIR Programmer's Guide UCIP 5.0, LZN40101911). HTTP=10011, HTTPS=10012, URI /Air. 10010 is the legacy AIR-IP port. HTTP Basic auth.",
+    "endpoint": "http://10.163.238.110:10011/Air",
+    "origin_host": "OCSG",
+    "origin_node_type": "EXT",
+    "username": "airuser",
+    "password": "CHANGE_ME",
+    "user_agent": "ECEV-Migration/5.0/1.0",
+    "ssl_verify": false,
+    "timeout_seconds": 30,
+    "socks5_enabled": false,
+    "socks5_proxy": "socks5://127.0.0.1:1234",
+    "common_members": {},
+    "extra_members": {}
+  },
+  "mapping_workbook": "migration/config/mapping_template.xlsx",
+  "ecev_defaults": {
+    "partySpecExternalId": "CHT_IndividualParty",
+    "customerSpecExternalId": "CHT_Customer_Postpaid",
+    "contractSpecExternalId": "CHT_Contract_Postpaid",
+    "billingAccountSpecExternalId": "BAS_CHT_Postpaid",
+    "billCycleSpecExternalId": "",
+    "billCycleChangeType": "NO_PRORATE",
+    "paymentContext": "Postpaid",
+    "msisdnResourceSpecExternalId": "ext_LRS_MSISDN"
+  },
+  "options": {
+    "do_ec_delete": true,
+    "verify_tolerance_bytes": 0
+  }
+}

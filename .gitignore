@@ -34,3 +34,8 @@ data/
 Thumbs.db
 $null
 cli/_combos.json
+
+# Migration tool live config (contains UCIP credentials) - keep only the template
+migration/config/migration_config.json
+migration/data/
+migration/**/__pycache__/
