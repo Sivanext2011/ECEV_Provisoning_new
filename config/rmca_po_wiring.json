@@ -1,0 +1,2060 @@
+{
+ "150906": {
+  "name": "PO_PPP_Recurring_150906",
+  "pops": [
+   "POP_NormalData_Consumption",
+   "POP_RegularRecurrence",
+   "POP_Prorating_Activation"
+  ],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "Depleted",
+   "EntityLifeCycleAlignedForHaltResume",
+   "HighBandwidth",
+   "InstallerID",
+   "QoS_info",
+   "TerminationWarningTimeInAdvance",
+   "accountID"
+  ]
+ },
+ "162906": {
+  "name": "PO_PPP_21M_Addon_4_162906",
+  "pops": [
+   "POP_NormalData_Consumption",
+   "POP_RegularRecurrence",
+   "POP_Initial_Activation"
+  ],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "EntityLifeCycleAlignedForHaltResume",
+   "HighBandwidth",
+   "InstallerID",
+   "QoS_info",
+   "TerminationWarningTimeInAdvance",
+   "accountID"
+  ]
+ },
+ "157106": {
+  "name": "PO_PPP_ToD_Limited_157106",
+  "pops": [
+   "POP_NormalData_Consumption",
+   "POP_RegularRecurrence",
+   "POP_Prorating_Activation"
+  ],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "Depleted",
+   "EntityLifeCycleAlignedForHaltResume",
+   "HighBandwidth",
+   "InstallerID",
+   "QoS_info",
+   "TerminationWarningTimeInAdvance",
+   "TimeOfDayPlan",
+   "accountID"
+  ]
+ },
+ "20001": {
+  "name": "PO_MDVPN_Basic",
+  "pops": [
+   "POP_NormalData_Consumption",
+   "POP_RegularRecurrence",
+   "POP_Prorating_Activation"
+  ],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "EntityLifeCycleAlignedForHaltResume",
+   "MDVPN_Depleted",
+   "MDVPN_FlatRate",
+   "MDVPN_HighBandwidth",
+   "MDVPN_InstallerID",
+   "MDVPN_QoS_info",
+   "MDVPN_accountID",
+   "TerminationWarningTimeInAdvance"
+  ]
+ },
+ "155306": {
+  "name": "PO_PPP_OneTime_155306",
+  "pops": [
+   "POP_NormalData_Consumption"
+  ],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "Depleted",
+   "EntityLifeCycleAlignedForHaltResume",
+   "HighBandwidth",
+   "Initial",
+   "InstallerID",
+   "QoS_info",
+   "TerminationWarningTimeInAdvance",
+   "accountID"
+  ]
+ },
+ "157006": {
+  "name": "PO_PPP_ToD_Limited_157006",
+  "pops": [
+   "POP_NormalData_Consumption",
+   "POP_RegularRecurrence",
+   "POP_Prorating_Activation"
+  ],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "Depleted",
+   "EntityLifeCycleAlignedForHaltResume",
+   "HighBandwidth",
+   "InstallerID",
+   "QoS_info",
+   "TerminationWarningTimeInAdvance",
+   "TimeOfDayPlan",
+   "accountID"
+  ]
+ },
+ "150106": {
+  "name": "PO_PPP_Recurring_150106",
+  "pops": [
+   "POP_NormalData_Consumption",
+   "POP_RegularRecurrence",
+   "POP_Prorating_Activation"
+  ],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "Depleted",
+   "EntityLifeCycleAlignedForHaltResume",
+   "HighBandwidth",
+   "InstallerID",
+   "QoS_info",
+   "TerminationWarningTimeInAdvance",
+   "accountID"
+  ]
+ },
+ "150606": {
+  "name": "PO_PPP_Recurring_150606",
+  "pops": [
+   "POP_NormalData_Consumption",
+   "POP_RegularRecurrence",
+   "POP_Prorating_Activation"
+  ],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "Depleted",
+   "EntityLifeCycleAlignedForHaltResume",
+   "HighBandwidth",
+   "InstallerID",
+   "QoS_info",
+   "TerminationWarningTimeInAdvance",
+   "accountID"
+  ]
+ },
+ "150006": {
+  "name": "PO_PPP_Recurring_150006",
+  "pops": [
+   "POP_NormalData_Consumption",
+   "POP_RegularRecurrence",
+   "POP_Prorating_Activation"
+  ],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "Depleted",
+   "EntityLifeCycleAlignedForHaltResume",
+   "HighBandwidth",
+   "InstallerID",
+   "QoS_info",
+   "TerminationWarningTimeInAdvance",
+   "accountID"
+  ]
+ },
+ "156206": {
+  "name": "PO_PPP_FixedExp_156206",
+  "pops": [
+   "POP_NormalData_Consumption"
+  ],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "Depleted",
+   "EntityLifeCycleAlignedForHaltResume",
+   "HighBandwidth",
+   "Initial",
+   "InstallerID",
+   "QoS_info",
+   "TerminationWarningTimeInAdvance",
+   "USED_FLAG",
+   "accountID"
+  ]
+ },
+ "157406": {
+  "name": "PO_PPP_ToD_Limited_157406",
+  "pops": [
+   "POP_NormalData_Consumption",
+   "POP_RegularRecurrence",
+   "POP_Prorating_Activation"
+  ],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "Depleted",
+   "EntityLifeCycleAlignedForHaltResume",
+   "HighBandwidth",
+   "InstallerID",
+   "QoS_info",
+   "TerminationWarningTimeInAdvance",
+   "TimeOfDayPlan",
+   "accountID"
+  ]
+ },
+ "156006": {
+  "name": "PO_PPP_FixedExp_156006",
+  "pops": [
+   "POP_NormalData_Consumption"
+  ],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "Depleted",
+   "EntityLifeCycleAlignedForHaltResume",
+   "HighBandwidth",
+   "Initial",
+   "InstallerID",
+   "QoS_info",
+   "TerminationWarningTimeInAdvance",
+   "USED_FLAG",
+   "accountID"
+  ]
+ },
+ "156106": {
+  "name": "PO_PPP_FixedExp_156106",
+  "pops": [
+   "POP_NormalData_Consumption"
+  ],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "Depleted",
+   "EntityLifeCycleAlignedForHaltResume",
+   "HighBandwidth",
+   "Initial",
+   "InstallerID",
+   "QoS_info",
+   "TerminationWarningTimeInAdvance",
+   "USED_FLAG",
+   "accountID"
+  ]
+ },
+ "159206": {
+  "name": "PO_PPP_ToD_Unlimited_159206",
+  "pops": [
+   "POP_NormalData_Consumption"
+  ],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "Depleted",
+   "EntityLifeCycleAlignedForHaltResume",
+   "HighBandwidth",
+   "InstallerID",
+   "QoS_info",
+   "TerminationWarningTimeInAdvance",
+   "TimeOfDayPlan",
+   "accountID"
+  ]
+ },
+ "157306": {
+  "name": "PO_PPP_ToD_Limited_157306",
+  "pops": [
+   "POP_NormalData_Consumption",
+   "POP_RegularRecurrence",
+   "POP_Prorating_Activation"
+  ],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "Depleted",
+   "EntityLifeCycleAlignedForHaltResume",
+   "HighBandwidth",
+   "InstallerID",
+   "QoS_info",
+   "TerminationWarningTimeInAdvance",
+   "TimeOfDayPlan",
+   "accountID"
+  ]
+ },
+ "281006": {
+  "name": "PO_PPP_Unlimited_Speed",
+  "pops": [
+   "POP_NormalData_Consumption"
+  ],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "Depleted",
+   "EntityLifeCycleAlignedForHaltResume",
+   "HighBandwidth",
+   "InstallerID",
+   "QoS_info",
+   "TerminationWarningTimeInAdvance",
+   "accountID"
+  ]
+ },
+ "145002": {
+  "name": "PO_PPP_Basic_2",
+  "pops": [
+   "POP_NormalData_Consumption",
+   "POP_RegularRecurrence",
+   "POP_Prorating_Activation"
+  ],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "Depleted",
+   "EntityLifeCycleAlignedForHaltResume",
+   "FlatRate",
+   "HighBandwidth",
+   "InstallerID",
+   "QoS_info",
+   "TerminationWarningTimeInAdvance",
+   "accountID"
+  ]
+ },
+ "25001": {
+  "name": "PO_MDVPN_Bundle_PostQuota",
+  "pops": [
+   "POP_NormalData_Consumption",
+   "POP_Bundle_Bucket_Reset"
+  ],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "EntityLifeCycleAlignedForHaltResume",
+   "MDVPN_Depleted",
+   "MDVPN_InstallerID",
+   "MDVPN_LowBandwidth",
+   "MDVPN_QoS_info",
+   "MDVPN_accountID",
+   "TerminationWarningTimeInAdvance"
+  ]
+ },
+ "150706": {
+  "name": "PO_PPP_Recurring_150706",
+  "pops": [
+   "POP_NormalData_Consumption",
+   "POP_RegularRecurrence",
+   "POP_Prorating_Activation"
+  ],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "Depleted",
+   "EntityLifeCycleAlignedForHaltResume",
+   "HighBandwidth",
+   "InstallerID",
+   "QoS_info",
+   "TerminationWarningTimeInAdvance",
+   "accountID"
+  ]
+ },
+ "157606": {
+  "name": "PO_PPP_ToD_Limited_157606",
+  "pops": [
+   "POP_NormalData_Consumption",
+   "POP_RegularRecurrence",
+   "POP_Prorating_Activation"
+  ],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "Depleted",
+   "EntityLifeCycleAlignedForHaltResume",
+   "HighBandwidth",
+   "InstallerID",
+   "QoS_info",
+   "TerminationWarningTimeInAdvance",
+   "TimeOfDayPlan",
+   "accountID"
+  ]
+ },
+ "162206": {
+  "name": "PO_PPP_21M_Addon_3_162206",
+  "pops": [
+   "POP_NormalData_Consumption",
+   "POP_RegularRecurrence",
+   "POP_Initial_Activation"
+  ],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "EntityLifeCycleAlignedForHaltResume",
+   "HighBandwidth",
+   "InstallerID",
+   "QoS_info",
+   "TerminationWarningTimeInAdvance",
+   "accountID"
+  ]
+ },
+ "145001": {
+  "name": "PO_PPP_Basic_1",
+  "pops": [
+   "POP_NormalData_Consumption",
+   "POP_RegularRecurrence",
+   "POP_Prorating_Activation"
+  ],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "Depleted",
+   "EntityLifeCycleAlignedForHaltResume",
+   "FlatRate",
+   "HighBandwidth",
+   "InstallerID",
+   "QoS_info",
+   "TerminationWarningTimeInAdvance",
+   "accountID"
+  ]
+ },
+ "157506": {
+  "name": "PO_PPP_ToD_Limited_157506",
+  "pops": [
+   "POP_NormalData_Consumption",
+   "POP_RegularRecurrence",
+   "POP_Prorating_Activation"
+  ],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "Depleted",
+   "EntityLifeCycleAlignedForHaltResume",
+   "HighBandwidth",
+   "InstallerID",
+   "QoS_info",
+   "TerminationWarningTimeInAdvance",
+   "TimeOfDayPlan",
+   "accountID"
+  ]
+ },
+ "155206": {
+  "name": "PO_PPP_OneTime_155206",
+  "pops": [
+   "POP_NormalData_Consumption"
+  ],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "Depleted",
+   "EntityLifeCycleAlignedForHaltResume",
+   "HighBandwidth",
+   "Initial",
+   "InstallerID",
+   "QoS_info",
+   "TerminationWarningTimeInAdvance",
+   "accountID"
+  ]
+ },
+ "160906": {
+  "name": "PO_PPP_VIP_Addon_160906",
+  "pops": [
+   "POP_NormalData_Consumption"
+  ],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "Depleted",
+   "EntityLifeCycleAlignedForHaltResume",
+   "HighBandwidth",
+   "Initial",
+   "InstallerID",
+   "QoS_info",
+   "TerminationWarningTimeInAdvance",
+   "accountID"
+  ]
+ },
+ "160206": {
+  "name": "PO_PPP_Addon_160206",
+  "pops": [
+   "POP_NormalData_Consumption",
+   "POP_RegularRecurrence",
+   "POP_Initial_Activation"
+  ],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "Depleted",
+   "EntityLifeCycleAlignedForHaltResume",
+   "HighBandwidth",
+   "InstallerID",
+   "QoS_info",
+   "TerminationWarningTimeInAdvance",
+   "accountID"
+  ]
+ },
+ "160106": {
+  "name": "PO_PPP_Addon_160106",
+  "pops": [
+   "POP_NormalData_Consumption",
+   "POP_RegularRecurrence",
+   "POP_Initial_Activation"
+  ],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "Depleted",
+   "EntityLifeCycleAlignedForHaltResume",
+   "HighBandwidth",
+   "InstallerID",
+   "QoS_info",
+   "TerminationWarningTimeInAdvance",
+   "accountID"
+  ]
+ },
+ "157806": {
+  "name": "PO_PPP_ToD_Limited_157806",
+  "pops": [
+   "POP_NormalData_Consumption",
+   "POP_RegularRecurrence",
+   "POP_Prorating_Activation"
+  ],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "Depleted",
+   "EntityLifeCycleAlignedForHaltResume",
+   "HighBandwidth",
+   "InstallerID",
+   "QoS_info",
+   "TerminationWarningTimeInAdvance",
+   "TimeOfDayPlan",
+   "accountID"
+  ]
+ },
+ "255001": {
+  "name": "PO_PPP_Bundle_1",
+  "pops": [
+   "POP_NormalData_Consumption",
+   "POP_Bundle_Bucket_Reset"
+  ],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "Depleted",
+   "EntityLifeCycleAlignedForHaltResume",
+   "InstallerID",
+   "LowBandwidth",
+   "QoS_info",
+   "TerminationWarningTimeInAdvance",
+   "accountID"
+  ]
+ },
+ "156506": {
+  "name": "PO_PPP_FixedExp_156506",
+  "pops": [
+   "POP_NormalData_Consumption"
+  ],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "Depleted",
+   "EntityLifeCycleAlignedForHaltResume",
+   "HighBandwidth",
+   "Initial",
+   "InstallerID",
+   "QoS_info",
+   "TerminationWarningTimeInAdvance",
+   "USED_FLAG",
+   "accountID"
+  ]
+ },
+ "150206": {
+  "name": "PO_PPP_Recurring_150206",
+  "pops": [
+   "POP_NormalData_Consumption",
+   "POP_RegularRecurrence",
+   "POP_Prorating_Activation"
+  ],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "Depleted",
+   "EntityLifeCycleAlignedForHaltResume",
+   "HighBandwidth",
+   "InstallerID",
+   "QoS_info",
+   "TerminationWarningTimeInAdvance",
+   "accountID"
+  ]
+ },
+ "255002": {
+  "name": "PO_PPP_Bundle_2",
+  "pops": [
+   "POP_NormalData_Consumption",
+   "POP_Bundle_Bucket_Reset"
+  ],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "Depleted",
+   "EntityLifeCycleAlignedForHaltResume",
+   "InstallerID",
+   "LowBandwidth",
+   "QoS_info",
+   "TerminationWarningTimeInAdvance",
+   "accountID"
+  ]
+ },
+ "157206": {
+  "name": "PO_PPP_ToD_Limited_157206",
+  "pops": [
+   "POP_NormalData_Consumption",
+   "POP_RegularRecurrence",
+   "POP_Prorating_Activation"
+  ],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "Depleted",
+   "EntityLifeCycleAlignedForHaltResume",
+   "HighBandwidth",
+   "InstallerID",
+   "QoS_info",
+   "TerminationWarningTimeInAdvance",
+   "TimeOfDayPlan",
+   "accountID"
+  ]
+ },
+ "162106": {
+  "name": "PO_PPP_21M_Addon_2_162106",
+  "pops": [
+   "POP_NormalData_Consumption",
+   "POP_RegularRecurrence",
+   "POP_Initial_Activation"
+  ],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "EntityLifeCycleAlignedForHaltResume",
+   "HighBandwidth",
+   "InstallerID",
+   "QoS_info",
+   "TerminationWarningTimeInAdvance",
+   "accountID"
+  ]
+ },
+ "159406": {
+  "name": "PO_PPP_ToD_Unlimited_159406",
+  "pops": [
+   "POP_NormalData_Consumption"
+  ],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "Depleted",
+   "EntityLifeCycleAlignedForHaltResume",
+   "HighBandwidth",
+   "InstallerID",
+   "QoS_info",
+   "TerminationWarningTimeInAdvance",
+   "TimeOfDayPlan",
+   "accountID"
+  ]
+ },
+ "156606": {
+  "name": "PO_PPP_FixedExp_156606",
+  "pops": [
+   "POP_NormalData_Consumption"
+  ],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "Depleted",
+   "EntityLifeCycleAlignedForHaltResume",
+   "HighBandwidth",
+   "Initial",
+   "InstallerID",
+   "QoS_info",
+   "TerminationWarningTimeInAdvance",
+   "USED_FLAG",
+   "accountID"
+  ]
+ },
+ "155006": {
+  "name": "PO_PPP_OneTime_155006",
+  "pops": [
+   "POP_NormalData_Consumption"
+  ],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "Depleted",
+   "EntityLifeCycleAlignedForHaltResume",
+   "HighBandwidth",
+   "Initial",
+   "InstallerID",
+   "QoS_info",
+   "TerminationWarningTimeInAdvance",
+   "accountID"
+  ]
+ },
+ "150506": {
+  "name": "PO_PPP_Recurring_150506",
+  "pops": [
+   "POP_NormalData_Consumption",
+   "POP_RegularRecurrence",
+   "POP_Prorating_Activation"
+  ],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "Depleted",
+   "EntityLifeCycleAlignedForHaltResume",
+   "HighBandwidth",
+   "InstallerID",
+   "QoS_info",
+   "TerminationWarningTimeInAdvance",
+   "accountID"
+  ]
+ },
+ "157906": {
+  "name": "PO_PPP_ToD_Limited_157906",
+  "pops": [
+   "POP_NormalData_Consumption",
+   "POP_RegularRecurrence",
+   "POP_Prorating_Activation"
+  ],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "Depleted",
+   "EntityLifeCycleAlignedForHaltResume",
+   "HighBandwidth",
+   "InstallerID",
+   "QoS_info",
+   "TerminationWarningTimeInAdvance",
+   "TimeOfDayPlan",
+   "accountID"
+  ]
+ },
+ "159006": {
+  "name": "PO_PPP_ToD_Unlimited_159006",
+  "pops": [
+   "POP_NormalData_Consumption"
+  ],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "Depleted",
+   "EntityLifeCycleAlignedForHaltResume",
+   "HighBandwidth",
+   "InstallerID",
+   "QoS_info",
+   "TerminationWarningTimeInAdvance",
+   "TimeOfDayPlan",
+   "accountID"
+  ]
+ },
+ "162006": {
+  "name": "PO_PPP_21M_Addon_1_162006",
+  "pops": [
+   "POP_NormalData_Consumption",
+   "POP_RegularRecurrence",
+   "POP_Initial_Activation"
+  ],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "EntityLifeCycleAlignedForHaltResume",
+   "HighBandwidth",
+   "InstallerID",
+   "QoS_info",
+   "TerminationWarningTimeInAdvance",
+   "accountID"
+  ]
+ },
+ "155406": {
+  "name": "PO_PPP_OneTime_155406",
+  "pops": [
+   "POP_NormalData_Consumption"
+  ],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "Depleted",
+   "EntityLifeCycleAlignedForHaltResume",
+   "HighBandwidth",
+   "Initial",
+   "InstallerID",
+   "QoS_info",
+   "TerminationWarningTimeInAdvance",
+   "accountID"
+  ]
+ },
+ "156806": {
+  "name": "PO_PPP_FixedExp_156806",
+  "pops": [
+   "POP_NormalData_Consumption"
+  ],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "Depleted",
+   "EntityLifeCycleAlignedForHaltResume",
+   "HighBandwidth",
+   "Initial",
+   "InstallerID",
+   "QoS_info",
+   "TerminationWarningTimeInAdvance",
+   "USED_FLAG",
+   "accountID"
+  ]
+ },
+ "159106": {
+  "name": "PO_PPP_ToD_Unlimited_159106",
+  "pops": [
+   "POP_NormalData_Consumption"
+  ],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "Depleted",
+   "EntityLifeCycleAlignedForHaltResume",
+   "HighBandwidth",
+   "InstallerID",
+   "QoS_info",
+   "TerminationWarningTimeInAdvance",
+   "TimeOfDayPlan",
+   "accountID"
+  ]
+ },
+ "156406": {
+  "name": "PO_PPP_FixedExp_156406",
+  "pops": [
+   "POP_NormalData_Consumption"
+  ],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "Depleted",
+   "EntityLifeCycleAlignedForHaltResume",
+   "HighBandwidth",
+   "Initial",
+   "InstallerID",
+   "QoS_info",
+   "TerminationWarningTimeInAdvance",
+   "USED_FLAG",
+   "accountID"
+  ]
+ },
+ "156706": {
+  "name": "PO_PPP_FixedExp_156706",
+  "pops": [
+   "POP_NormalData_Consumption"
+  ],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "Depleted",
+   "EntityLifeCycleAlignedForHaltResume",
+   "HighBandwidth",
+   "Initial",
+   "InstallerID",
+   "QoS_info",
+   "TerminationWarningTimeInAdvance",
+   "USED_FLAG",
+   "accountID"
+  ]
+ },
+ "150406": {
+  "name": "PO_PPP_Recurring_150406",
+  "pops": [
+   "POP_NormalData_Consumption",
+   "POP_RegularRecurrence",
+   "POP_Prorating_Activation"
+  ],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "Depleted",
+   "EntityLifeCycleAlignedForHaltResume",
+   "HighBandwidth",
+   "InstallerID",
+   "QoS_info",
+   "TerminationWarningTimeInAdvance",
+   "accountID"
+  ]
+ },
+ "157706": {
+  "name": "PO_PPP_ToD_Limited_157706",
+  "pops": [
+   "POP_NormalData_Consumption",
+   "POP_RegularRecurrence",
+   "POP_Prorating_Activation"
+  ],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "Depleted",
+   "EntityLifeCycleAlignedForHaltResume",
+   "HighBandwidth",
+   "InstallerID",
+   "QoS_info",
+   "TerminationWarningTimeInAdvance",
+   "TimeOfDayPlan",
+   "accountID"
+  ]
+ },
+ "281005": {
+  "name": "PO_PPP_MultiTier_QoS",
+  "pops": [
+   "POP_NormalData_Consumption",
+   "POP_RegularRecurrence",
+   "POP_Prorating_Activation"
+  ],
+  "chars": [
+   "2ndTierBandwidth",
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "EntityLifeCycleAlignedForHaltResume",
+   "InstallerID",
+   "QoS_info",
+   "TerminationWarningTimeInAdvance",
+   "accountID",
+   "defaultBandwidth"
+  ]
+ },
+ "159306": {
+  "name": "PO_PPP_ToD_Unlimited_159306",
+  "pops": [
+   "POP_NormalData_Consumption"
+  ],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "Depleted",
+   "EntityLifeCycleAlignedForHaltResume",
+   "HighBandwidth",
+   "InstallerID",
+   "QoS_info",
+   "TerminationWarningTimeInAdvance",
+   "TimeOfDayPlan",
+   "accountID"
+  ]
+ },
+ "160006": {
+  "name": "PO_PPP_Addon_160006",
+  "pops": [
+   "POP_NormalData_Consumption",
+   "POP_RegularRecurrence",
+   "POP_Initial_Activation"
+  ],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "Depleted",
+   "EntityLifeCycleAlignedForHaltResume",
+   "HighBandwidth",
+   "InstallerID",
+   "QoS_info",
+   "TerminationWarningTimeInAdvance",
+   "accountID"
+  ]
+ },
+ "150306": {
+  "name": "PO_PPP_Recurring_150306",
+  "pops": [
+   "POP_NormalData_Consumption",
+   "POP_RegularRecurrence",
+   "POP_Prorating_Activation"
+  ],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "Depleted",
+   "EntityLifeCycleAlignedForHaltResume",
+   "HighBandwidth",
+   "InstallerID",
+   "QoS_info",
+   "TerminationWarningTimeInAdvance",
+   "accountID"
+  ]
+ },
+ "155106": {
+  "name": "PO_PPP_OneTime_155106",
+  "pops": [
+   "POP_NormalData_Consumption"
+  ],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "Depleted",
+   "EntityLifeCycleAlignedForHaltResume",
+   "HighBandwidth",
+   "Initial",
+   "InstallerID",
+   "QoS_info",
+   "TerminationWarningTimeInAdvance",
+   "accountID"
+  ]
+ },
+ "150806": {
+  "name": "PO_PPP_Recurring_150806",
+  "pops": [
+   "POP_NormalData_Consumption",
+   "POP_RegularRecurrence",
+   "POP_Prorating_Activation"
+  ],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "Depleted",
+   "EntityLifeCycleAlignedForHaltResume",
+   "HighBandwidth",
+   "InstallerID",
+   "QoS_info",
+   "TerminationWarningTimeInAdvance",
+   "accountID"
+  ]
+ },
+ "156906": {
+  "name": "PO_PPP_FixedExp_156906",
+  "pops": [
+   "POP_NormalData_Consumption"
+  ],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "Depleted",
+   "EntityLifeCycleAlignedForHaltResume",
+   "HighBandwidth",
+   "Initial",
+   "InstallerID",
+   "QoS_info",
+   "TerminationWarningTimeInAdvance",
+   "USED_FLAG",
+   "accountID"
+  ]
+ },
+ "156306": {
+  "name": "PO_PPP_FixedExp_156306",
+  "pops": [
+   "POP_NormalData_Consumption"
+  ],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "Depleted",
+   "EntityLifeCycleAlignedForHaltResume",
+   "HighBandwidth",
+   "Initial",
+   "InstallerID",
+   "QoS_info",
+   "TerminationWarningTimeInAdvance",
+   "USED_FLAG",
+   "accountID"
+  ]
+ },
+ "150214": {
+  "name": "PO_PPP_TethRecurring_150214",
+  "pops": [
+   "POP_TetheringData_Consumption",
+   "POP_RegularRecurrence",
+   "POP_Prorating_Activation"
+  ],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "Depleted",
+   "EntityLifeCycleAlignedForHaltResume",
+   "HighBandwidth",
+   "InstallerID",
+   "QoS_info",
+   "TerminationWarningTimeInAdvance",
+   "accountID"
+  ]
+ },
+ "281107": {
+  "name": "PO_MDVPN_Tethering_Base",
+  "pops": [
+   "POP_TetheringData_Consumption",
+   "POP_RegularRecurrence",
+   "POP_Prorating_Activation"
+  ],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "EntityLifeCycleAlignedForHaltResume",
+   "MDVPN_Depleted",
+   "MDVPN_FlatRate",
+   "MDVPN_HighBandwidth",
+   "MDVPN_InstallerID",
+   "MDVPN_QoS_info",
+   "MDVPN_accountID",
+   "TerminationWarningTimeInAdvance"
+  ]
+ },
+ "156314": {
+  "name": "PO_PPP_TethFixedExp_156314",
+  "pops": [
+   "POP_TetheringData_Consumption"
+  ],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "Depleted",
+   "EntityLifeCycleAlignedForHaltResume",
+   "HighBandwidth",
+   "Initial",
+   "InstallerID",
+   "QoS_info",
+   "TerminationWarningTimeInAdvance",
+   "USED_FLAG",
+   "accountID"
+  ]
+ },
+ "156014": {
+  "name": "PO_PPP_TethFixedExp_156014",
+  "pops": [
+   "POP_TetheringData_Consumption"
+  ],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "Depleted",
+   "EntityLifeCycleAlignedForHaltResume",
+   "HighBandwidth",
+   "Initial",
+   "InstallerID",
+   "QoS_info",
+   "TerminationWarningTimeInAdvance",
+   "USED_FLAG",
+   "accountID"
+  ]
+ },
+ "281008": {
+  "name": "PO_PPP_Tethering_PostQuota",
+  "pops": [
+   "POP_TetheringData_Consumption",
+   "POP_TetheringBundle_Bucket_Reset"
+  ],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "Depleted",
+   "EntityLifeCycleAlignedForHaltResume",
+   "InstallerID",
+   "LowBandwidth",
+   "QoS_info",
+   "TerminationWarningTimeInAdvance",
+   "accountID"
+  ]
+ },
+ "150414": {
+  "name": "PO_PPP_TethRecurring_150414",
+  "pops": [
+   "POP_TetheringData_Consumption",
+   "POP_RegularRecurrence",
+   "POP_Prorating_Activation"
+  ],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "Depleted",
+   "EntityLifeCycleAlignedForHaltResume",
+   "HighBandwidth",
+   "InstallerID",
+   "QoS_info",
+   "TerminationWarningTimeInAdvance",
+   "accountID"
+  ]
+ },
+ "150514": {
+  "name": "PO_PPP_TethRecurring_150514",
+  "pops": [
+   "POP_TetheringData_Consumption",
+   "POP_RegularRecurrence",
+   "POP_Prorating_Activation"
+  ],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "Depleted",
+   "EntityLifeCycleAlignedForHaltResume",
+   "HighBandwidth",
+   "InstallerID",
+   "QoS_info",
+   "TerminationWarningTimeInAdvance",
+   "accountID"
+  ]
+ },
+ "160214": {
+  "name": "PO_PPP_TethAddon_160214",
+  "pops": [
+   "POP_TetheringData_Consumption",
+   "POP_RegularRecurrence",
+   "POP_Initial_Activation"
+  ],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "Depleted",
+   "EntityLifeCycleAlignedForHaltResume",
+   "HighBandwidth",
+   "InstallerID",
+   "QoS_info",
+   "TerminationWarningTimeInAdvance",
+   "accountID"
+  ]
+ },
+ "150814": {
+  "name": "PO_PPP_TethRecurring_150814",
+  "pops": [
+   "POP_TetheringData_Consumption",
+   "POP_RegularRecurrence",
+   "POP_Prorating_Activation"
+  ],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "Depleted",
+   "EntityLifeCycleAlignedForHaltResume",
+   "HighBandwidth",
+   "InstallerID",
+   "QoS_info",
+   "TerminationWarningTimeInAdvance",
+   "accountID"
+  ]
+ },
+ "150014": {
+  "name": "PO_PPP_TethRecurring_150014",
+  "pops": [
+   "POP_TetheringData_Consumption",
+   "POP_RegularRecurrence",
+   "POP_Prorating_Activation"
+  ],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "Depleted",
+   "EntityLifeCycleAlignedForHaltResume",
+   "HighBandwidth",
+   "InstallerID",
+   "QoS_info",
+   "TerminationWarningTimeInAdvance",
+   "accountID"
+  ]
+ },
+ "155214": {
+  "name": "PO_PPP_TethOneTime_155214",
+  "pops": [
+   "POP_TetheringData_Consumption"
+  ],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "Depleted",
+   "EntityLifeCycleAlignedForHaltResume",
+   "HighBandwidth",
+   "Initial",
+   "InstallerID",
+   "QoS_info",
+   "TerminationWarningTimeInAdvance",
+   "accountID"
+  ]
+ },
+ "100006": {
+  "name": "PO_ESP_Addon_1",
+  "pops": [
+   "POP_NormalData_Consumption"
+  ],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "EntityLifeCycleAlignedForHaltResume",
+   "Initial",
+   "TerminationWarningTimeInAdvance"
+  ]
+ },
+ "281007": {
+  "name": "PO_PPP_Tethering_HighSpeed",
+  "pops": [
+   "POP_TetheringData_Consumption",
+   "POP_RegularRecurrence",
+   "POP_Prorating_Activation"
+  ],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "Depleted",
+   "EntityLifeCycleAlignedForHaltResume",
+   "FlatRate",
+   "HighBandwidth",
+   "InstallerID",
+   "QoS_info",
+   "TerminationWarningTimeInAdvance",
+   "accountID"
+  ]
+ },
+ "155014": {
+  "name": "PO_PPP_TethOneTime_155014",
+  "pops": [
+   "POP_TetheringData_Consumption"
+  ],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "Depleted",
+   "EntityLifeCycleAlignedForHaltResume",
+   "HighBandwidth",
+   "Initial",
+   "InstallerID",
+   "QoS_info",
+   "TerminationWarningTimeInAdvance",
+   "accountID"
+  ]
+ },
+ "160114": {
+  "name": "PO_PPP_TethAddon_160114",
+  "pops": [
+   "POP_TetheringData_Consumption",
+   "POP_RegularRecurrence",
+   "POP_Initial_Activation"
+  ],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "Depleted",
+   "EntityLifeCycleAlignedForHaltResume",
+   "HighBandwidth",
+   "InstallerID",
+   "QoS_info",
+   "TerminationWarningTimeInAdvance",
+   "accountID"
+  ]
+ },
+ "156414": {
+  "name": "PO_PPP_TethFixedExp_156414",
+  "pops": [
+   "POP_TetheringData_Consumption"
+  ],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "Depleted",
+   "EntityLifeCycleAlignedForHaltResume",
+   "HighBandwidth",
+   "Initial",
+   "InstallerID",
+   "QoS_info",
+   "TerminationWarningTimeInAdvance",
+   "USED_FLAG",
+   "accountID"
+  ]
+ },
+ "156214": {
+  "name": "PO_PPP_TethFixedExp_156214",
+  "pops": [
+   "POP_TetheringData_Consumption"
+  ],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "Depleted",
+   "EntityLifeCycleAlignedForHaltResume",
+   "HighBandwidth",
+   "Initial",
+   "InstallerID",
+   "QoS_info",
+   "TerminationWarningTimeInAdvance",
+   "USED_FLAG",
+   "accountID"
+  ]
+ },
+ "281014": {
+  "name": "PO_PPP_Unlimited_Teth_Speed",
+  "pops": [
+   "POP_NormalData_Consumption"
+  ],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "Depleted",
+   "EntityLifeCycleAlignedForHaltResume",
+   "HighBandwidth",
+   "InstallerID",
+   "QoS_info",
+   "TerminationWarningTimeInAdvance",
+   "accountID"
+  ]
+ },
+ "155414": {
+  "name": "PO_PPP_TethOneTime_155414",
+  "pops": [
+   "POP_TetheringData_Consumption"
+  ],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "Depleted",
+   "EntityLifeCycleAlignedForHaltResume",
+   "HighBandwidth",
+   "Initial",
+   "InstallerID",
+   "QoS_info",
+   "TerminationWarningTimeInAdvance",
+   "accountID"
+  ]
+ },
+ "160014": {
+  "name": "PO_PPP_TethAddon_160014",
+  "pops": [
+   "POP_TetheringData_Consumption",
+   "POP_RegularRecurrence",
+   "POP_Initial_Activation"
+  ],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "Depleted",
+   "EntityLifeCycleAlignedForHaltResume",
+   "HighBandwidth",
+   "InstallerID",
+   "QoS_info",
+   "TerminationWarningTimeInAdvance",
+   "accountID"
+  ]
+ },
+ "150114": {
+  "name": "PO_PPP_TethRecurring_150114",
+  "pops": [
+   "POP_TetheringData_Consumption",
+   "POP_RegularRecurrence",
+   "POP_Prorating_Activation"
+  ],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "Depleted",
+   "EntityLifeCycleAlignedForHaltResume",
+   "HighBandwidth",
+   "InstallerID",
+   "QoS_info",
+   "TerminationWarningTimeInAdvance",
+   "accountID"
+  ]
+ },
+ "281108": {
+  "name": "PO_MDVPN_Tethering_PostQuota",
+  "pops": [
+   "POP_TetheringData_Consumption",
+   "POP_TetheringBundle_Bucket_Reset"
+  ],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "EntityLifeCycleAlignedForHaltResume",
+   "MDVPN_Depleted",
+   "MDVPN_InstallerID",
+   "MDVPN_LowBandwidth",
+   "MDVPN_QoS_info",
+   "MDVPN_accountID",
+   "TerminationWarningTimeInAdvance"
+  ]
+ },
+ "150314": {
+  "name": "PO_PPP_TethRecurring_150314",
+  "pops": [
+   "POP_TetheringData_Consumption",
+   "POP_RegularRecurrence",
+   "POP_Prorating_Activation"
+  ],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "Depleted",
+   "EntityLifeCycleAlignedForHaltResume",
+   "HighBandwidth",
+   "InstallerID",
+   "QoS_info",
+   "TerminationWarningTimeInAdvance",
+   "accountID"
+  ]
+ },
+ "150914": {
+  "name": "PO_PPP_TethRecurring_150914",
+  "pops": [
+   "POP_TetheringData_Consumption",
+   "POP_RegularRecurrence",
+   "POP_Prorating_Activation"
+  ],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "Depleted",
+   "EntityLifeCycleAlignedForHaltResume",
+   "HighBandwidth",
+   "InstallerID",
+   "QoS_info",
+   "TerminationWarningTimeInAdvance",
+   "accountID"
+  ]
+ },
+ "150714": {
+  "name": "PO_PPP_TethRecurring_150714",
+  "pops": [
+   "POP_TetheringData_Consumption",
+   "POP_RegularRecurrence",
+   "POP_Prorating_Activation"
+  ],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "Depleted",
+   "EntityLifeCycleAlignedForHaltResume",
+   "HighBandwidth",
+   "InstallerID",
+   "QoS_info",
+   "TerminationWarningTimeInAdvance",
+   "accountID"
+  ]
+ },
+ "150614": {
+  "name": "PO_PPP_TethRecurring_150614",
+  "pops": [
+   "POP_TetheringData_Consumption",
+   "POP_RegularRecurrence",
+   "POP_Prorating_Activation"
+  ],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "Depleted",
+   "EntityLifeCycleAlignedForHaltResume",
+   "HighBandwidth",
+   "InstallerID",
+   "QoS_info",
+   "TerminationWarningTimeInAdvance",
+   "accountID"
+  ]
+ },
+ "156114": {
+  "name": "PO_PPP_TethFixedExp_156114",
+  "pops": [
+   "POP_TetheringData_Consumption"
+  ],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "Depleted",
+   "EntityLifeCycleAlignedForHaltResume",
+   "HighBandwidth",
+   "Initial",
+   "InstallerID",
+   "QoS_info",
+   "TerminationWarningTimeInAdvance",
+   "USED_FLAG",
+   "accountID"
+  ]
+ },
+ "155314": {
+  "name": "PO_PPP_TethOneTime_155314",
+  "pops": [
+   "POP_TetheringData_Consumption"
+  ],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "Depleted",
+   "EntityLifeCycleAlignedForHaltResume",
+   "HighBandwidth",
+   "Initial",
+   "InstallerID",
+   "QoS_info",
+   "TerminationWarningTimeInAdvance",
+   "accountID"
+  ]
+ },
+ "155114": {
+  "name": "PO_PPP_TethOneTime_155114",
+  "pops": [
+   "POP_TetheringData_Consumption"
+  ],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "Depleted",
+   "EntityLifeCycleAlignedForHaltResume",
+   "HighBandwidth",
+   "Initial",
+   "InstallerID",
+   "QoS_info",
+   "TerminationWarningTimeInAdvance",
+   "accountID"
+  ]
+ },
+ "240062": {
+  "name": "PO_PPP_Unlimited_21M",
+  "pops": [
+   "POP_NormalData_Consumption"
+  ],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "EntityLifeCycleAlignedForHaltResume",
+   "HighBandwidth",
+   "Initial",
+   "InstallerID",
+   "QoS_info",
+   "TerminationWarningTimeInAdvance",
+   "accountID"
+  ]
+ },
+ "211001": {
+  "name": "PO_ESP_Bundle_P1",
+  "pops": [
+   "POP_NormalData_Consumption"
+  ],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "EntityLifeCycleAlignedForHaltResume",
+   "TerminationWarningTimeInAdvance"
+  ]
+ },
+ "kib_test": {
+  "name": "kib_test",
+  "pops": [
+   "kib_test",
+   "REGULAR",
+   "POP"
+  ],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "Depleted",
+   "EntityLifeCycleAlignedForHaltResume",
+   "FlatRate",
+   "HighBandwidth",
+   "InstallerID",
+   "QoS_info",
+   "TerminationWarningTimeInAdvance",
+   "accountID"
+  ]
+ },
+ "240063": {
+  "name": "PO_PPP_Tethering_Unlimited_Max",
+  "pops": [
+   "POP_TetheringData_Consumption"
+  ],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "Depleted",
+   "EntityLifeCycleAlignedForHaltResume",
+   "HighBandwidth",
+   "Initial",
+   "InstallerID",
+   "QoS_info",
+   "TerminationWarningTimeInAdvance",
+   "accountID"
+  ]
+ },
+ "PO_PPP_Tethering_Addon_POC1_ADD_2PERIOD": {
+  "name": "PO_PPP_Tethering_Addon_POC1_ADD_2PERIOD",
+  "pops": [
+   "POP_NormalData_Consumption",
+   "POP_RegularRecurrence",
+   "POP_Initial_Activation"
+  ],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "Depleted",
+   "EntityLifeCycleAlignedForHaltResume",
+   "HighBandwidth",
+   "InstallerID",
+   "QoS_info",
+   "TerminationWarningTimeInAdvance",
+   "accountID"
+  ]
+ },
+ "160914": {
+  "name": "PO_PPP_VIP_TethAddon_160914",
+  "pops": [
+   "POP_TetheringData_Consumption"
+  ],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "Depleted",
+   "EntityLifeCycleAlignedForHaltResume",
+   "HighBandwidth",
+   "Initial",
+   "InstallerID",
+   "QoS_info",
+   "TerminationWarningTimeInAdvance",
+   "accountID"
+  ]
+ },
+ "230003_Consumer": {
+  "name": "PO_ESP_SharedData_Consumer",
+  "pops": [
+   "POP_SERVICE_USAGE"
+  ],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "EntityLifeCycleAlignedForHaltResume",
+   "TerminationWarningTimeInAdvance"
+  ]
+ },
+ "230003": {
+  "name": "PO_ESP_SharedData_Provider",
+  "pops": [
+   "POP_SERVICE_USAGE"
+  ],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "EntityLifeCycleAlignedForHaltResume",
+   "TerminationWarningTimeInAdvance"
+  ]
+ },
+ "PO_PPP_Tethering_Addon_POC_SET": {
+  "name": "PO_PPP_Tethering_Addon_POC_SET",
+  "pops": [
+   "POP_NormalData_Consumption",
+   "POP_RegularRecurrence",
+   "POP_Initial_Activation"
+  ],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "Depleted",
+   "EntityLifeCycleAlignedForHaltResume",
+   "HighBandwidth",
+   "InstallerID",
+   "QoS_info",
+   "TerminationWarningTimeInAdvance",
+   "accountID"
+  ]
+ },
+ "140002": {
+  "name": "PO_PPP_ToW_140002",
+  "pops": [
+   "POP_NormalData_Consumption"
+  ],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "EntityLifeCycleAlignedForHaltResume",
+   "HighBandwidth",
+   "Initial",
+   "InstallerID",
+   "QoS_info",
+   "TerminationWarningTimeInAdvance",
+   "accountID"
+  ]
+ },
+ "TechnicalPO2": {
+  "name": "TechnicalPO2",
+  "pops": [],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "EntityLifeCycleAlignedForHaltResume",
+   "TerminationWarningTimeInAdvance"
+  ]
+ },
+ "PO_PPP_POC_INTERNAL_COUNTER": {
+  "name": "PO_PPP_POC_INTERNAL_COUNTER",
+  "pops": [
+   "POP_NormalData_Consumption",
+   "POP_RegularRecurrence",
+   "POP_Initial_Activation"
+  ],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "Depleted",
+   "EntityLifeCycleAlignedForHaltResume",
+   "HighBandwidth",
+   "InstallerID",
+   "QoS_info",
+   "TerminationWarningTimeInAdvance",
+   "accountID"
+  ]
+ },
+ "240061": {
+  "name": "PO_PPP_Unlimited_Max",
+  "pops": [
+   "POP_NormalData_Consumption"
+  ],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "Depleted",
+   "EntityLifeCycleAlignedForHaltResume",
+   "HighBandwidth",
+   "Initial",
+   "InstallerID",
+   "QoS_info",
+   "TerminationWarningTimeInAdvance",
+   "accountID"
+  ]
+ },
+ "PO_Technical": {
+  "name": "PO_Technical",
+  "pops": [],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "EntityLifeCycleAlignedForHaltResume",
+   "TerminationWarningTimeInAdvance"
+  ]
+ },
+ "PO_NetworkSlice_Data_Consume": {
+  "name": "PO_NetworkSlice_Data_Consume",
+  "pops": [
+   "POP_SliceData_Consumption"
+  ],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "Depleted",
+   "EntityLifeCycleAlignedForHaltResume",
+   "FlatRate",
+   "HighBandwidth",
+   "Initial_Account",
+   "InstallerID",
+   "QoS_info",
+   "SliceID",
+   "Slice_Differentiator",
+   "TerminationWarningTimeInAdvance",
+   "accountID"
+  ]
+ },
+ "PO_PPP_POC_INTERNAL_ACCUMULATION_BASIC": {
+  "name": "PO_PPP_POC_INTERNAL_ACCUMULATION_BASIC",
+  "pops": [
+   "POP_NormalData_Consumption_POC",
+   "POP_Recurrence",
+   "POP_Initial_Activation"
+  ],
+  "chars": [
+   "ActivePeriodExpiryWarningTimeInAdvance",
+   "ActivePeriodFormationTechnique",
+   "ActiveTriggerMethod",
+   "BundleOnly",
+   "Depleted",
+   "EntityLifeCycleAlignedForHaltResume",
+   "HighBandwidth",
+   "InstallerID",
+   "QoS_info",
+   "TerminationWarningTimeInAdvance",
+   "accountID"
+  ]
+ }
+}

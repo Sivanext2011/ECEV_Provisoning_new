@@ -45,7 +45,13 @@ def _now_bssf() -> str:
 
 
 def _char(name: str, value: str) -> dict:
-    return {"charSpecExternalId": name, "value": [{"value": str(value)}]}
+    # Byte-measured characteristics (e.g. 'Initial') MUST carry unitOfMeasure=byte,
+    # otherwise CPM cannot match the value to the characteristic's value range
+    # ("No matching range found for personalized value ...").
+    v = {"value": str(value)}
+    if name in ("Initial",):
+        v["unitOfMeasure"] = "byte"
+    return {"charSpecExternalId": name, "value": [v]}
 
 
 def _to_bssf_datetime(raw: str) -> str:
@@ -179,17 +185,91 @@ class BssfMigrator:
                 "billingAccountReference": {"externalId": plan.billing_account_external_id},
                 "characteristic": [_char(k, v) for k, v in p.characteristics.items() if k],
             }
-            # Per catalog rule: an offer that HAS a POP is bill-cycle-aligned and
-            # must carry baRefForBillCycleAlignedRecurrence; offers without a POP
-            # must NOT. Driven by the FamilyBucketSpecs 'bill_cycle_aligned' flag.
+            # baRefForBillCycleAlignedRecurrence is driven by the catalog
+            # 'bill_cycle_aligned' flag (NOT pop_type): bill-cycle-aligned products
+            # (incl. post-quota/bundle Consumption which ARE bill-cycle-aligned)
+            # REQUIRE it; non-aligned promos (One-Time 155xxx / Fixed-Expiry 156xxx)
+            # must NOT carry it (else CBEV "Missing BillCycleAlignedStrategy").
+            # Verified against live CBEV 1008 errors.
             if p.bill_cycle_aligned:
                 prod["baRefForBillCycleAlignedRecurrence"] = {
                     "externalId": plan.billing_account_external_id}
+                if self.defaults.get("isProratingRequired", False):
+                    prod["baRefForBillCycleAlignedRecurrence"]["isProratingRequired"] = True
+
+            # Personalized POP (Price Logic): emit the product 'price' array so the
+            # POP carries the UT allocation value. OPT-IN (defaults.includePopPrice)
+            # because the POP/row/action externalIds are catalog-specific and a
+            # mismatch is rejected by CBEV ("Missing recipe of AtomicProductPrice").
+            # Default flow: no price -> CBEV applies the offer's own POP at
+            # activation, then OCSG overrides buckets via Product Bucket Adjustment
+            # (the LLD allocation approach).
+            if self.defaults.get("includePopPrice", False):
+                price = self._build_price_array(p)
+                if price:
+                    prod["price"] = price
             products.append(prod)
         if products:
             body["product"] = products
 
         return body
+
+    def _build_price_array(self, product) -> list:
+        """Build the product 'price' array (personalized POP) carrying the UT value.
+        One entry per POP, each using its OWN recipe (price row / action / amount
+        char / unit) -- different POPs use different actions (e.g.
+        Action_SetInitialAllocation vs Action_FlatRate_No), decoded from RMCA.
+        """
+        pop = getattr(product, "pop_price", None)
+        if not pop:
+            return []
+        entries = pop.get("price_entries") or []
+        price = []
+        for e in entries:
+            if not e.get("action_external_id") or not e.get("amount_char_spec"):
+                continue
+            price.append({
+                "productOfferingPrice": {"externalId": e["pop_external_id"]},
+                "priceRow": [{
+                    "productOfferingPriceRow": {"externalId": e["price_row_external_id"]},
+                    "priceAction": [{
+                        "characteristic": [{
+                            "charSpecExternalId": e["amount_char_spec"],
+                            "value": [{"value": str(e["amount"]), "unitOfMeasure": e["unit"]}],
+                        }],
+                        "action": {"externalId": e["action_external_id"]},
+                    }],
+                }],
+            })
+        return price
+
+    def _legacy_build_price_array(self, product) -> list:
+        pop = getattr(product, "pop_price", None)
+        if not pop or not pop.get("pop_external_ids"):
+            return []
+        ut_value = getattr(product, "ut_value", None)
+        if ut_value is None:
+            return []
+        amount_char = pop.get("amount_char_spec")
+        row_ext = pop.get("price_row_external_id")
+        action_ext = pop.get("action_external_id")
+        unit = pop.get("unit", "gibibyte")
+        price = []
+        for pop_ext in pop["pop_external_ids"]:
+            price.append({
+                "productOfferingPrice": {"externalId": pop_ext},
+                "priceRow": [{
+                    "productOfferingPriceRow": {"externalId": row_ext},
+                    "priceAction": [{
+                        "characteristic": [{
+                            "charSpecExternalId": amount_char,
+                            "value": [{"value": str(ut_value), "unitOfMeasure": unit}],
+                        }],
+                        "action": {"externalId": action_ext},
+                    }],
+                }],
+            })
+        return price
 
     def _product_instance_ext_id(self, plan: MigrationPlan, product_offering_ext: str) -> str:
         """Per-product instance externalId, subRef-based (matches ProvisionWizard)."""
@@ -199,31 +279,33 @@ class BssfMigrator:
                                      container_start: str = None,
                                      container_end: str = None,
                                      bucket_spec_id: str = None) -> dict:
-        # Mirrors the proven-successful productBucketAdjustment/adjust request.
-        # CRITICAL: validFor.startDateTime must be the EXISTING value container's
-        # start (read via a prior GET / balance enquiry), so the Set updates that
-        # container IN PLACE instead of creating a brand-new time slice. If the
-        # existing start is unknown we fall back to a wide window.
+        # Proven 201 shape on this CBEV (from api.log bucketAdjustment/adjust):
+        #   { triggerTime, relatedParty:{@referredType:Customer, externalId},
+        #     contractExternalId,
+        #     productAdjustments:[{ productRef:{externalId},
+        #       productBuckets:[{ bucketSpecExternalId, amount:{number,decimalPlaces},
+        #                         action:"Set", unitOfMeasure:"byte" }] }] }
         now = _now_bssf()
-        start = container_start or "0001-01-01T12:00:00.001+00:00"
-        end = container_end or "9999-12-31T12:00:00.001+00:00"
-        body = {
-            "triggerTime": now,
-            "customerExternalId": plan.customer_external_id,
-            "contractExternalId": plan.contract_external_id,
-            "productExternalId": self._product_instance_ext_id(plan, product_ext),
+        pb: dict[str, Any] = {
             "bucketSpecExternalId": bucket.bucket_spec_external_id,
-            "reason": bucket.reason or "MIGRATION",
             "amount": {"number": bucket.amount, "decimalPlaces": bucket.decimal_places},
-            "validFor": {"startDateTime": start, "endDateTime": end},
-            "unitOfMeasure": "byte",
             "action": "Set",
+            "unitOfMeasure": self.defaults.get("bucketUnitOfMeasure", "byte"),
         }
         spec_id = bucket_spec_id or (self.defaults.get("bucketSpecIds", {}) or {}).get(
             bucket.bucket_spec_external_id)
         if spec_id:
-            body["bucketSpecId"] = spec_id
-        return body
+            pb["bucketSpecId"] = spec_id
+        return {
+            "triggerTime": now,
+            "relatedParty": {"@referredType": "Customer",
+                             "externalId": plan.customer_external_id},
+            "contractExternalId": plan.contract_external_id,
+            "productAdjustments": [{
+                "productRef": {"externalId": self._product_instance_ext_id(plan, product_ext)},
+                "productBuckets": [pb],
+            }],
+        }
 
     def _find_bucket(self, balance_response, spec: str):
         """Return the bucket dict for a given bucketSpecExternalId from a balance
@@ -275,18 +357,39 @@ class BssfMigrator:
         return (start, end, spec_id)
 
     # -- API calls --------------------------------------------------------
+    async def _retry(self, coro_factory, *, attempts: int = 4, base_delay: float = 2.0):
+        """Retry a request on transient gateway errors (403/429/5xx). The BSSF
+        gateway intermittently returns 403 'Forbidden' under rate limiting; a
+        short backoff clears it. Non-transient errors are re-raised immediately."""
+        import asyncio as _a
+        import httpx as _httpx
+        last = None
+        for i in range(attempts):
+            try:
+                return await coro_factory()
+            except _httpx.HTTPStatusError as e:  # noqa: PERF203
+                code = e.response.status_code if e.response is not None else 0
+                if code not in (403, 429, 500, 502, 503, 504):
+                    raise
+                last = e
+                if i < attempts - 1:
+                    await _a.sleep(base_delay * (i + 1))
+        raise last
+
     async def create_party(self, plan: MigrationPlan) -> dict:
-        return await self.client.request("create_party", body=self.build_party_body(plan))
+        return await self._retry(
+            lambda: self.client.request("create_party", body=self.build_party_body(plan)))
 
     async def create_customer(self, plan: MigrationPlan) -> dict:
-        return await self.client.request("create_customer", body=self.build_customer_body(plan))
+        return await self._retry(
+            lambda: self.client.request("create_customer", body=self.build_customer_body(plan)))
 
     async def create_contract(self, plan: MigrationPlan) -> dict:
-        return await self.client.request(
+        return await self._retry(lambda: self.client.request(
             "create_contract",
             body=self.build_contract_body(plan),
             path_params={"customerExternalId": plan.customer_external_id},
-        )
+        ))
 
     async def adjust_buckets(self, plan: MigrationPlan) -> list[dict]:
         results = []
@@ -304,7 +407,8 @@ class BssfMigrator:
             body = self.build_bucket_adjustment_body(
                 plan, product_ext, bucket,
                 container_start=start, container_end=end, bucket_spec_id=spec_id)
-            resp = await self.client.request("product_bucket_adjustment", body=body)
+            resp = await self.client.request(
+                self.defaults.get("bucketAdjustmentApiKey", "balance_adjustment"), body=body)
             results.append({"product": product_ext, "bucket": bucket.bucket_spec_external_id,
                             "amount": bucket.amount, "response": resp})
         return results

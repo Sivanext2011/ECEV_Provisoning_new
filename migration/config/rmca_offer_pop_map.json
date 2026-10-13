@@ -1,0 +1,708 @@
+{
+ "145001": {
+  "balance_pops": [
+   "POP_RegularRecurrence",
+   "POP_Prorating_Activation"
+  ],
+  "consume_pop": "POP_NormalData_Consumption",
+  "has_initial_char": false,
+  "in_rmca": true
+ },
+ "145002": {
+  "balance_pops": [
+   "POP_RegularRecurrence",
+   "POP_Prorating_Activation"
+  ],
+  "consume_pop": "POP_NormalData_Consumption",
+  "has_initial_char": false,
+  "in_rmca": true
+ },
+ "255001": {
+  "balance_pops": [
+   "POP_Bundle_Bucket_Reset"
+  ],
+  "consume_pop": "POP_NormalData_Consumption",
+  "has_initial_char": false,
+  "in_rmca": true
+ },
+ "255002": {
+  "balance_pops": [
+   "POP_Bundle_Bucket_Reset"
+  ],
+  "consume_pop": "POP_NormalData_Consumption",
+  "has_initial_char": false,
+  "in_rmca": true
+ },
+ "281007": {
+  "balance_pops": [
+   "POP_RegularRecurrence",
+   "POP_Prorating_Activation"
+  ],
+  "consume_pop": "POP_TetheringData_Consumption",
+  "has_initial_char": false,
+  "in_rmca": true
+ },
+ "281008": {
+  "balance_pops": [
+   "POP_TetheringBundle_Bucket_Reset"
+  ],
+  "consume_pop": "POP_TetheringData_Consumption",
+  "has_initial_char": false,
+  "in_rmca": true
+ },
+ "160006": {
+  "balance_pops": [
+   "POP_RegularRecurrence",
+   "POP_Initial_Activation"
+  ],
+  "consume_pop": "POP_NormalData_Consumption",
+  "has_initial_char": false,
+  "in_rmca": true
+ },
+ "160106": {
+  "balance_pops": [
+   "POP_RegularRecurrence",
+   "POP_Initial_Activation"
+  ],
+  "consume_pop": "POP_NormalData_Consumption",
+  "has_initial_char": false,
+  "in_rmca": true
+ },
+ "160206": {
+  "balance_pops": [
+   "POP_RegularRecurrence",
+   "POP_Initial_Activation"
+  ],
+  "consume_pop": "POP_NormalData_Consumption",
+  "has_initial_char": false,
+  "in_rmca": true
+ },
+ "160906": {
+  "balance_pops": [],
+  "consume_pop": "POP_NormalData_Consumption",
+  "has_initial_char": true,
+  "in_rmca": true
+ },
+ "162006": {
+  "balance_pops": [
+   "POP_RegularRecurrence",
+   "POP_Initial_Activation"
+  ],
+  "consume_pop": "POP_NormalData_Consumption",
+  "has_initial_char": false,
+  "in_rmca": true
+ },
+ "162106": {
+  "balance_pops": [
+   "POP_RegularRecurrence",
+   "POP_Initial_Activation"
+  ],
+  "consume_pop": "POP_NormalData_Consumption",
+  "has_initial_char": false,
+  "in_rmca": true
+ },
+ "162206": {
+  "balance_pops": [
+   "POP_RegularRecurrence",
+   "POP_Initial_Activation"
+  ],
+  "consume_pop": "POP_NormalData_Consumption",
+  "has_initial_char": false,
+  "in_rmca": true
+ },
+ "162906": {
+  "balance_pops": [
+   "POP_RegularRecurrence",
+   "POP_Initial_Activation"
+  ],
+  "consume_pop": "POP_NormalData_Consumption",
+  "has_initial_char": false,
+  "in_rmca": true
+ },
+ "150006": {
+  "balance_pops": [
+   "POP_RegularRecurrence",
+   "POP_Prorating_Activation"
+  ],
+  "consume_pop": "POP_NormalData_Consumption",
+  "has_initial_char": false,
+  "in_rmca": true
+ },
+ "150106": {
+  "balance_pops": [
+   "POP_RegularRecurrence",
+   "POP_Prorating_Activation"
+  ],
+  "consume_pop": "POP_NormalData_Consumption",
+  "has_initial_char": false,
+  "in_rmca": true
+ },
+ "150206": {
+  "balance_pops": [
+   "POP_RegularRecurrence",
+   "POP_Prorating_Activation"
+  ],
+  "consume_pop": "POP_NormalData_Consumption",
+  "has_initial_char": false,
+  "in_rmca": true
+ },
+ "150306": {
+  "balance_pops": [
+   "POP_RegularRecurrence",
+   "POP_Prorating_Activation"
+  ],
+  "consume_pop": "POP_NormalData_Consumption",
+  "has_initial_char": false,
+  "in_rmca": true
+ },
+ "150406": {
+  "balance_pops": [
+   "POP_RegularRecurrence",
+   "POP_Prorating_Activation"
+  ],
+  "consume_pop": "POP_NormalData_Consumption",
+  "has_initial_char": false,
+  "in_rmca": true
+ },
+ "150506": {
+  "balance_pops": [
+   "POP_RegularRecurrence",
+   "POP_Prorating_Activation"
+  ],
+  "consume_pop": "POP_NormalData_Consumption",
+  "has_initial_char": false,
+  "in_rmca": true
+ },
+ "150606": {
+  "balance_pops": [
+   "POP_RegularRecurrence",
+   "POP_Prorating_Activation"
+  ],
+  "consume_pop": "POP_NormalData_Consumption",
+  "has_initial_char": false,
+  "in_rmca": true
+ },
+ "150706": {
+  "balance_pops": [
+   "POP_RegularRecurrence",
+   "POP_Prorating_Activation"
+  ],
+  "consume_pop": "POP_NormalData_Consumption",
+  "has_initial_char": false,
+  "in_rmca": true
+ },
+ "150806": {
+  "balance_pops": [
+   "POP_RegularRecurrence",
+   "POP_Prorating_Activation"
+  ],
+  "consume_pop": "POP_NormalData_Consumption",
+  "has_initial_char": false,
+  "in_rmca": true
+ },
+ "150906": {
+  "balance_pops": [
+   "POP_RegularRecurrence",
+   "POP_Prorating_Activation"
+  ],
+  "consume_pop": "POP_NormalData_Consumption",
+  "has_initial_char": false,
+  "in_rmca": true
+ },
+ "155006": {
+  "balance_pops": [],
+  "consume_pop": "POP_NormalData_Consumption",
+  "has_initial_char": true,
+  "in_rmca": true
+ },
+ "155106": {
+  "balance_pops": [],
+  "consume_pop": "POP_NormalData_Consumption",
+  "has_initial_char": true,
+  "in_rmca": true
+ },
+ "155206": {
+  "balance_pops": [],
+  "consume_pop": "POP_NormalData_Consumption",
+  "has_initial_char": true,
+  "in_rmca": true
+ },
+ "155306": {
+  "balance_pops": [],
+  "consume_pop": "POP_NormalData_Consumption",
+  "has_initial_char": true,
+  "in_rmca": true
+ },
+ "155406": {
+  "balance_pops": [],
+  "consume_pop": "POP_NormalData_Consumption",
+  "has_initial_char": true,
+  "in_rmca": true
+ },
+ "156006": {
+  "balance_pops": [],
+  "consume_pop": "POP_NormalData_Consumption",
+  "has_initial_char": true,
+  "in_rmca": true
+ },
+ "156106": {
+  "balance_pops": [],
+  "consume_pop": "POP_NormalData_Consumption",
+  "has_initial_char": true,
+  "in_rmca": true
+ },
+ "156206": {
+  "balance_pops": [],
+  "consume_pop": "POP_NormalData_Consumption",
+  "has_initial_char": true,
+  "in_rmca": true
+ },
+ "156306": {
+  "balance_pops": [],
+  "consume_pop": "POP_NormalData_Consumption",
+  "has_initial_char": true,
+  "in_rmca": true
+ },
+ "156406": {
+  "balance_pops": [],
+  "consume_pop": "POP_NormalData_Consumption",
+  "has_initial_char": true,
+  "in_rmca": true
+ },
+ "156506": {
+  "balance_pops": [],
+  "consume_pop": "POP_NormalData_Consumption",
+  "has_initial_char": true,
+  "in_rmca": true
+ },
+ "156606": {
+  "balance_pops": [],
+  "consume_pop": "POP_NormalData_Consumption",
+  "has_initial_char": true,
+  "in_rmca": true
+ },
+ "156706": {
+  "balance_pops": [],
+  "consume_pop": "POP_NormalData_Consumption",
+  "has_initial_char": true,
+  "in_rmca": true
+ },
+ "156806": {
+  "balance_pops": [],
+  "consume_pop": "POP_NormalData_Consumption",
+  "has_initial_char": true,
+  "in_rmca": true
+ },
+ "156906": {
+  "balance_pops": [],
+  "consume_pop": "POP_NormalData_Consumption",
+  "has_initial_char": true,
+  "in_rmca": true
+ },
+ "157006": {
+  "balance_pops": [
+   "POP_RegularRecurrence",
+   "POP_Prorating_Activation"
+  ],
+  "consume_pop": "POP_NormalData_Consumption",
+  "has_initial_char": false,
+  "in_rmca": true
+ },
+ "157106": {
+  "balance_pops": [
+   "POP_RegularRecurrence",
+   "POP_Prorating_Activation"
+  ],
+  "consume_pop": "POP_NormalData_Consumption",
+  "has_initial_char": false,
+  "in_rmca": true
+ },
+ "157206": {
+  "balance_pops": [
+   "POP_RegularRecurrence",
+   "POP_Prorating_Activation"
+  ],
+  "consume_pop": "POP_NormalData_Consumption",
+  "has_initial_char": false,
+  "in_rmca": true
+ },
+ "157306": {
+  "balance_pops": [
+   "POP_RegularRecurrence",
+   "POP_Prorating_Activation"
+  ],
+  "consume_pop": "POP_NormalData_Consumption",
+  "has_initial_char": false,
+  "in_rmca": true
+ },
+ "157406": {
+  "balance_pops": [
+   "POP_RegularRecurrence",
+   "POP_Prorating_Activation"
+  ],
+  "consume_pop": "POP_NormalData_Consumption",
+  "has_initial_char": false,
+  "in_rmca": true
+ },
+ "157506": {
+  "balance_pops": [
+   "POP_RegularRecurrence",
+   "POP_Prorating_Activation"
+  ],
+  "consume_pop": "POP_NormalData_Consumption",
+  "has_initial_char": false,
+  "in_rmca": true
+ },
+ "157606": {
+  "balance_pops": [
+   "POP_RegularRecurrence",
+   "POP_Prorating_Activation"
+  ],
+  "consume_pop": "POP_NormalData_Consumption",
+  "has_initial_char": false,
+  "in_rmca": true
+ },
+ "157706": {
+  "balance_pops": [
+   "POP_RegularRecurrence",
+   "POP_Prorating_Activation"
+  ],
+  "consume_pop": "POP_NormalData_Consumption",
+  "has_initial_char": false,
+  "in_rmca": true
+ },
+ "157806": {
+  "balance_pops": [
+   "POP_RegularRecurrence",
+   "POP_Prorating_Activation"
+  ],
+  "consume_pop": "POP_NormalData_Consumption",
+  "has_initial_char": false,
+  "in_rmca": true
+ },
+ "157906": {
+  "balance_pops": [
+   "POP_RegularRecurrence",
+   "POP_Prorating_Activation"
+  ],
+  "consume_pop": "POP_NormalData_Consumption",
+  "has_initial_char": false,
+  "in_rmca": true
+ },
+ "159006": {
+  "balance_pops": [],
+  "consume_pop": "POP_NormalData_Consumption",
+  "has_initial_char": false,
+  "in_rmca": true
+ },
+ "159106": {
+  "balance_pops": [],
+  "consume_pop": "POP_NormalData_Consumption",
+  "has_initial_char": false,
+  "in_rmca": true
+ },
+ "159206": {
+  "balance_pops": [],
+  "consume_pop": "POP_NormalData_Consumption",
+  "has_initial_char": false,
+  "in_rmca": true
+ },
+ "159306": {
+  "balance_pops": [],
+  "consume_pop": "POP_NormalData_Consumption",
+  "has_initial_char": false,
+  "in_rmca": true
+ },
+ "159406": {
+  "balance_pops": [],
+  "consume_pop": "POP_NormalData_Consumption",
+  "has_initial_char": false,
+  "in_rmca": true
+ },
+ "281005": {
+  "balance_pops": [
+   "POP_RegularRecurrence",
+   "POP_Prorating_Activation"
+  ],
+  "consume_pop": "POP_NormalData_Consumption",
+  "has_initial_char": false,
+  "in_rmca": true
+ },
+ "281006": {
+  "balance_pops": [],
+  "consume_pop": "POP_NormalData_Consumption",
+  "has_initial_char": false,
+  "in_rmca": true
+ },
+ "281014": {
+  "balance_pops": [],
+  "consume_pop": "POP_NormalData_Consumption",
+  "has_initial_char": false,
+  "in_rmca": true
+ },
+ "160014": {
+  "balance_pops": [
+   "POP_RegularRecurrence",
+   "POP_Initial_Activation"
+  ],
+  "consume_pop": "POP_TetheringData_Consumption",
+  "has_initial_char": false,
+  "in_rmca": true
+ },
+ "160114": {
+  "balance_pops": [
+   "POP_RegularRecurrence",
+   "POP_Initial_Activation"
+  ],
+  "consume_pop": "POP_TetheringData_Consumption",
+  "has_initial_char": false,
+  "in_rmca": true
+ },
+ "160214": {
+  "balance_pops": [
+   "POP_RegularRecurrence",
+   "POP_Initial_Activation"
+  ],
+  "consume_pop": "POP_TetheringData_Consumption",
+  "has_initial_char": false,
+  "in_rmca": true
+ },
+ "155014": {
+  "balance_pops": [],
+  "consume_pop": "POP_TetheringData_Consumption",
+  "has_initial_char": true,
+  "in_rmca": true
+ },
+ "155114": {
+  "balance_pops": [],
+  "consume_pop": "POP_TetheringData_Consumption",
+  "has_initial_char": true,
+  "in_rmca": true
+ },
+ "155214": {
+  "balance_pops": [],
+  "consume_pop": "POP_TetheringData_Consumption",
+  "has_initial_char": true,
+  "in_rmca": true
+ },
+ "155314": {
+  "balance_pops": [],
+  "consume_pop": "POP_TetheringData_Consumption",
+  "has_initial_char": true,
+  "in_rmca": true
+ },
+ "155414": {
+  "balance_pops": [],
+  "consume_pop": "POP_TetheringData_Consumption",
+  "has_initial_char": true,
+  "in_rmca": true
+ },
+ "156014": {
+  "balance_pops": [],
+  "consume_pop": "POP_TetheringData_Consumption",
+  "has_initial_char": true,
+  "in_rmca": true
+ },
+ "156114": {
+  "balance_pops": [],
+  "consume_pop": "POP_TetheringData_Consumption",
+  "has_initial_char": true,
+  "in_rmca": true
+ },
+ "156214": {
+  "balance_pops": [],
+  "consume_pop": "POP_TetheringData_Consumption",
+  "has_initial_char": true,
+  "in_rmca": true
+ },
+ "156314": {
+  "balance_pops": [],
+  "consume_pop": "POP_TetheringData_Consumption",
+  "has_initial_char": true,
+  "in_rmca": true
+ },
+ "156414": {
+  "balance_pops": [],
+  "consume_pop": "POP_TetheringData_Consumption",
+  "has_initial_char": true,
+  "in_rmca": true
+ },
+ "150014": {
+  "balance_pops": [
+   "POP_RegularRecurrence",
+   "POP_Prorating_Activation"
+  ],
+  "consume_pop": "POP_TetheringData_Consumption",
+  "has_initial_char": false,
+  "in_rmca": true
+ },
+ "150114": {
+  "balance_pops": [
+   "POP_RegularRecurrence",
+   "POP_Prorating_Activation"
+  ],
+  "consume_pop": "POP_TetheringData_Consumption",
+  "has_initial_char": false,
+  "in_rmca": true
+ },
+ "150214": {
+  "balance_pops": [
+   "POP_RegularRecurrence",
+   "POP_Prorating_Activation"
+  ],
+  "consume_pop": "POP_TetheringData_Consumption",
+  "has_initial_char": false,
+  "in_rmca": true
+ },
+ "150314": {
+  "balance_pops": [
+   "POP_RegularRecurrence",
+   "POP_Prorating_Activation"
+  ],
+  "consume_pop": "POP_TetheringData_Consumption",
+  "has_initial_char": false,
+  "in_rmca": true
+ },
+ "150414": {
+  "balance_pops": [
+   "POP_RegularRecurrence",
+   "POP_Prorating_Activation"
+  ],
+  "consume_pop": "POP_TetheringData_Consumption",
+  "has_initial_char": false,
+  "in_rmca": true
+ },
+ "150514": {
+  "balance_pops": [
+   "POP_RegularRecurrence",
+   "POP_Prorating_Activation"
+  ],
+  "consume_pop": "POP_TetheringData_Consumption",
+  "has_initial_char": false,
+  "in_rmca": true
+ },
+ "150614": {
+  "balance_pops": [
+   "POP_RegularRecurrence",
+   "POP_Prorating_Activation"
+  ],
+  "consume_pop": "POP_TetheringData_Consumption",
+  "has_initial_char": false,
+  "in_rmca": true
+ },
+ "150714": {
+  "balance_pops": [
+   "POP_RegularRecurrence",
+   "POP_Prorating_Activation"
+  ],
+  "consume_pop": "POP_TetheringData_Consumption",
+  "has_initial_char": false,
+  "in_rmca": true
+ },
+ "150814": {
+  "balance_pops": [
+   "POP_RegularRecurrence",
+   "POP_Prorating_Activation"
+  ],
+  "consume_pop": "POP_TetheringData_Consumption",
+  "has_initial_char": false,
+  "in_rmca": true
+ },
+ "150914": {
+  "balance_pops": [
+   "POP_RegularRecurrence",
+   "POP_Prorating_Activation"
+  ],
+  "consume_pop": "POP_TetheringData_Consumption",
+  "has_initial_char": false,
+  "in_rmca": true
+ },
+ "161006": {
+  "balance_pops": [],
+  "consume_pop": "",
+  "has_initial_char": false,
+  "in_rmca": false
+ },
+ "161106": {
+  "balance_pops": [],
+  "consume_pop": "",
+  "has_initial_char": false,
+  "in_rmca": false
+ },
+ "161206": {
+  "balance_pops": [],
+  "consume_pop": "",
+  "has_initial_char": false,
+  "in_rmca": false
+ },
+ "161014": {
+  "balance_pops": [],
+  "consume_pop": "",
+  "has_initial_char": false,
+  "in_rmca": false
+ },
+ "161114": {
+  "balance_pops": [],
+  "consume_pop": "",
+  "has_initial_char": false,
+  "in_rmca": false
+ },
+ "161214": {
+  "balance_pops": [],
+  "consume_pop": "",
+  "has_initial_char": false,
+  "in_rmca": false
+ },
+ "163006": {
+  "balance_pops": [],
+  "consume_pop": "",
+  "has_initial_char": false,
+  "in_rmca": false
+ },
+ "163106": {
+  "balance_pops": [],
+  "consume_pop": "",
+  "has_initial_char": false,
+  "in_rmca": false
+ },
+ "163206": {
+  "balance_pops": [],
+  "consume_pop": "",
+  "has_initial_char": false,
+  "in_rmca": false
+ },
+ "20001": {
+  "balance_pops": [
+   "POP_RegularRecurrence",
+   "POP_Prorating_Activation"
+  ],
+  "consume_pop": "POP_NormalData_Consumption",
+  "has_initial_char": false,
+  "in_rmca": true
+ },
+ "25001": {
+  "balance_pops": [
+   "POP_Bundle_Bucket_Reset"
+  ],
+  "consume_pop": "POP_NormalData_Consumption",
+  "has_initial_char": false,
+  "in_rmca": true
+ },
+ "281107": {
+  "balance_pops": [
+   "POP_RegularRecurrence",
+   "POP_Prorating_Activation"
+  ],
+  "consume_pop": "POP_TetheringData_Consumption",
+  "has_initial_char": false,
+  "in_rmca": true
+ },
+ "281108": {
+  "balance_pops": [
+   "POP_TetheringBundle_Bucket_Reset"
+  ],
+  "consume_pop": "POP_TetheringData_Consumption",
+  "has_initial_char": false,
+  "in_rmca": true
+ }
+}

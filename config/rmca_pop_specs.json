@@ -1,0 +1,217 @@
+[
+ {
+  "externalId": "BS_DataConsume_Addon",
+  "priceType": "USAGE",
+  "priceSubType": null
+ },
+ {
+  "externalId": "BS_Prorating_Allocation_Speed",
+  "priceType": "RECURRING",
+  "priceSubType": "POSITIVE_PRORATING"
+ },
+ {
+  "externalId": "BS_RegularRecurring_Allocation_Speed",
+  "priceType": "RECURRING",
+  "priceSubType": "NORMAL"
+ },
+ {
+  "externalId": "BS_ESP_RegularRecurring_Allocation",
+  "priceType": "RECURRING",
+  "priceSubType": "NORMAL"
+ },
+ {
+  "externalId": "BS_Addon_CarryForward",
+  "priceType": "RECURRING",
+  "priceSubType": "NORMAL"
+ },
+ {
+  "externalId": "BS_ESP_Activation_Allocation",
+  "priceType": "RECURRING",
+  "priceSubType": "POSITIVE_PRORATING"
+ },
+ {
+  "externalId": "BS_PromoActivation_Allocation",
+  "priceType": "RECURRING",
+  "priceSubType": "POSITIVE_PRORATING"
+ },
+ {
+  "externalId": " BS_PromoRegularRecurring_Allocation",
+  "priceType": "RECURRING",
+  "priceSubType": "NORMAL"
+ },
+ {
+  "externalId": "BS_DataConsume_Limited_Bucket",
+  "priceType": "USAGE",
+  "priceSubType": null
+ },
+ {
+  "externalId": "BS_PPP_Addon_Allocation",
+  "priceType": "RECURRING",
+  "priceSubType": "POSITIVE_PRORATING"
+ },
+ {
+  "externalId": "BS_DataConsume_Addon_New",
+  "priceType": "USAGE",
+  "priceSubType": null
+ },
+ {
+  "externalId": "BS_Addon_CarryForward_New",
+  "priceType": "RECURRING",
+  "priceSubType": "NORMAL"
+ },
+ {
+  "externalId": "BS_ToD_Limited_TimePricing_Bucket",
+  "priceType": "USAGE",
+  "priceSubType": null
+ },
+ {
+  "externalId": "BS_MDVPN_DataConsume_Limited",
+  "priceType": "USAGE",
+  "priceSubType": null
+ },
+ {
+  "externalId": "BS_MDVPN_Prorating_Allocation",
+  "priceType": "RECURRING",
+  "priceSubType": "POSITIVE_PRORATING"
+ },
+ {
+  "externalId": "BS_MDVPN_RegularRecurring_Allocation",
+  "priceType": "RECURRING",
+  "priceSubType": "NORMAL"
+ },
+ {
+  "externalId": "BS_ToD_UnLimited_TimePricing_Bucket",
+  "priceType": "USAGE",
+  "priceSubType": null
+ },
+ {
+  "externalId": "BS_DataConsume_Speed",
+  "priceType": "USAGE",
+  "priceSubType": null
+ },
+ {
+  "externalId": "BS_Prorating_Allocation",
+  "priceType": "RECURRING",
+  "priceSubType": "POSITIVE_PRORATING"
+ },
+ {
+  "externalId": "BS_RegularRecurring_Allocation",
+  "priceType": "RECURRING",
+  "priceSubType": "NORMAL"
+ },
+ {
+  "externalId": "BS_DataConsume_Limited",
+  "priceType": "USAGE",
+  "priceSubType": null
+ },
+ {
+  "externalId": "BS_MDVPN_DataConsume_UnLimited-CounterOnly",
+  "priceType": "USAGE",
+  "priceSubType": null
+ },
+ {
+  "externalId": "BS_MDVPN_Recurrance_Reset_Bucket",
+  "priceType": "RECURRING",
+  "priceSubType": "NORMAL"
+ },
+ {
+  "externalId": "BS_DataConsume_UnLimited-CounterOnly",
+  "priceType": "USAGE",
+  "priceSubType": null
+ },
+ {
+  "externalId": "BS_Recurrance_Reset_Bucket",
+  "priceType": "RECURRING",
+  "priceSubType": "NORMAL"
+ },
+ {
+  "externalId": "BS_DataConsume_MultiSpeed",
+  "priceType": "USAGE",
+  "priceSubType": null
+ },
+ {
+  "externalId": "BS_Prorating_Allocation_MultiSpeed",
+  "priceType": "RECURRING",
+  "priceSubType": "POSITIVE_PRORATING"
+ },
+ {
+  "externalId": "BS_RegularRecurring_Allocation_MultiSpeed",
+  "priceType": "RECURRING",
+  "priceSubType": "NORMAL"
+ },
+ {
+  "externalId": "BS_MDVPN_TetheringConsume_Limited",
+  "priceType": "USAGE",
+  "priceSubType": null
+ },
+ {
+  "externalId": "BS_ESP_SharedData_Addon_Category_Spec",
+  "priceType": "USAGE",
+  "priceSubType": null
+ },
+ {
+  "externalId": "BS_MDVPN_TetheringConsume_UnLimited-CounterOnly",
+  "priceType": "USAGE",
+  "priceSubType": null
+ },
+ {
+  "externalId": "BS_DataConsume_Max",
+  "priceType": "USAGE",
+  "priceSubType": null
+ },
+ {
+  "externalId": "BS_POC1_Addon_Proration_Activation",
+  "priceType": "RECURRING",
+  "priceSubType": "POSITIVE_PRORATING"
+ },
+ {
+  "externalId": "BS_POC1_Addon_Recurrence",
+  "priceType": "RECURRING",
+  "priceSubType": "NORMAL"
+ },
+ {
+  "externalId": "BS_ESP_SharedData_ConsumerSide_Spec",
+  "priceType": "USAGE",
+  "priceSubType": null
+ },
+ {
+  "externalId": "BS_ESP_SharedData_ProviderSide_Spec",
+  "priceType": "USAGE",
+  "priceSubType": null
+ },
+ {
+  "externalId": "BS_POC_Addon_Recurrence",
+  "priceType": "RECURRING",
+  "priceSubType": "NORMAL"
+ },
+ {
+  "externalId": "BS_POC_Addon_Proration_Activation",
+  "priceType": "RECURRING",
+  "priceSubType": "POSITIVE_PRORATING"
+ },
+ {
+  "externalId": "BS_DataConsume_ToW",
+  "priceType": "USAGE",
+  "priceSubType": null
+ },
+ {
+  "externalId": "BS_DataConsume_WithNewCounters",
+  "priceType": "USAGE",
+  "priceSubType": null
+ },
+ {
+  "externalId": "BS_DataConsume_NetworkSlice",
+  "priceType": "USAGE",
+  "priceSubType": null
+ },
+ {
+  "externalId": "BS_DataConsume_POC_WithAccmulation",
+  "priceType": "USAGE",
+  "priceSubType": null
+ },
+ {
+  "externalId": "BS_DataConsume_ToH",
+  "priceType": "USAGE",
+  "priceSubType": null
+ }
+]

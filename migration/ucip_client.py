@@ -400,6 +400,10 @@ class UcipClient:
     def __init__(self, config: dict):
         self.cfg = config or {}
         ucip = self.cfg.get("ucip", {})
+        # Which FETCH operations are enabled. Populated from the mapping workbook's
+        # FetchOperations sheet (via load_engine) or ucip config. Empty => all on.
+        # Required ops are always run regardless.
+        self.fetch_operations: dict[str, bool] = dict(ucip.get("fetch_operations", {}) or {})
         self.endpoint: str = ucip.get("endpoint", "")
         self.origin_host: str = ucip.get("origin_host", "OCSG")
         self.origin_node_type: str = ucip.get("origin_node_type", "EXT")
@@ -427,6 +431,9 @@ class UcipClient:
         nc = ucip.get("negotiated_capabilities", [809828928, 1832])
         self.negotiated_capabilities = [int(x) for x in nc] if nc else []
         self._txid = 0
+        # Optional capture hook: if set to a list, every call appends a record
+        # {operation, msisdn, request, response, responseCode}. Enables reporting.
+        self.recorder: list[dict] | None = None
 
     # -- transport --------------------------------------------------------
     def _next_txid(self, msisdn: str) -> str:
@@ -482,17 +489,34 @@ class UcipClient:
             raise UcipError("UCIP endpoint not configured (ucip.endpoint)")
         body = self._build_body(operation, msisdn, typed_members=typed_members, **extra)
         headers = {"Content-Type": "text/xml", "User-Agent": self.user_agent}
-        with self._client() as c:
-            r = c.post(self.endpoint, content=body.encode("utf-8"), headers=headers)
-            r.raise_for_status()
-            text = r.text
+        rec = {"interface": "UCIP", "operation": operation, "msisdn": msisdn,
+               "request": body, "response": None, "responseCode": None, "error": None}
         try:
-            raw_root = ET.fromstring(text)
-        except ET.ParseError as e:
-            raise UcipError(f"{operation}: invalid XML-RPC response: {e}") from e
-        root = _normalise_xmlrpc_response(raw_root)
-        self._check_response_code(operation, root)
-        return root
+            with self._client() as c:
+                r = c.post(self.endpoint, content=body.encode("utf-8"), headers=headers)
+                r.raise_for_status()
+                text = r.text
+            rec["response"] = text
+            try:
+                raw_root = ET.fromstring(text)
+            except ET.ParseError as e:
+                rec["error"] = f"invalid XML-RPC: {e}"
+                if self.recorder is not None:
+                    self.recorder.append(rec)
+                raise UcipError(f"{operation}: invalid XML-RPC response: {e}") from e
+            root = _normalise_xmlrpc_response(raw_root)
+            rec["responseCode"] = _first_text(root, "responseCode")
+            if self.recorder is not None:
+                self.recorder.append(rec)
+            self._check_response_code(operation, root)
+            return root
+        except UcipError:
+            raise
+        except Exception as e:  # noqa: BLE001 - record transport errors too
+            rec["error"] = f"{type(e).__name__}: {e}"
+            if self.recorder is not None and rec not in self.recorder:
+                self.recorder.append(rec)
+            raise
 
     def install_subscriber(
         self,
@@ -541,6 +565,29 @@ class UcipClient:
         if offers:
             typed["offerUpdateInformationList"] = _offer_array(offers)
         return self.call("InstallSubscriber", msisdn, typed_members=typed)
+
+    def link_subordinate_subscriber(self, subordinate_number: str,
+                                    master_account_number: str,
+                                    origin_operator_id: str | None = None) -> ET.Element:
+        """Link an ALREADY-INSTALLED subordinate subscriber to a master account via
+        ACIP LinkSubordinateSubscriber (CPI AIR ACIP 5.0 sec 6.18).
+
+        Mandatory members: subscriberNumber (the subordinate) + masterAccountNumber
+        (the master subscriber identity, in SDP ACCOUNT-NUMBER format -- i.e. the
+        national number WITHOUT the country-code prefix, e.g. 886970007403 is stored
+        as 970007403). serviceClassNew is NOT a member here. Flow: install master,
+        install subordinate, then link. Preconditions: Multi-User Identification
+        feature enabled; the master must be a master-eligible account.
+        """
+        acct = str(master_account_number).strip()
+        # SDP stores the master account number without the '886' CC prefix.
+        if acct.startswith("886") and len(acct) > 9:
+            acct = acct[3:]
+        typed: dict[str, Any] = {"masterAccountNumber": acct}
+        if origin_operator_id:
+            typed["originOperatorID"] = str(origin_operator_id)
+        # subscriberNumber (set by call()) = the subordinate being linked.
+        return self.call("LinkSubordinateSubscriber", subordinate_number, typed_members=typed)
 
     def update_balance_and_date(self, msisdn: str, dedicated_accounts: list[dict],
                                 service_class: int | None = None) -> ET.Element:
@@ -640,6 +687,11 @@ class UcipClient:
         profile.account_flags = _first_text(root, "accountFlags")
         profile.supervision_expiry = _first_text(root, "supervisionExpiryDate")
         profile.service_fee_expiry = _first_text(root, "serviceFeeExpiryDate")
+        # Multi-user / multi-SIM: masterSubscriberFlag=1 => this is the master;
+        # masterAccountNumber present => this is a subordinate linked to that master.
+        _msf = _first_text(root, "masterSubscriberFlag")
+        profile.master_subscriber_flag = str(_msf).strip() in ("1", "true", "True")
+        profile.master_account_number = _first_text(root, "masterAccountNumber")
         # PAM schedule (bill-cycle PAM service) -> drives CBEV bill cycle.
         # In the normalised tree the fields sit under <pamInformationList>.
         pam = (next(iter(_findall_local(root, "pamInformationList")), None)
@@ -657,42 +709,49 @@ class UcipClient:
         # GetBalanceAndDate / GetAccumulators require an ACTIVE account; a
         # pre-active subscriber returns responseCode=126 'Account not active'.
         # Treat as non-fatal: migrate offers/attributes with empty balances.
-        try:
-            root = self.call("GetBalanceAndDate", msisdn, typed_members={
-                "requestDedicatedAccountInformationFlag": True,
-            })
-            profile.raw["GetBalanceAndDate"] = ET.tostring(root, encoding="unicode")
-            profile.dedicated_accounts = self._parse_dedicated_accounts(root)
-        except (UcipError, httpx.HTTPError) as e:
-            logger.info(f"GetBalanceAndDate skipped for {msisdn} (likely pre-active): {e}")
+        # These two are OFF by default (CHT 5G PPP keeps balance in UT/UC, not
+        # dedicated accounts) -- controlled by the FetchOperations sheet.
+        if self._op_enabled("GetBalanceAndDate", default=False):
+            try:
+                root = self.call("GetBalanceAndDate", msisdn, typed_members={
+                    "requestDedicatedAccountInformationFlag": True,
+                })
+                profile.raw["GetBalanceAndDate"] = ET.tostring(root, encoding="unicode")
+                profile.dedicated_accounts = self._parse_dedicated_accounts(root)
+            except (UcipError, httpx.HTTPError) as e:
+                logger.info(f"GetBalanceAndDate skipped for {msisdn} (likely pre-active): {e}")
 
-        try:
-            root = self.call("GetAccumulators", msisdn)
-            profile.raw["GetAccumulators"] = ET.tostring(root, encoding="unicode")
-            profile.accumulators = self._parse_accumulators(root)
-        except (UcipError, httpx.HTTPError) as e:
-            logger.info(f"GetAccumulators skipped for {msisdn} (likely pre-active): {e}")
+        if self._op_enabled("GetAccumulators", default=False):
+            try:
+                root = self.call("GetAccumulators", msisdn)
+                profile.raw["GetAccumulators"] = ET.tostring(root, encoding="unicode")
+                profile.accumulators = self._parse_accumulators(root)
+            except (UcipError, httpx.HTTPError) as e:
+                logger.info(f"GetAccumulators skipped for {msisdn} (likely pre-active): {e}")
 
         # UT/UC spending limits on this SDP live in usage counters/thresholds,
-        # exposed by GetUsageThresholdsAndCounters (NOT GetBalanceAndDate). Values
-        # are returned already in BYTES. This fills in dedicated_accounts (UT =
-        # threshold total) and accumulators (UC = counter consumed) keyed by the
-        # usageCounterID (e.g. 6145000). Works on pre-active accounts too.
-        try:
-            root = self.call("GetUsageThresholdsAndCounters", msisdn)
-            profile.raw["GetUsageThresholdsAndCounters"] = ET.tostring(root, encoding="unicode")
-            self._merge_usage_thresholds(profile, root)
-        except (UcipError, httpx.HTTPError) as e:
-            logger.info(f"GetUsageThresholdsAndCounters skipped for {msisdn}: {e}")
+        # exposed by GetUsageThresholdsAndCounters. Values are already in BYTES and
+        # fill dedicated_accounts (UT) + accumulators (UC) keyed by usageCounterID.
+        # This is the authoritative balance source for CHT 5G PPP. REQUIRED.
+        if self._op_enabled("GetUsageThresholdsAndCounters", default=True):
+            try:
+                root = self.call("GetUsageThresholdsAndCounters", msisdn)
+                profile.raw["GetUsageThresholdsAndCounters"] = ET.tostring(root, encoding="unicode")
+                self._merge_usage_thresholds(profile, root)
+            except (UcipError, httpx.HTTPError) as e:
+                logger.info(f"GetUsageThresholdsAndCounters skipped for {msisdn}: {e}")
 
-        try:
-            root = self.call("GetMultiSubscriberNumbers", msisdn)
-            profile.raw["GetMultiSubscriberNumbers"] = ET.tostring(root, encoding="unicode")
-            profile.subordinates = self._parse_subordinates(root, profile.master_msisdn)
-        except (UcipError, httpx.HTTPError) as e:
-            logger.info(f"GetMultiSubscriberNumbers skipped for {msisdn}: {e}")
+        # NOTE: subordinate / multi-SIM numbers are NOT discovered via UCIP here --
+        # on this AIR GetMultiSubscriberNumbers is unavailable and the master's
+        # GetAccountDetails does not list subordinates. The user supplies the
+        # master's subordinate MSISDNs at migration time (see migrate(subordinates=...)).
 
         return profile
+
+    def _op_enabled(self, operation: str, default: bool = True) -> bool:
+        """Whether a FETCH operation is enabled (from the FetchOperations sheet /
+        ucip config). Falls back to `default` when not specified."""
+        return bool(self.fetch_operations.get(operation, default))
 
     def delete_offer(self, msisdn: str, offer_id: str) -> ET.Element:
         return self.call("DeleteOffer", msisdn, offer_id=offer_id)

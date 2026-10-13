@@ -39,3 +39,11 @@ cli/_combos.json
 migration/config/migration_config.json
 migration/data/
 migration/**/__pycache__/
+
+# Migration tool runtime artifacts (contain live MSISDNs / subscriber data)
+migration_report*.html
+e2e_state.db
+e2e_msisdn.txt
+offer_analysis.json
+*/~$*.xlsx
+~$*.xlsx

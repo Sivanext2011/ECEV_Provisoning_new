@@ -82,13 +82,36 @@ class MappingWorkbook:
             raise MappingError(f"Mapping workbook not found: {self.path}")
         wb = load_workbook(self.path, data_only=True, read_only=True)
         self.settings: dict[str, Any] = {}
+        # Which UCIP FETCH operations are enabled (from the FetchOperations sheet).
+        # {operation_name: bool}. Empty => all default-on in the client.
+        self.fetch_operations: dict[str, bool] = {}
         self.service_class_map: dict[str, str] = {}
         self.schedule_bill_cycle_map: dict[str, str] = {}
         self.family_specs: dict[str, dict[str, Any]] = {}
         self.offer_attr_map: list[dict[str, Any]] = []
         self.parameter_mapping: list[dict[str, Any]] = []
+        self.pop_mapping: dict[str, dict[str, Any]] = {}  # pop_type -> POP price spec
+        # Authoritative per-offer, per-POP price recipe (action/char/unit), decoded
+        # from the RMCA export. {offer_id: {pop_externalId: {price_row, action,
+        # amount_char, unit}}}. Each POP has its OWN recipe (e.g. 160006's
+        # POP_Initial_Activation uses Action_SetInitialAllocation, not Action_FlatRate_No).
+        self.pop_recipes: dict[str, dict[str, dict]] = self._load_pop_recipes()
         self._parse(wb)
         wb.close()
+
+    @staticmethod
+    def _load_pop_recipes() -> dict:
+        import json as _json
+        import os as _os
+        here = _os.path.dirname(__file__)
+        for p in (_os.path.join(here, "config", "rmca_pop_recipes_clean.json"),
+                  "migration/config/rmca_pop_recipes_clean.json",
+                  "config/rmca_pop_recipes_clean.json"):
+            try:
+                return _json.load(open(p))
+            except Exception:
+                continue
+        return {}
 
     @staticmethod
     def _rows(ws) -> list[dict[str, Any]]:
@@ -125,6 +148,14 @@ class MappingWorkbook:
                 if k:
                     self.settings[str(k).strip()] = r.get("value")
 
+        if "FetchOperations" in names:
+            rows, _ = self._rows(wb["FetchOperations"])
+            for r in rows:
+                op = r.get("operation")
+                if op:
+                    en = str(r.get("enabled") or "").strip().lower()
+                    self.fetch_operations[str(op).strip()] = en in ("yes", "true", "1", "y")
+
         if "ServiceClassMap" in names:
             rows, _ = self._rows(wb["ServiceClassMap"])
             for r in rows:
@@ -156,9 +187,17 @@ class MappingWorkbook:
                     "bill_cycle_aligned": str(r.get("bill_cycle_aligned") or "").strip().lower() in ("yes", "true", "1", "y"),
                     "account_bucket_spec": _s(r.get("account_bucket_spec")),
                     "counter_bucket_spec": _s(r.get("counter_bucket_spec")),
+                    "sdp_ut_id": _s(r.get("sdp_ut_id")),
+                    "sdp_uc_id": _s(r.get("sdp_uc_id")),
+                    "allocation_type": _s(r.get("allocation_type")),
+                    "balance_mechanism": _s(r.get("balance_mechanism")),
+                    "balance_pops": [p.strip() for p in str(r.get("balance_pops") or "").split(";") if p.strip()],
+                    "consume_pop": _s(r.get("consume_pop")),
+                    "initial_balance_char": _s(r.get("initial_balance_char")),
                     "carryover_account_bucket_spec": _s(r.get("carryover_account_bucket_spec")),
                     "carryover_flag_bucket_spec": _s(r.get("carryover_flag_bucket_spec")),
                     "flat_rate_default": _s(r.get("flat_rate_default")),
+                    "reference_ut_id": _s(r.get("reference_ut_id")),
                 }
 
         if "OfferAttributeMap" in names:
@@ -182,6 +221,25 @@ class MappingWorkbook:
                         "target_scope": _s(r.get("target_scope")),
                         "derivation": r.get("derivation"),
                     })
+
+        if "POPMapping" in names:
+            rows, _ = self._rows(wb["POPMapping"])
+            for r in rows:
+                pt = _s(r.get("pop_type"))
+                if not pt:
+                    continue
+                _raw_ids = str(r.get("pop_external_ids") or "")
+                if _raw_ids.strip().lower().replace("-", "").replace(" ", "") == "nopop":
+                    _raw_ids = ""   # '-- no POP --' documentation marker => no POP
+                ids = [x.strip() for x in _raw_ids.split(";") if x.strip()]
+                self.pop_mapping[pt.lower()] = {
+                    "pop_external_ids": ids,
+                    "price_row_external_id": _s(r.get("price_row_external_id")),
+                    "amount_char_spec": _s(r.get("amount_char_spec")),
+                    "action_external_id": _s(r.get("action_external_id")),
+                    "unit": _s(r.get("unit")) or "gibibyte",
+                    "ut_value_source": _s(r.get("ut_value_source")) or "sdp_ut_id",
+                }
 
     # -- settings helpers -------------------------------------------------
     def setting(self, key: str, default: Any = None) -> Any:
@@ -329,37 +387,143 @@ class MappingEngine:
             product.characteristics.setdefault("FlatRate", "Yes")
             return product
 
-        # Buckets: account = UT-UC, counter = UC (expressions from ParameterMapping)
+        # --- Authoritative balance mechanism (from RMCA-decoded sheet) ---
+        mech = spec.get("balance_mechanism") or ""
+        product.balance_mechanism = mech
+        product.balance_pops = list(spec.get("balance_pops") or [])
+        product.consume_pop = spec.get("consume_pop") or None
+
+        # Account bucket = UT - UC ; Counter bucket = UC.
         acc_spec = spec["account_bucket_spec"]
         ctr_spec = spec["counter_bucket_spec"]
         acc_expr = self._param_derivation("account_bucket", "to_bytes(UT - UC)")
         ctr_expr = self._param_derivation("counter_bucket", "to_bytes(UC)")
+        acc_amount = self._as_int(safe_eval(acc_expr, ctx))
 
-        if acc_spec:
-            amount = self._as_int(safe_eval(acc_expr, ctx))
-            if amount is not None and amount >= 0:
-                product.buckets.append(BucketValue(acc_spec, amount, "MIGRATION"))
-        if ctr_spec:
-            amount = self._as_int(safe_eval(ctr_expr, ctx))
-            if amount is not None and amount >= 0:
-                product.buckets.append(BucketValue(ctr_spec, amount, "MIGRATION"))
+        if mech == "InitialChar":
+            # One-Time 155xxx / Fixed-Expiry 156xxx / VIP 160906. Balance is set via
+            # the 'Initial' PO characteristic to a FIXED activation value (the real
+            # quota is granted by the consumption POP at activation). The 'Initial'
+            # characteristic has a constrained value range -- the subscriber's raw
+            # UT-UC is NOT accepted. Verified from a working 201 contract: Initial
+            # = 102400 (byte), with NO price array and NO bucket adjustment.
+            init_val = int(self.wb.setting("initial_char_value", 102400) or 102400)
+            product.initial_balance = init_val
+            product.characteristics["Initial"] = str(init_val)
+            # No buckets, no POP for InitialChar offers.
+        else:
+            # POP / BucketReset / ConsumeOnly / CounterOnly / PAM_Provisioned:
+            # set the account bucket (UT-UC) when there is one, and the counter (UC).
+            if acc_spec and acc_amount is not None and acc_amount >= 0:
+                product.buckets.append(BucketValue(acc_spec, acc_amount, "MIGRATION"))
+            if ctr_spec:
+                camt = self._as_int(safe_eval(ctr_expr, ctx))
+                if camt is not None and camt >= 0:
+                    product.buckets.append(BucketValue(ctr_spec, camt, "MIGRATION"))
 
-        # Carryover
+        # Carryover: FLAG-ONLY. If the subscriber has the carryover companion offer,
+        # set the carryover flag bucket = 1 (no byte amount migrated).
         companion = carryover_by_base.get(offer.offer_id)
         if companion is not None:
-            carried_expr = self._param_derivation("carryover_account", "to_bytes(carried)")
             flag_expr = self._param_derivation("carryover_flag", "1")
-            co_acc_spec = spec["carryover_account_bucket_spec"]
             co_flag_spec = spec["carryover_flag_bucket_spec"]
-            if co_acc_spec:
-                amt = self._as_int(safe_eval(carried_expr, ctx))
-                if amt is not None:
-                    product.buckets.append(BucketValue(co_acc_spec, amt, "CARRYOVER"))
             if co_flag_spec:
                 flag = self._as_int(safe_eval(flag_expr, ctx)) or 1
                 product.buckets.append(BucketValue(co_flag_spec, flag, "CARRYOVER_FLAG"))
 
+        # Personalized POP (Price Logic): only offers whose balance_mechanism is POP
+        # carry a balance POP price. ut_value_source (POPMapping) decides the amount id.
+        if mech == "POP":
+            self._apply_pop_price(product, pop_type, ut, profile, spec)
+
         return product
+
+    def _apply_pop_price(self, product: DerivedProduct, pop_type: str, ut_bytes: float,
+                         profile: "SubscriberProfile" = None, spec: dict = None):
+        """Attach the personalized POP price spec + UT value from POPMapping."""
+        popspec = self.wb.pop_mapping.get((pop_type or "").lower())
+        if not popspec or not popspec.get("pop_external_ids"):
+            return  # Consumption / FlatRate / unmapped -> no POP price
+
+        # Resolve WHICH id supplies the POP amount (POPMapping.ut_value_source names
+        # a FamilyBucketSpecs column):
+        #   'reference_ut_id' -> live value of the offer's reference_ut_id; if that id
+        #                        is blank/unavailable, FALL BACK to sdp_ut_id (actual).
+        #   'sdp_ut_id' (or anything else) -> the subscriber's actual UT (sdp_ut_id).
+        source = (popspec.get("ut_value_source") or "").strip().lower()
+        amount_bytes = ut_bytes
+        if source == "reference_ut_id" and profile is not None and spec:
+            ref_id = (spec.get("reference_ut_id") or "").strip()
+            if ref_id:
+                ref_da = profile.dedicated_account(ref_id)
+                if ref_da is not None:
+                    amount_bytes = float(ref_da.value) * self.wb.bytes_per_unit(ref_da.unit)
+                # else: reference id not in fetched profile -> keep sdp_ut_id value
+            # else: offer has no reference_ut_id -> keep sdp_ut_id value (fallback)
+        ut_bytes = amount_bytes
+        # Build ONE price entry per balance POP, each using its OWN recipe
+        # (action/char/unit) decoded from RMCA. Different POPs use different actions
+        # (e.g. SetInitialAllocation vs FlatRate_No) -- a single shared recipe is wrong.
+        oid = getattr(product, "product_offering_external_id", "")
+        recipes = self.wb.pop_recipes.get(str(oid), {})
+        pop_ids = list(spec.get("balance_pops") or []) if spec else []
+        if not pop_ids:
+            pop_ids = list(popspec.get("pop_external_ids") or [])
+
+        def _amount_in(unit):
+            div = {"gibibyte": 1024 ** 3, "mebibyte": 1024 ** 2, "kibibyte": 1024,
+                   "byte": 1, "gigabyte": 10 ** 9, "megabyte": 10 ** 6}.get(unit, 1)
+            v = ut_bytes / div if ut_bytes else 0
+            return int(v) if float(v).is_integer() else round(v, 3)
+
+        price_entries = []
+        for pid in pop_ids:
+            rec = recipes.get(pid)
+            if rec:
+                price_entries.append({
+                    "pop_external_id": pid,
+                    "price_row_external_id": rec["price_row"],
+                    "action_external_id": rec["action"],
+                    "amount_char_spec": rec["amount_char"],
+                    "unit": rec.get("unit", "byte"),
+                    "amount": _amount_in(rec.get("unit", "byte")),
+                })
+            # else: this POP has NO personalized price recipe in RMCA (e.g. an
+            # add-on's POP_RegularRecurrence) -> emit NO price entry for it. Do NOT
+            # fall back to the generic Basic recipe (that caused CPM 2103 'Missing
+            # recipe of FlatRate_No').
+        product.ut_value = price_entries[0]["amount"] if price_entries else 0
+        product.pop_price = {
+            "pop_external_ids": pop_ids,
+            "price_entries": price_entries,
+            # keep legacy single-recipe fields for backward compat (first entry)
+            "price_row_external_id": price_entries[0]["price_row_external_id"] if price_entries else None,
+            "amount_char_spec": price_entries[0]["amount_char_spec"] if price_entries else None,
+            "action_external_id": price_entries[0]["action_external_id"] if price_entries else None,
+            "unit": price_entries[0]["unit"] if price_entries else "byte",
+        }
+        return
+        # (legacy code below retained but unreachable)
+        unit = popspec.get("unit", "gibibyte")
+        # convert UT bytes to the POP unit value
+        divisor = {"gibibyte": 1024 ** 3, "mebibyte": 1024 ** 2, "kibibyte": 1024,
+                   "byte": 1, "gigabyte": 10 ** 9, "megabyte": 10 ** 6}.get(unit, 1024 ** 3)
+        ut_value = ut_bytes / divisor if ut_bytes else 0
+        # whole number if exact, else keep decimal
+        ut_out = int(ut_value) if float(ut_value).is_integer() else round(ut_value, 3)
+        product.ut_value = ut_out
+        # Prefer the authoritative per-offer balance POP externalIds (from the sheet,
+        # decoded from RMCA). Fall back to the POPMapping generic list.
+        pop_ids = list(spec.get("balance_pops") or []) if spec else []
+        if not pop_ids:
+            pop_ids = list(popspec["pop_external_ids"])
+        product.pop_price = {
+            "pop_external_ids": pop_ids,
+            "price_row_external_id": popspec.get("price_row_external_id"),
+            "amount_char_spec": popspec.get("amount_char_spec"),
+            "action_external_id": popspec.get("action_external_id"),
+            "unit": unit,
+        }
 
     def _expr_context(self, profile, offer, ut, uc, flat_rate, carryover_by_base) -> dict:
         companion = carryover_by_base.get(offer.offer_id)
@@ -391,8 +555,8 @@ class MappingEngine:
 
     def _lookup_ut(self, profile: SubscriberProfile, spec: dict) -> float:
         """UT (total allocation) in bytes from the dedicated account matching the
-        account bucket spec id (or its numeric da id)."""
-        acc_spec = spec["account_bucket_spec"]
+        SDP UT id (sdp_ut_id if given, else the account bucket spec base id)."""
+        acc_spec = spec.get("sdp_ut_id") or spec["account_bucket_spec"]
         da = None
         if acc_spec:
             da = profile.dedicated_account(acc_spec) or profile.dedicated_account(
@@ -405,7 +569,7 @@ class MappingEngine:
 
     def _lookup_uc(self, profile: SubscriberProfile, spec: dict) -> float:
         """UC (consumed) in bytes from the accumulator matching the counter/account id."""
-        acc_spec = spec["account_bucket_spec"] or spec["counter_bucket_spec"]
+        acc_spec = spec.get("sdp_uc_id") or spec["account_bucket_spec"] or spec["counter_bucket_spec"]
         acc = None
         if acc_spec:
             base = acc_spec.split("_")[0]

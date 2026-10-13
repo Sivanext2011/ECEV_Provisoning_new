@@ -82,7 +82,21 @@ async def _cmd_migrate(args):
     do_del = config.get("options", {}).get("do_ec_delete", True) and not args.no_ec_delete
     orch = _build_orchestrator(config, dry_run=args.dry_run, do_ec_delete=do_del)
     await orch.store.init()
-    result = await orch.migrate(args.msisdn, force=args.force)
+    # subordinate / multi-SIM MSISDNs supplied by the user (comma-separated).
+    # Each item may be "msisdn" or "msisdn:imsi".
+    subs = None
+    if getattr(args, "subordinates", None):
+        subs = []
+        for item in args.subordinates.split(","):
+            item = item.strip()
+            if not item:
+                continue
+            if ":" in item:
+                m, i = item.split(":", 1)
+                subs.append({"msisdn": m.strip(), "imsi": i.strip()})
+            else:
+                subs.append({"msisdn": item})
+    result = await orch.migrate(args.msisdn, force=args.force, subordinates=subs)
     _print_result(result)
     return 0 if result.state not in (MigrationState.FAILED,) else 2
 
@@ -209,6 +223,10 @@ def build_parser() -> argparse.ArgumentParser:
 
     pm = sub.add_parser("migrate", help="migrate a single subscriber")
     pm.add_argument("msisdn")
+    pm.add_argument("--subordinates", "--subs", dest="subordinates", default=None,
+                    help="comma-separated subordinate / multi-SIM MSISDNs to migrate onto the "
+                         "master's contract, e.g. --subordinates 886...401,886...402 "
+                         "(or msisdn:imsi pairs: 886...401:4669200000...).")
     pm.add_argument("--dry-run", action="store_true", help="fetch+map only, no ECEV writes")
     pm.add_argument("--no-ec-delete", action="store_true", help="do not delete from EC")
     pm.add_argument("--force", action="store_true", help="re-run even if already migrated")

@@ -34,19 +34,24 @@ def seq(base_list, family, pop, bca, acc_fmt, ctr_fmt, co_acc_fmt=None, co_flag_
 add("145001", "Basic", "Regular", True, "6145000", "6145000_CTR")
 add("145002", "Basic", "Regular", True, "6145000", "6145000_CTR")
 
-# ---- Bundle / post-quota (Consumption, bill-cycle, LowBandwidth) ----
-# share the basic post-quota buckets
+# ---- Bundle / post-quota (Consumption, UNLIMITED -> counter only) ----
+# Unlimited post-quota bundles: NO account/allocation bucket, set ONLY the
+# counter bucket (= actual UC). No POP, no reference UT (Consumption).
 for oid in ["255001", "255002"]:
-    add(oid, "Bundle (post-quota)", "Consumption", True, "6145000_POSTACC", "6145000_POST_CTR")
+    add(oid, "Bundle (post-quota)", "Consumption", True, "", "6145000_POST_CTR")
 
 # ---- Tethering base (Regular, bill-cycle) ----
 add("281007", "Tethering", "Regular", True, "6281007", "6281007_CTR")
-# Tethering policy / post-quota (Consumption, bill-cycle, LowBandwidth)
-add("281008", "Tethering (post-quota)", "Consumption", True, "6281008_POSTACC", "6281008_POST_CTR")
+# Tethering post-quota (Consumption, UNLIMITED -> counter only; no account/POP/ref)
+add("281008", "Tethering (post-quota)", "Consumption", True, "", "6281008_POST_CTR")
 
 # ---- Data Add-ons (Initial, bill-cycle, with carryover) ----
+# Carryover model: on SDP, PAM auto-provisions a separate carryover offer when
+# quota remains. We do NOT migrate a carried byte amount. On CBEV we only set the
+# carryover FLAG counter (6{o}_carryover) = 1 to INDICATE carryover. So the
+# carryover ACCOUNT (6169006, PAM-provisioned) is left blank here.
 seq(["160006", "160106", "160206"], "Data Add-on", "Initial", True, "6{o}", "6{o}_CTR",
-    "6169006", "6{o}_carryover")  # carryover companion family 6169006
+    "", "6{o}_carryover")  # co_acc blank (PAM-provisioned); flag only
 add("160906", "VIP Add-on", "Initial", True, "6160906", "6160906_CTR", "", "6160906_carryover")
 
 # ---- 21M Add-ons (Initial, bill-cycle, carryover; allocation N/A -> Initial) ----
@@ -79,8 +84,9 @@ add("281006", "Unlimited Speed", "Consumption", True, "", "6281006_CTR")
 add("281014", "Unlimited Teth Speed", "Consumption", True, "", "6281014_CTR")
 
 # ---- Tethering Add-ons (14xxx bucket family, Initial, bill-cycle, carryover) ----
+# Flag-only carryover (PAM provisions carryover offer 161xxx on SDP; CBEV sets flag=1).
 seq(["160014", "160114", "160214"], "Teth Add-on", "Initial", True, "14{o}", "14{o}_CTR",
-    "14161014", "14{o}_carryover")
+    "", "14{o}_carryover")
 
 # ---- Tethering One-Time (NOT bill-cycle) ----
 seq(["155014", "155114", "155214", "155314", "155414"],
@@ -101,9 +107,10 @@ seq(["163006", "163106", "163206"], "21M Carryover", "Initial", True, "6{o}", "6
 
 # ---- MDVPN ----
 add("20001", "MDVPN Basic", "Regular", True, "620001", "620001_CTR")
-add("25001", "MDVPN Bundle (post-quota)", "Consumption", True, "620001_POSTACC", "620001_POST_CTR")
+# MDVPN post-quota bundle: UNLIMITED -> counter only (no account/POP/ref), like 255xxx/281008
+add("25001", "MDVPN Bundle (post-quota)", "Consumption", True, "", "620001_POST_CTR")
 add("281107", "MDVPN Tethering", "Regular", True, "6281107", "6281107_CTR")
-add("281108", "MDVPN Tethering (post-quota)", "Consumption", True, "6281108_POSTACC", "6281108_POST_CTR")
+add("281108", "MDVPN Tethering (post-quota)", "Consumption", True, "", "6281108_POST_CTR")
 
 # emit as python literal rows for pasting into excel_template.py
 def build_rows():

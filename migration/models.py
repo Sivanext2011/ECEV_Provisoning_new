@@ -90,6 +90,12 @@ class SubscriberProfile:
     dedicated_accounts: list[ECDedicatedAccount] = field(default_factory=list)
     accumulators: list[ECAccumulator] = field(default_factory=list)
     subordinates: list[ECSubordinate] = field(default_factory=list)
+    # True when GetAccountDetails returns masterSubscriberFlag=1 (this subscriber is
+    # the master of a multi-user / multi-SIM account). On AIR nodes without the
+    # GetMultiSubscriberNumbers operation, the subordinate MSISDNs cannot be
+    # enumerated from the master; supply them externally if needed.
+    master_subscriber_flag: bool = False
+    master_account_number: Optional[str] = None   # set on a subordinate's profile
 
     # raw operation payloads kept for audit / debugging
     raw: dict[str, Any] = field(default_factory=dict)
@@ -130,6 +136,17 @@ class DerivedProduct:
     pop_type: Optional[str] = None          # Regular / Initial / Consumption / FlatRate
     bill_cycle_aligned: bool = False        # True if offer has a POP (catalog) -> BA recurrence ref
     flat_rate: bool = False                 # FlatRate=Yes -> unlimited, no bucket
+    # Personalized POP (Price Logic) spec resolved from POPMapping, plus the UT
+    # value to inject into the POP amount characteristic. Used to build the
+    # product 'price' array in Create Contract.
+    pop_price: Optional[dict] = None        # {pop_external_ids:[...], price_row, amount_char_spec, action, unit}
+    ut_value: Optional[float] = None        # UT quota in pop unit (e.g. gibibyte) for the POP amount
+    # Authoritative balance mechanism (from RMCA-decoded sheet):
+    #   POP | InitialChar | BucketReset | CounterOnly | ConsumeOnly | PAM_Provisioned
+    balance_mechanism: Optional[str] = None
+    balance_pops: list = field(default_factory=list)   # CBEV balance POP externalIds (RMCA)
+    consume_pop: Optional[str] = None                  # CBEV consumption POP externalId (RMCA)
+    initial_balance: Optional[int] = None              # bytes for the 'Initial' PO characteristic
 
 
 @dataclass

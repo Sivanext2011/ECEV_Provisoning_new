@@ -127,10 +127,55 @@ def test_build_plan_buckets_addon_with_carryover(workbook, profile):
     plan = engine.build_plan(profile)
     addon = next(p for p in plan.products if p.product_offering_external_id == "160006")
     buckets = {b.bucket_spec_external_id: b.amount for b in addon.buckets}
-    assert buckets["6160006"] == 20 * GB         # account = 50-30
+    assert buckets["6160006"] == 20 * GB         # account = 50-30 (UT - UC)
     assert buckets["6160006_CTR"] == 30 * GB     # counter = UC
-    assert buckets["6169006"] == 5 * GB          # carryover carried bytes
-    assert buckets["6160006_carryover"] == 1     # carryover flag
+    # Carryover ACCOUNT is NOT migrated (PAM provisions the carryover offer on SDP).
+    assert "6169006" not in buckets
+    # On CBEV we only set the carryover FLAG = 1 to indicate carryover.
+    assert buckets["6160006_carryover"] == 1
+
+
+def test_balance_mechanism_pop_offers(workbook, profile):
+    """POP offers (Basic 145001, Data Add-on 160006) carry balance_mechanism=POP and
+    the authoritative RMCA balance POP externalIds; Add-on uses POP_Initial_Activation."""
+    engine = load_engine(workbook)
+    plan = engine.build_plan(profile)
+    basic = next(p for p in plan.products if p.product_offering_external_id == "145001")
+    assert basic.balance_mechanism == "POP"
+    assert basic.pop_price is not None
+    assert set(basic.pop_price["pop_external_ids"]) == {
+        "POP_RegularRecurrence", "POP_Prorating_Activation"}
+    assert basic.consume_pop == "POP_NormalData_Consumption"
+    assert basic.initial_balance is None            # POP offers do NOT use the Initial char
+
+    addon = next(p for p in plan.products if p.product_offering_external_id == "160006")
+    assert addon.balance_mechanism == "POP"
+    assert "POP_Initial_Activation" in addon.pop_price["pop_external_ids"]
+    assert "POP_RegularRecurrence" in addon.pop_price["pop_external_ids"]
+
+
+def test_balance_mechanism_initial_char(workbook):
+    """InitialChar offers (One-Time 155006) set the 'Initial' PO characteristic to UT-UC
+    (NOT a balance POP, and NOT an account bucket)."""
+    from migration.models import (SubscriberProfile, ECOffer, ECOfferAttribute,
+                                   ECDedicatedAccount, ECAccumulator)
+    engine = load_engine(workbook)
+    prof = SubscriberProfile(master_msisdn=MASTER)
+    prof.service_class = "10"
+    prof.offers = [ECOffer(offer_id="155006",
+                           attributes=[ECOfferAttribute(name="HighBandwidth", value="Speed1G")])]
+    prof.dedicated_accounts = [ECDedicatedAccount(dedicated_account_id="6155006", value=10, unit="gibibyte")]
+    prof.accumulators = [ECAccumulator(accumulator_id="6155006", value=4, unit="gibibyte")]
+    plan = engine.build_plan(prof)
+    p = next(p for p in plan.products if p.product_offering_external_id == "155006")
+    assert p.balance_mechanism == "InitialChar"
+    # Balance set via the 'Initial' PO characteristic to the FIXED activation value
+    # (102400 byte, verified from a working 201 contract) -- NOT the raw UT-UC.
+    assert p.initial_balance == 102400
+    assert p.characteristics.get("Initial") == "102400"
+    # No balance POP, and NO bucket adjustments for InitialChar offers.
+    assert p.pop_price is None
+    assert p.buckets == []
 
 
 def test_build_plan_multisim(workbook, profile):
@@ -190,24 +235,33 @@ def test_bssf_bodies(workbook, profile):
     po_ids = [p["productOfferingExternalId"] for p in ctr["product"]]
     assert "145001" in po_ids and "160006" in po_ids
 
-    # bucket adjustment body (flat productBucketAdjustment structure)
+    # bucket adjustment body (proven nested productAdjustments/productBuckets)
     first_prod, first_bucket = plan.all_bucket_adjustments()[0]
     adj = mig.build_bucket_adjustment_body(plan, first_prod, first_bucket)
-    assert adj["customerExternalId"] == f"customer-{plan.sub_ref}"
+    assert adj["relatedParty"]["externalId"] == f"customer-{plan.sub_ref}"
     assert adj["contractExternalId"] == f"contract-{plan.sub_ref}"
-    assert adj["productExternalId"] == f"extID_{first_prod}-{plan.sub_ref}"
-    assert adj["bucketSpecExternalId"] == first_bucket.bucket_spec_external_id
-    assert adj["amount"]["number"] == first_bucket.amount
-    assert adj["amount"]["decimalPlaces"] == 0
-    assert adj["action"] == "Set"
-    assert adj["unitOfMeasure"] == "byte"
+    pa = adj["productAdjustments"][0]
+    assert pa["productRef"]["externalId"] == f"extID_{first_prod}-{plan.sub_ref}"
+    pb = pa["productBuckets"][0]
+    assert pb["bucketSpecExternalId"] == first_bucket.bucket_spec_external_id
+    assert pb["amount"]["number"] == first_bucket.amount
+    assert pb["action"] == "Set"
+    assert pb["unitOfMeasure"] == "byte"
 
 
 def test_all_bucket_adjustments_count(workbook, profile):
     engine = load_engine(workbook)
     plan = engine.build_plan(profile)
-    # Basic: 2 buckets ; Add-on: 2 + carryover account + flag = 4 -> total 6
-    assert len(plan.all_bucket_adjustments()) == 6
+    # Basic: 2 buckets (account + counter).
+    # Add-on: 2 buckets (account + counter) + carryover FLAG only (=1).
+    # Carryover ACCOUNT is NOT migrated (PAM provisions the carryover offer on SDP;
+    # on CBEV we only set the carryover flag=1 to indicate carryover). -> total 5.
+    adjustments = plan.all_bucket_adjustments()
+    assert len(adjustments) == 5
+    # no carryover ACCOUNT bucket is set; the carryover FLAG bucket is set to 1
+    flags = [b for _, b in adjustments if b.reason == "CARRYOVER_FLAG"]
+    assert len(flags) == 1 and flags[0].amount == 1
+    assert not any(b.reason == "CARRYOVER" for _, b in adjustments)
 
 
 # --- XML-RPC request building (CPI protocol) -------------------------------
@@ -304,3 +358,51 @@ def test_negotiated_capabilities_present():
     for m in root.iter("member"):
         if m.find("name").text == "negotiatedCapabilities":
             assert m.find("value/array/data/value/i4") is not None
+
+
+# --- POP / recurrence on contract product (proven 201 pattern on this CBEV) ---
+
+def test_contract_product_ba_recurrence_ref():
+    """Proven 201 pattern: EVERY product carries billingAccountReference AND
+    baRefForBillCycleAlignedRecurrence (both {externalId:<ba>}), WITHOUT
+    isProratingRequired by default."""
+    from migration.models import MigrationPlan, DerivedProduct
+    from migration.bssf_migrator import BssfMigrator
+
+    plan = MigrationPlan(master_msisdn=MASTER)
+    plan.party_external_id = "party-x"
+    plan.customer_external_id = "cust-x"
+    plan.contract_external_id = "contract-x"
+    plan.billing_account_external_id = "ba-x"
+    plan.sub_ref = "x"
+    plan.contract_characteristics = {"ServiceClass": "5010"}
+    plan.products = [
+        DerivedProduct("145001", {"accountID": MASTER}, pop_type="Regular", bill_cycle_aligned=True),
+        DerivedProduct("160006", {"accountID": MASTER}, pop_type="Initial", bill_cycle_aligned=True),
+        DerivedProduct("155006", {"accountID": MASTER}, pop_type="Consumption", bill_cycle_aligned=False),
+    ]
+    mig = BssfMigrator(defaults={"contractSpecExternalId": "CHT_Contract_Postpaid",
+                                 "msisdnResourceSpecExternalId": "ext_LRS_MSISDN"})
+    body = mig.build_contract_body(plan)
+    prods = {p["productOfferingExternalId"]: p for p in body["product"]}
+    # bill-cycle-aligned products carry baRef {externalId}, no prorating
+    for po in ("145001", "160006"):
+        rec = prods[po].get("baRefForBillCycleAlignedRecurrence")
+        assert rec == {"externalId": "ba-x"}, f"{po} (bca) must carry baRef (no prorating)"
+        assert prods[po]["billingAccountReference"]["externalId"] == "ba-x"
+    # non-bill-cycle-aligned (One-Time) must NOT carry baRef
+    assert "baRefForBillCycleAlignedRecurrence" not in prods["155006"], \
+        "non-aligned product must NOT carry baRefForBillCycleAlignedRecurrence"
+
+
+def test_contract_prorating_opt_in():
+    from migration.models import MigrationPlan, DerivedProduct
+    from migration.bssf_migrator import BssfMigrator
+    plan = MigrationPlan(master_msisdn=MASTER)
+    plan.billing_account_external_id = "ba-x"
+    plan.sub_ref = "x"
+    plan.products = [DerivedProduct("145001", {}, pop_type="Regular", bill_cycle_aligned=True)]
+    mig = BssfMigrator(defaults={"isProratingRequired": True})
+    body = mig.build_contract_body(plan)
+    reg = body["product"][0]["baRefForBillCycleAlignedRecurrence"]
+    assert reg.get("isProratingRequired") is True, "prorating must be opt-in via config"

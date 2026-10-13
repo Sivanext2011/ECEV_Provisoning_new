@@ -1,0 +1,2462 @@
+{
+ "150906": {
+  "POP_NormalData_Consumption": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  },
+  "POP_RegularRecurrence": {
+   "actions": [
+    "Action_SetRecurrenceAllocation"
+   ],
+   "amount_chars": [
+    "SetRecurrenceAllocation_Amount"
+   ],
+   "price_rows": [
+    "SetRecurrenceAllocation"
+   ],
+   "units": [
+    "byte",
+    "gibibyte"
+   ]
+  },
+  "POP_Prorating_Activation": {
+   "actions": [
+    "Action_SetInitialAllocation"
+   ],
+   "amount_chars": [
+    "SetInitialAllocation_Amount"
+   ],
+   "price_rows": [
+    "SetInitialAllocation"
+   ],
+   "units": [
+    "byte",
+    "gibibyte"
+   ]
+  }
+ },
+ "162906": {
+  "POP_NormalData_Consumption": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  },
+  "POP_RegularRecurrence": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  },
+  "POP_Initial_Activation": {
+   "actions": [
+    "Action_SetInitialAllocation"
+   ],
+   "amount_chars": [
+    "SetInitialAllocation_Amount"
+   ],
+   "price_rows": [
+    "SetInitialAllocation"
+   ],
+   "units": [
+    "byte",
+    "gibibyte"
+   ]
+  }
+ },
+ "157106": {
+  "POP_NormalData_Consumption": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  },
+  "POP_RegularRecurrence": {
+   "actions": [
+    "Action_SetRecurrenceAllocation"
+   ],
+   "amount_chars": [
+    "SetRecurrenceAllocation_Amount"
+   ],
+   "price_rows": [
+    "SetRecurrenceAllocation"
+   ],
+   "units": [
+    "byte",
+    "gibibyte"
+   ]
+  },
+  "POP_Prorating_Activation": {
+   "actions": [
+    "Action_SetInitialAllocation"
+   ],
+   "amount_chars": [
+    "SetInitialAllocation_Amount"
+   ],
+   "price_rows": [
+    "SetInitialAllocation"
+   ],
+   "units": [
+    "byte",
+    "gibibyte"
+   ]
+  }
+ },
+ "20001": {
+  "POP_NormalData_Consumption": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  },
+  "POP_RegularRecurrence": {
+   "actions": [
+    "Action_FlatRate_No",
+    "Action_FlatRate_Yes"
+   ],
+   "amount_chars": [
+    "FlatRate_No_Amount",
+    "FlatRate_Yes_Amount"
+   ],
+   "price_rows": [],
+   "units": [
+    "byte",
+    "gibibyte",
+    "kibibyte"
+   ]
+  },
+  "POP_Prorating_Activation": {
+   "actions": [
+    "Action_FlatRate_No",
+    "Action_FlatRate_Yes"
+   ],
+   "amount_chars": [
+    "FlatRate_No_Amount",
+    "FlatRate_Yes_Amount"
+   ],
+   "price_rows": [],
+   "units": [
+    "byte",
+    "gibibyte",
+    "kibibyte"
+   ]
+  }
+ },
+ "155306": {
+  "POP_NormalData_Consumption": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  }
+ },
+ "157006": {
+  "POP_NormalData_Consumption": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  },
+  "POP_RegularRecurrence": {
+   "actions": [
+    "Action_SetRecurrenceAllocation"
+   ],
+   "amount_chars": [
+    "SetRecurrenceAllocation_Amount"
+   ],
+   "price_rows": [
+    "SetRecurrenceAllocation"
+   ],
+   "units": [
+    "byte",
+    "gibibyte"
+   ]
+  },
+  "POP_Prorating_Activation": {
+   "actions": [
+    "Action_SetInitialAllocation"
+   ],
+   "amount_chars": [
+    "SetInitialAllocation_Amount"
+   ],
+   "price_rows": [
+    "SetInitialAllocation"
+   ],
+   "units": [
+    "byte",
+    "gibibyte"
+   ]
+  }
+ },
+ "150106": {
+  "POP_NormalData_Consumption": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  },
+  "POP_RegularRecurrence": {
+   "actions": [
+    "Action_SetRecurrenceAllocation"
+   ],
+   "amount_chars": [
+    "SetRecurrenceAllocation_Amount"
+   ],
+   "price_rows": [
+    "SetRecurrenceAllocation"
+   ],
+   "units": [
+    "byte",
+    "gibibyte"
+   ]
+  },
+  "POP_Prorating_Activation": {
+   "actions": [
+    "Action_SetInitialAllocation"
+   ],
+   "amount_chars": [
+    "SetInitialAllocation_Amount"
+   ],
+   "price_rows": [
+    "SetInitialAllocation"
+   ],
+   "units": [
+    "byte",
+    "gibibyte"
+   ]
+  }
+ },
+ "150606": {
+  "POP_NormalData_Consumption": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  },
+  "POP_RegularRecurrence": {
+   "actions": [
+    "Action_SetRecurrenceAllocation"
+   ],
+   "amount_chars": [
+    "SetRecurrenceAllocation_Amount"
+   ],
+   "price_rows": [
+    "SetRecurrenceAllocation"
+   ],
+   "units": [
+    "byte",
+    "gibibyte"
+   ]
+  },
+  "POP_Prorating_Activation": {
+   "actions": [
+    "Action_SetInitialAllocation"
+   ],
+   "amount_chars": [
+    "SetInitialAllocation_Amount"
+   ],
+   "price_rows": [
+    "SetInitialAllocation"
+   ],
+   "units": [
+    "byte",
+    "gibibyte"
+   ]
+  }
+ },
+ "150006": {
+  "POP_NormalData_Consumption": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  },
+  "POP_RegularRecurrence": {
+   "actions": [
+    "Action_SetRecurrenceAllocation"
+   ],
+   "amount_chars": [
+    "SetRecurrenceAllocation_Amount"
+   ],
+   "price_rows": [
+    "SetRecurrenceAllocation"
+   ],
+   "units": [
+    "byte",
+    "gibibyte"
+   ]
+  },
+  "POP_Prorating_Activation": {
+   "actions": [
+    "Action_SetInitialAllocation"
+   ],
+   "amount_chars": [
+    "SetInitialAllocation_Amount"
+   ],
+   "price_rows": [
+    "SetInitialAllocation"
+   ],
+   "units": [
+    "byte",
+    "gibibyte"
+   ]
+  }
+ },
+ "156206": {
+  "POP_NormalData_Consumption": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  }
+ },
+ "157406": {
+  "POP_NormalData_Consumption": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  },
+  "POP_RegularRecurrence": {
+   "actions": [
+    "Action_SetRecurrenceAllocation"
+   ],
+   "amount_chars": [
+    "SetRecurrenceAllocation_Amount"
+   ],
+   "price_rows": [
+    "SetRecurrenceAllocation"
+   ],
+   "units": [
+    "byte",
+    "gibibyte"
+   ]
+  },
+  "POP_Prorating_Activation": {
+   "actions": [
+    "Action_SetInitialAllocation"
+   ],
+   "amount_chars": [
+    "SetInitialAllocation_Amount"
+   ],
+   "price_rows": [
+    "SetInitialAllocation"
+   ],
+   "units": [
+    "byte",
+    "gibibyte"
+   ]
+  }
+ },
+ "156006": {
+  "POP_NormalData_Consumption": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  }
+ },
+ "156106": {
+  "POP_NormalData_Consumption": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  }
+ },
+ "159206": {
+  "POP_NormalData_Consumption": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  }
+ },
+ "157306": {
+  "POP_NormalData_Consumption": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  },
+  "POP_RegularRecurrence": {
+   "actions": [
+    "Action_SetRecurrenceAllocation"
+   ],
+   "amount_chars": [
+    "SetRecurrenceAllocation_Amount"
+   ],
+   "price_rows": [
+    "SetRecurrenceAllocation"
+   ],
+   "units": [
+    "byte",
+    "gibibyte"
+   ]
+  },
+  "POP_Prorating_Activation": {
+   "actions": [
+    "Action_SetInitialAllocation"
+   ],
+   "amount_chars": [
+    "SetInitialAllocation_Amount"
+   ],
+   "price_rows": [
+    "SetInitialAllocation"
+   ],
+   "units": [
+    "byte",
+    "gibibyte"
+   ]
+  }
+ },
+ "281006": {
+  "POP_NormalData_Consumption": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "TWD",
+    "byte"
+   ]
+  }
+ },
+ "145002": {
+  "POP_NormalData_Consumption": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  },
+  "POP_RegularRecurrence": {
+   "actions": [
+    "Action_FlatRate_No",
+    "Action_FlatRate_Yes"
+   ],
+   "amount_chars": [
+    "FlatRate_No_Amount",
+    "FlatRate_Yes_Amount"
+   ],
+   "price_rows": [],
+   "units": [
+    "byte",
+    "gibibyte",
+    "kibibyte"
+   ]
+  },
+  "POP_Prorating_Activation": {
+   "actions": [
+    "Action_FlatRate_No",
+    "Action_FlatRate_Yes"
+   ],
+   "amount_chars": [
+    "FlatRate_No_Amount",
+    "FlatRate_Yes_Amount"
+   ],
+   "price_rows": [],
+   "units": [
+    "byte",
+    "gibibyte",
+    "kibibyte"
+   ]
+  }
+ },
+ "25001": {
+  "POP_NormalData_Consumption": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  },
+  "POP_Bundle_Bucket_Reset": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  }
+ },
+ "150706": {
+  "POP_NormalData_Consumption": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  },
+  "POP_RegularRecurrence": {
+   "actions": [
+    "Action_SetRecurrenceAllocation"
+   ],
+   "amount_chars": [
+    "SetRecurrenceAllocation_Amount"
+   ],
+   "price_rows": [
+    "SetRecurrenceAllocation"
+   ],
+   "units": [
+    "byte",
+    "gibibyte"
+   ]
+  },
+  "POP_Prorating_Activation": {
+   "actions": [
+    "Action_SetInitialAllocation"
+   ],
+   "amount_chars": [
+    "SetInitialAllocation_Amount"
+   ],
+   "price_rows": [
+    "SetInitialAllocation"
+   ],
+   "units": [
+    "byte",
+    "gibibyte"
+   ]
+  }
+ },
+ "157606": {
+  "POP_NormalData_Consumption": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  },
+  "POP_RegularRecurrence": {
+   "actions": [
+    "Action_SetRecurrenceAllocation"
+   ],
+   "amount_chars": [
+    "SetRecurrenceAllocation_Amount"
+   ],
+   "price_rows": [
+    "SetRecurrenceAllocation"
+   ],
+   "units": [
+    "byte",
+    "gibibyte"
+   ]
+  },
+  "POP_Prorating_Activation": {
+   "actions": [
+    "Action_SetInitialAllocation"
+   ],
+   "amount_chars": [
+    "SetInitialAllocation_Amount"
+   ],
+   "price_rows": [
+    "SetInitialAllocation"
+   ],
+   "units": [
+    "byte",
+    "gibibyte"
+   ]
+  }
+ },
+ "162206": {
+  "POP_NormalData_Consumption": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  },
+  "POP_RegularRecurrence": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  },
+  "POP_Initial_Activation": {
+   "actions": [
+    "Action_SetInitialAllocation"
+   ],
+   "amount_chars": [
+    "SetInitialAllocation_Amount"
+   ],
+   "price_rows": [
+    "SetInitialAllocation"
+   ],
+   "units": [
+    "byte",
+    "gibibyte"
+   ]
+  }
+ },
+ "145001": {
+  "POP_NormalData_Consumption": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  },
+  "POP_RegularRecurrence": {
+   "actions": [
+    "Action_FlatRate_No",
+    "Action_FlatRate_Yes"
+   ],
+   "amount_chars": [
+    "FlatRate_No_Amount",
+    "FlatRate_Yes_Amount"
+   ],
+   "price_rows": [],
+   "units": [
+    "byte",
+    "gibibyte",
+    "kibibyte"
+   ]
+  },
+  "POP_Prorating_Activation": {
+   "actions": [
+    "Action_FlatRate_No",
+    "Action_FlatRate_Yes"
+   ],
+   "amount_chars": [
+    "FlatRate_No_Amount",
+    "FlatRate_Yes_Amount"
+   ],
+   "price_rows": [],
+   "units": [
+    "byte",
+    "gibibyte",
+    "kibibyte"
+   ]
+  }
+ },
+ "157506": {
+  "POP_NormalData_Consumption": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  },
+  "POP_RegularRecurrence": {
+   "actions": [
+    "Action_SetRecurrenceAllocation"
+   ],
+   "amount_chars": [
+    "SetRecurrenceAllocation_Amount"
+   ],
+   "price_rows": [
+    "SetRecurrenceAllocation"
+   ],
+   "units": [
+    "byte",
+    "gibibyte"
+   ]
+  },
+  "POP_Prorating_Activation": {
+   "actions": [
+    "Action_SetInitialAllocation"
+   ],
+   "amount_chars": [
+    "SetInitialAllocation_Amount"
+   ],
+   "price_rows": [
+    "SetInitialAllocation"
+   ],
+   "units": [
+    "byte",
+    "gibibyte"
+   ]
+  }
+ },
+ "155206": {
+  "POP_NormalData_Consumption": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  }
+ },
+ "160906": {
+  "POP_NormalData_Consumption": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  }
+ },
+ "160206": {
+  "POP_NormalData_Consumption": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  },
+  "POP_RegularRecurrence": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  },
+  "POP_Initial_Activation": {
+   "actions": [
+    "Action_SetInitialAllocation"
+   ],
+   "amount_chars": [
+    "SetInitialAllocation_Amount"
+   ],
+   "price_rows": [
+    "SetInitialAllocation"
+   ],
+   "units": [
+    "byte",
+    "gibibyte"
+   ]
+  }
+ },
+ "160106": {
+  "POP_NormalData_Consumption": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  },
+  "POP_RegularRecurrence": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  },
+  "POP_Initial_Activation": {
+   "actions": [
+    "Action_SetInitialAllocation"
+   ],
+   "amount_chars": [
+    "SetInitialAllocation_Amount"
+   ],
+   "price_rows": [
+    "SetInitialAllocation"
+   ],
+   "units": [
+    "byte",
+    "gibibyte"
+   ]
+  }
+ },
+ "157806": {
+  "POP_NormalData_Consumption": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  },
+  "POP_RegularRecurrence": {
+   "actions": [
+    "Action_SetRecurrenceAllocation"
+   ],
+   "amount_chars": [
+    "SetRecurrenceAllocation_Amount"
+   ],
+   "price_rows": [
+    "SetRecurrenceAllocation"
+   ],
+   "units": [
+    "byte",
+    "gibibyte"
+   ]
+  },
+  "POP_Prorating_Activation": {
+   "actions": [
+    "Action_SetInitialAllocation"
+   ],
+   "amount_chars": [
+    "SetInitialAllocation_Amount"
+   ],
+   "price_rows": [
+    "SetInitialAllocation"
+   ],
+   "units": [
+    "byte",
+    "gibibyte"
+   ]
+  }
+ },
+ "255001": {
+  "POP_NormalData_Consumption": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  },
+  "POP_Bundle_Bucket_Reset": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  }
+ },
+ "156506": {
+  "POP_NormalData_Consumption": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  }
+ },
+ "150206": {
+  "POP_NormalData_Consumption": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  },
+  "POP_RegularRecurrence": {
+   "actions": [
+    "Action_SetRecurrenceAllocation"
+   ],
+   "amount_chars": [
+    "SetRecurrenceAllocation_Amount"
+   ],
+   "price_rows": [
+    "SetRecurrenceAllocation"
+   ],
+   "units": [
+    "byte",
+    "gibibyte"
+   ]
+  },
+  "POP_Prorating_Activation": {
+   "actions": [
+    "Action_SetInitialAllocation"
+   ],
+   "amount_chars": [
+    "SetInitialAllocation_Amount"
+   ],
+   "price_rows": [
+    "SetInitialAllocation"
+   ],
+   "units": [
+    "byte",
+    "gibibyte"
+   ]
+  }
+ },
+ "255002": {
+  "POP_NormalData_Consumption": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  },
+  "POP_Bundle_Bucket_Reset": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  }
+ },
+ "157206": {
+  "POP_NormalData_Consumption": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  },
+  "POP_RegularRecurrence": {
+   "actions": [
+    "Action_SetRecurrenceAllocation"
+   ],
+   "amount_chars": [
+    "SetRecurrenceAllocation_Amount"
+   ],
+   "price_rows": [
+    "SetRecurrenceAllocation"
+   ],
+   "units": [
+    "byte",
+    "gibibyte"
+   ]
+  },
+  "POP_Prorating_Activation": {
+   "actions": [
+    "Action_SetInitialAllocation"
+   ],
+   "amount_chars": [
+    "SetInitialAllocation_Amount"
+   ],
+   "price_rows": [
+    "SetInitialAllocation"
+   ],
+   "units": [
+    "byte",
+    "gibibyte"
+   ]
+  }
+ },
+ "162106": {
+  "POP_NormalData_Consumption": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  },
+  "POP_RegularRecurrence": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  },
+  "POP_Initial_Activation": {
+   "actions": [
+    "Action_SetInitialAllocation"
+   ],
+   "amount_chars": [
+    "SetInitialAllocation_Amount"
+   ],
+   "price_rows": [
+    "SetInitialAllocation"
+   ],
+   "units": [
+    "byte",
+    "gibibyte"
+   ]
+  }
+ },
+ "159406": {
+  "POP_NormalData_Consumption": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  }
+ },
+ "156606": {
+  "POP_NormalData_Consumption": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  }
+ },
+ "155006": {
+  "POP_NormalData_Consumption": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  }
+ },
+ "150506": {
+  "POP_NormalData_Consumption": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  },
+  "POP_RegularRecurrence": {
+   "actions": [
+    "Action_SetRecurrenceAllocation"
+   ],
+   "amount_chars": [
+    "SetRecurrenceAllocation_Amount"
+   ],
+   "price_rows": [
+    "SetRecurrenceAllocation"
+   ],
+   "units": [
+    "byte",
+    "gibibyte"
+   ]
+  },
+  "POP_Prorating_Activation": {
+   "actions": [
+    "Action_SetInitialAllocation"
+   ],
+   "amount_chars": [
+    "SetInitialAllocation_Amount"
+   ],
+   "price_rows": [
+    "SetInitialAllocation"
+   ],
+   "units": [
+    "byte",
+    "gibibyte"
+   ]
+  }
+ },
+ "157906": {
+  "POP_NormalData_Consumption": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  },
+  "POP_RegularRecurrence": {
+   "actions": [
+    "Action_SetRecurrenceAllocation"
+   ],
+   "amount_chars": [
+    "SetRecurrenceAllocation_Amount"
+   ],
+   "price_rows": [
+    "SetRecurrenceAllocation"
+   ],
+   "units": [
+    "byte",
+    "gibibyte"
+   ]
+  },
+  "POP_Prorating_Activation": {
+   "actions": [
+    "Action_SetInitialAllocation"
+   ],
+   "amount_chars": [
+    "SetInitialAllocation_Amount"
+   ],
+   "price_rows": [
+    "SetInitialAllocation"
+   ],
+   "units": [
+    "byte",
+    "gibibyte"
+   ]
+  }
+ },
+ "159006": {
+  "POP_NormalData_Consumption": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  }
+ },
+ "162006": {
+  "POP_NormalData_Consumption": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  },
+  "POP_RegularRecurrence": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  },
+  "POP_Initial_Activation": {
+   "actions": [
+    "Action_SetInitialAllocation"
+   ],
+   "amount_chars": [
+    "SetInitialAllocation_Amount"
+   ],
+   "price_rows": [
+    "SetInitialAllocation"
+   ],
+   "units": [
+    "byte",
+    "gibibyte"
+   ]
+  }
+ },
+ "155406": {
+  "POP_NormalData_Consumption": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  }
+ },
+ "156806": {
+  "POP_NormalData_Consumption": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  }
+ },
+ "159106": {
+  "POP_NormalData_Consumption": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  }
+ },
+ "156406": {
+  "POP_NormalData_Consumption": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  }
+ },
+ "156706": {
+  "POP_NormalData_Consumption": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  }
+ },
+ "150406": {
+  "POP_NormalData_Consumption": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  },
+  "POP_RegularRecurrence": {
+   "actions": [
+    "Action_SetRecurrenceAllocation"
+   ],
+   "amount_chars": [
+    "SetRecurrenceAllocation_Amount"
+   ],
+   "price_rows": [
+    "SetRecurrenceAllocation"
+   ],
+   "units": [
+    "byte",
+    "gibibyte"
+   ]
+  },
+  "POP_Prorating_Activation": {
+   "actions": [
+    "Action_SetInitialAllocation"
+   ],
+   "amount_chars": [
+    "SetInitialAllocation_Amount"
+   ],
+   "price_rows": [
+    "SetInitialAllocation"
+   ],
+   "units": [
+    "byte",
+    "gibibyte"
+   ]
+  }
+ },
+ "157706": {
+  "POP_NormalData_Consumption": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  },
+  "POP_RegularRecurrence": {
+   "actions": [
+    "Action_SetRecurrenceAllocation"
+   ],
+   "amount_chars": [
+    "SetRecurrenceAllocation_Amount"
+   ],
+   "price_rows": [
+    "SetRecurrenceAllocation"
+   ],
+   "units": [
+    "byte",
+    "gibibyte"
+   ]
+  },
+  "POP_Prorating_Activation": {
+   "actions": [
+    "Action_SetInitialAllocation"
+   ],
+   "amount_chars": [
+    "SetInitialAllocation_Amount"
+   ],
+   "price_rows": [
+    "SetInitialAllocation"
+   ],
+   "units": [
+    "byte",
+    "gibibyte"
+   ]
+  }
+ },
+ "281005": {
+  "POP_NormalData_Consumption": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  },
+  "POP_RegularRecurrence": {
+   "actions": [
+    "Action_SetRecurrenceAllocation"
+   ],
+   "amount_chars": [
+    "SetRecurrenceAllocation_Amount"
+   ],
+   "price_rows": [
+    "SetRecurrenceAllocation"
+   ],
+   "units": [
+    "byte",
+    "gibibyte"
+   ]
+  },
+  "POP_Prorating_Activation": {
+   "actions": [
+    "Action_SetInitialAllocation"
+   ],
+   "amount_chars": [
+    "SetInitialAllocation_Amount"
+   ],
+   "price_rows": [
+    "SetInitialAllocation"
+   ],
+   "units": [
+    "byte",
+    "gibibyte"
+   ]
+  }
+ },
+ "159306": {
+  "POP_NormalData_Consumption": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  }
+ },
+ "160006": {
+  "POP_NormalData_Consumption": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  },
+  "POP_RegularRecurrence": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  },
+  "POP_Initial_Activation": {
+   "actions": [
+    "Action_SetInitialAllocation"
+   ],
+   "amount_chars": [
+    "SetInitialAllocation_Amount"
+   ],
+   "price_rows": [
+    "SetInitialAllocation"
+   ],
+   "units": [
+    "byte",
+    "gibibyte"
+   ]
+  }
+ },
+ "150306": {
+  "POP_NormalData_Consumption": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  },
+  "POP_RegularRecurrence": {
+   "actions": [
+    "Action_SetRecurrenceAllocation"
+   ],
+   "amount_chars": [
+    "SetRecurrenceAllocation_Amount"
+   ],
+   "price_rows": [
+    "SetRecurrenceAllocation"
+   ],
+   "units": [
+    "byte",
+    "gibibyte"
+   ]
+  },
+  "POP_Prorating_Activation": {
+   "actions": [
+    "Action_SetInitialAllocation"
+   ],
+   "amount_chars": [
+    "SetInitialAllocation_Amount"
+   ],
+   "price_rows": [
+    "SetInitialAllocation"
+   ],
+   "units": [
+    "byte",
+    "gibibyte"
+   ]
+  }
+ },
+ "155106": {
+  "POP_NormalData_Consumption": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  }
+ },
+ "150806": {
+  "POP_NormalData_Consumption": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  },
+  "POP_RegularRecurrence": {
+   "actions": [
+    "Action_SetRecurrenceAllocation"
+   ],
+   "amount_chars": [
+    "SetRecurrenceAllocation_Amount"
+   ],
+   "price_rows": [
+    "SetRecurrenceAllocation"
+   ],
+   "units": [
+    "byte",
+    "gibibyte"
+   ]
+  },
+  "POP_Prorating_Activation": {
+   "actions": [
+    "Action_SetInitialAllocation"
+   ],
+   "amount_chars": [
+    "SetInitialAllocation_Amount"
+   ],
+   "price_rows": [
+    "SetInitialAllocation"
+   ],
+   "units": [
+    "byte",
+    "gibibyte"
+   ]
+  }
+ },
+ "156906": {
+  "POP_NormalData_Consumption": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  }
+ },
+ "156306": {
+  "POP_NormalData_Consumption": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  }
+ },
+ "150214": {
+  "POP_TetheringData_Consumption": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  },
+  "POP_RegularRecurrence": {
+   "actions": [
+    "Action_SetRecurrenceAllocation"
+   ],
+   "amount_chars": [
+    "SetRecurrenceAllocation_Amount"
+   ],
+   "price_rows": [
+    "SetRecurrenceAllocation"
+   ],
+   "units": [
+    "byte",
+    "gibibyte"
+   ]
+  },
+  "POP_Prorating_Activation": {
+   "actions": [
+    "Action_SetInitialAllocation"
+   ],
+   "amount_chars": [
+    "SetInitialAllocation_Amount"
+   ],
+   "price_rows": [
+    "SetInitialAllocation"
+   ],
+   "units": [
+    "byte",
+    "gibibyte"
+   ]
+  }
+ },
+ "281107": {
+  "POP_TetheringData_Consumption": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  },
+  "POP_RegularRecurrence": {
+   "actions": [
+    "Action_FlatRate_No",
+    "Action_FlatRate_Yes"
+   ],
+   "amount_chars": [
+    "FlatRate_No_Amount",
+    "FlatRate_Yes_Amount"
+   ],
+   "price_rows": [],
+   "units": [
+    "byte",
+    "gibibyte",
+    "kibibyte"
+   ]
+  },
+  "POP_Prorating_Activation": {
+   "actions": [
+    "Action_FlatRate_No",
+    "Action_FlatRate_Yes"
+   ],
+   "amount_chars": [
+    "FlatRate_No_Amount",
+    "FlatRate_Yes_Amount"
+   ],
+   "price_rows": [],
+   "units": [
+    "byte",
+    "gibibyte",
+    "kibibyte"
+   ]
+  }
+ },
+ "156314": {
+  "POP_TetheringData_Consumption": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  }
+ },
+ "156014": {
+  "POP_TetheringData_Consumption": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  }
+ },
+ "281008": {
+  "POP_TetheringData_Consumption": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  },
+  "POP_TetheringBundle_Bucket_Reset": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  }
+ },
+ "150414": {
+  "POP_TetheringData_Consumption": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  },
+  "POP_RegularRecurrence": {
+   "actions": [
+    "Action_SetRecurrenceAllocation"
+   ],
+   "amount_chars": [
+    "SetRecurrenceAllocation_Amount"
+   ],
+   "price_rows": [
+    "SetRecurrenceAllocation"
+   ],
+   "units": [
+    "byte",
+    "gibibyte"
+   ]
+  },
+  "POP_Prorating_Activation": {
+   "actions": [
+    "Action_SetInitialAllocation"
+   ],
+   "amount_chars": [
+    "SetInitialAllocation_Amount"
+   ],
+   "price_rows": [
+    "SetInitialAllocation"
+   ],
+   "units": [
+    "byte",
+    "gibibyte"
+   ]
+  }
+ },
+ "150514": {
+  "POP_TetheringData_Consumption": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  },
+  "POP_RegularRecurrence": {
+   "actions": [
+    "Action_SetRecurrenceAllocation"
+   ],
+   "amount_chars": [
+    "SetRecurrenceAllocation_Amount"
+   ],
+   "price_rows": [
+    "SetRecurrenceAllocation"
+   ],
+   "units": [
+    "byte",
+    "gibibyte"
+   ]
+  },
+  "POP_Prorating_Activation": {
+   "actions": [
+    "Action_SetInitialAllocation"
+   ],
+   "amount_chars": [
+    "SetInitialAllocation_Amount"
+   ],
+   "price_rows": [
+    "SetInitialAllocation"
+   ],
+   "units": [
+    "byte",
+    "gibibyte"
+   ]
+  }
+ },
+ "160214": {
+  "POP_TetheringData_Consumption": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  },
+  "POP_RegularRecurrence": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  },
+  "POP_Initial_Activation": {
+   "actions": [
+    "Action_SetInitialAllocation"
+   ],
+   "amount_chars": [
+    "SetInitialAllocation_Amount"
+   ],
+   "price_rows": [
+    "SetInitialAllocation"
+   ],
+   "units": [
+    "byte",
+    "gibibyte"
+   ]
+  }
+ },
+ "150814": {
+  "POP_TetheringData_Consumption": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  },
+  "POP_RegularRecurrence": {
+   "actions": [
+    "Action_SetRecurrenceAllocation"
+   ],
+   "amount_chars": [
+    "SetRecurrenceAllocation_Amount"
+   ],
+   "price_rows": [
+    "SetRecurrenceAllocation"
+   ],
+   "units": [
+    "byte",
+    "gibibyte"
+   ]
+  },
+  "POP_Prorating_Activation": {
+   "actions": [
+    "Action_SetInitialAllocation"
+   ],
+   "amount_chars": [
+    "SetInitialAllocation_Amount"
+   ],
+   "price_rows": [
+    "SetInitialAllocation"
+   ],
+   "units": [
+    "byte",
+    "gibibyte"
+   ]
+  }
+ },
+ "150014": {
+  "POP_TetheringData_Consumption": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  },
+  "POP_RegularRecurrence": {
+   "actions": [
+    "Action_SetRecurrenceAllocation"
+   ],
+   "amount_chars": [
+    "SetRecurrenceAllocation_Amount"
+   ],
+   "price_rows": [
+    "SetRecurrenceAllocation"
+   ],
+   "units": [
+    "byte",
+    "gibibyte"
+   ]
+  },
+  "POP_Prorating_Activation": {
+   "actions": [
+    "Action_SetInitialAllocation"
+   ],
+   "amount_chars": [
+    "SetInitialAllocation_Amount"
+   ],
+   "price_rows": [
+    "SetInitialAllocation"
+   ],
+   "units": [
+    "byte",
+    "gibibyte"
+   ]
+  }
+ },
+ "155214": {
+  "POP_TetheringData_Consumption": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  }
+ },
+ "100006": {
+  "POP_NormalData_Consumption": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  }
+ },
+ "281007": {
+  "POP_TetheringData_Consumption": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  },
+  "POP_RegularRecurrence": {
+   "actions": [
+    "Action_FlatRate_No",
+    "Action_FlatRate_Yes"
+   ],
+   "amount_chars": [
+    "FlatRate_No_Amount",
+    "FlatRate_Yes_Amount"
+   ],
+   "price_rows": [],
+   "units": [
+    "byte",
+    "gibibyte",
+    "kibibyte"
+   ]
+  },
+  "POP_Prorating_Activation": {
+   "actions": [
+    "Action_FlatRate_No",
+    "Action_FlatRate_Yes"
+   ],
+   "amount_chars": [
+    "FlatRate_No_Amount",
+    "FlatRate_Yes_Amount"
+   ],
+   "price_rows": [],
+   "units": [
+    "byte",
+    "gibibyte",
+    "kibibyte"
+   ]
+  }
+ },
+ "155014": {
+  "POP_TetheringData_Consumption": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  }
+ },
+ "160114": {
+  "POP_TetheringData_Consumption": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  },
+  "POP_RegularRecurrence": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  },
+  "POP_Initial_Activation": {
+   "actions": [
+    "Action_SetInitialAllocation"
+   ],
+   "amount_chars": [
+    "SetInitialAllocation_Amount"
+   ],
+   "price_rows": [
+    "SetInitialAllocation"
+   ],
+   "units": [
+    "byte",
+    "gibibyte"
+   ]
+  }
+ },
+ "156414": {
+  "POP_TetheringData_Consumption": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  }
+ },
+ "156214": {
+  "POP_TetheringData_Consumption": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  }
+ },
+ "281014": {
+  "POP_NormalData_Consumption": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "TWD",
+    "byte"
+   ]
+  }
+ },
+ "155414": {
+  "POP_TetheringData_Consumption": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  }
+ },
+ "160014": {
+  "POP_TetheringData_Consumption": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  },
+  "POP_RegularRecurrence": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  },
+  "POP_Initial_Activation": {
+   "actions": [
+    "Action_SetInitialAllocation"
+   ],
+   "amount_chars": [
+    "SetInitialAllocation_Amount"
+   ],
+   "price_rows": [
+    "SetInitialAllocation"
+   ],
+   "units": [
+    "byte",
+    "gibibyte"
+   ]
+  }
+ },
+ "150114": {
+  "POP_TetheringData_Consumption": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  },
+  "POP_RegularRecurrence": {
+   "actions": [
+    "Action_SetRecurrenceAllocation"
+   ],
+   "amount_chars": [
+    "SetRecurrenceAllocation_Amount"
+   ],
+   "price_rows": [
+    "SetRecurrenceAllocation"
+   ],
+   "units": [
+    "byte",
+    "gibibyte"
+   ]
+  },
+  "POP_Prorating_Activation": {
+   "actions": [
+    "Action_SetInitialAllocation"
+   ],
+   "amount_chars": [
+    "SetInitialAllocation_Amount"
+   ],
+   "price_rows": [
+    "SetInitialAllocation"
+   ],
+   "units": [
+    "byte",
+    "gibibyte"
+   ]
+  }
+ },
+ "281108": {
+  "POP_TetheringData_Consumption": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  },
+  "POP_TetheringBundle_Bucket_Reset": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  }
+ },
+ "150314": {
+  "POP_TetheringData_Consumption": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  },
+  "POP_RegularRecurrence": {
+   "actions": [
+    "Action_SetRecurrenceAllocation"
+   ],
+   "amount_chars": [
+    "SetRecurrenceAllocation_Amount"
+   ],
+   "price_rows": [
+    "SetRecurrenceAllocation"
+   ],
+   "units": [
+    "byte",
+    "gibibyte"
+   ]
+  },
+  "POP_Prorating_Activation": {
+   "actions": [
+    "Action_SetInitialAllocation"
+   ],
+   "amount_chars": [
+    "SetInitialAllocation_Amount"
+   ],
+   "price_rows": [
+    "SetInitialAllocation"
+   ],
+   "units": [
+    "byte",
+    "gibibyte"
+   ]
+  }
+ },
+ "150914": {
+  "POP_TetheringData_Consumption": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  },
+  "POP_RegularRecurrence": {
+   "actions": [
+    "Action_SetRecurrenceAllocation"
+   ],
+   "amount_chars": [
+    "SetRecurrenceAllocation_Amount"
+   ],
+   "price_rows": [
+    "SetRecurrenceAllocation"
+   ],
+   "units": [
+    "byte",
+    "gibibyte"
+   ]
+  },
+  "POP_Prorating_Activation": {
+   "actions": [
+    "Action_SetInitialAllocation"
+   ],
+   "amount_chars": [
+    "SetInitialAllocation_Amount"
+   ],
+   "price_rows": [
+    "SetInitialAllocation"
+   ],
+   "units": [
+    "byte",
+    "gibibyte"
+   ]
+  }
+ },
+ "150714": {
+  "POP_TetheringData_Consumption": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  },
+  "POP_RegularRecurrence": {
+   "actions": [
+    "Action_SetRecurrenceAllocation"
+   ],
+   "amount_chars": [
+    "SetRecurrenceAllocation_Amount"
+   ],
+   "price_rows": [
+    "SetRecurrenceAllocation"
+   ],
+   "units": [
+    "byte",
+    "gibibyte"
+   ]
+  },
+  "POP_Prorating_Activation": {
+   "actions": [
+    "Action_SetInitialAllocation"
+   ],
+   "amount_chars": [
+    "SetInitialAllocation_Amount"
+   ],
+   "price_rows": [
+    "SetInitialAllocation"
+   ],
+   "units": [
+    "byte",
+    "gibibyte"
+   ]
+  }
+ },
+ "150614": {
+  "POP_TetheringData_Consumption": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  },
+  "POP_RegularRecurrence": {
+   "actions": [
+    "Action_SetRecurrenceAllocation"
+   ],
+   "amount_chars": [
+    "SetRecurrenceAllocation_Amount"
+   ],
+   "price_rows": [
+    "SetRecurrenceAllocation"
+   ],
+   "units": [
+    "byte",
+    "gibibyte"
+   ]
+  },
+  "POP_Prorating_Activation": {
+   "actions": [
+    "Action_SetInitialAllocation"
+   ],
+   "amount_chars": [
+    "SetInitialAllocation_Amount"
+   ],
+   "price_rows": [
+    "SetInitialAllocation"
+   ],
+   "units": [
+    "byte",
+    "gibibyte"
+   ]
+  }
+ },
+ "156114": {
+  "POP_TetheringData_Consumption": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  }
+ },
+ "155314": {
+  "POP_TetheringData_Consumption": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  }
+ },
+ "155114": {
+  "POP_TetheringData_Consumption": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  }
+ },
+ "240062": {
+  "POP_NormalData_Consumption": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte",
+    "kibibyte"
+   ]
+  }
+ },
+ "211001": {
+  "POP_NormalData_Consumption": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  }
+ },
+ "kib_test": {
+  "kib_test": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte",
+    "kibibyte"
+   ]
+  },
+  "REGULAR": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte",
+    "gibibyte"
+   ]
+  },
+  "POP": {
+   "actions": [],
+   "amount_chars": [
+    "Amount"
+   ],
+   "price_rows": [],
+   "units": [
+    "byte",
+    "gibibyte"
+   ]
+  }
+ },
+ "240063": {
+  "POP_TetheringData_Consumption": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte",
+    "kibibyte"
+   ]
+  }
+ },
+ "PO_PPP_Tethering_Addon_POC1_ADD_2PERIOD": {
+  "POP_NormalData_Consumption": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  },
+  "POP_RegularRecurrence": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  },
+  "POP_Initial_Activation": {
+   "actions": [],
+   "amount_chars": [
+    "Amount"
+   ],
+   "price_rows": [],
+   "units": [
+    "byte",
+    "gibibyte",
+    "percent"
+   ]
+  }
+ },
+ "160914": {
+  "POP_TetheringData_Consumption": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte",
+    "kibibyte"
+   ]
+  }
+ },
+ "230003_Consumer": {
+  "POP_SERVICE_USAGE": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  }
+ },
+ "230003": {
+  "POP_SERVICE_USAGE": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  }
+ },
+ "PO_PPP_Tethering_Addon_POC_SET": {
+  "POP_NormalData_Consumption": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  },
+  "POP_RegularRecurrence": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  },
+  "POP_Initial_Activation": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte",
+    "gibibyte"
+   ]
+  }
+ },
+ "140002": {
+  "POP_NormalData_Consumption": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte",
+    "kibibyte"
+   ]
+  }
+ },
+ "TechnicalPO2": {},
+ "PO_PPP_POC_INTERNAL_COUNTER": {
+  "POP_NormalData_Consumption": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  },
+  "POP_RegularRecurrence": {
+   "actions": [],
+   "amount_chars": [
+    "Amount"
+   ],
+   "price_rows": [],
+   "units": [
+    "byte",
+    "gibibyte"
+   ]
+  },
+  "POP_Initial_Activation": {
+   "actions": [],
+   "amount_chars": [
+    "Amount"
+   ],
+   "price_rows": [],
+   "units": [
+    "byte",
+    "gibibyte"
+   ]
+  }
+ },
+ "240061": {
+  "POP_NormalData_Consumption": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte",
+    "kibibyte"
+   ]
+  }
+ },
+ "PO_Technical": {},
+ "PO_NetworkSlice_Data_Consume": {
+  "POP_SliceData_Consumption": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte"
+   ]
+  }
+ },
+ "PO_PPP_POC_INTERNAL_ACCUMULATION_BASIC": {
+  "POP_NormalData_Consumption_POC": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte",
+    "kibibyte"
+   ]
+  },
+  "POP_Recurrence": {
+   "actions": [],
+   "amount_chars": [],
+   "price_rows": [],
+   "units": [
+    "byte",
+    "gibibyte"
+   ]
+  },
+  "POP_Initial_Activation": {
+   "actions": [],
+   "amount_chars": [
+    "Amount"
+   ],
+   "price_rows": [],
+   "units": [
+    "byte",
+    "gibibyte"
+   ]
+  }
+ }
+}

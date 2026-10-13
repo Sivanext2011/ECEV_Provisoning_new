@@ -15,6 +15,7 @@ no-op (idempotent). externalIds are deterministic.
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from typing import Optional
 
@@ -40,7 +41,8 @@ class Orchestrator:
         *,
         do_ec_delete: bool = True,
         dry_run: bool = False,
-        verify_settle_seconds: float = 5.0,
+        verify_settle_seconds: float = 60.0,
+        customer_settle_seconds: float = 8.0,
     ):
         self.ucip = ucip
         self.engine = engine
@@ -52,8 +54,17 @@ class Orchestrator:
         # Seconds to wait after bucket adjustments before reconciling, so CPM's
         # time-sliced value containers become the active 'current' value.
         self.verify_settle_seconds = verify_settle_seconds
+        # Seconds to wait after creating the customer before creating the contract,
+        # so BSSF propagates the customer (avoids intermittent 403).
+        self.customer_settle_seconds = customer_settle_seconds
 
-    async def migrate(self, msisdn: str, force: bool = False) -> MigrationResult:
+    async def migrate(self, msisdn: str, force: bool = False,
+                      subordinates: list | None = None) -> MigrationResult:
+        """Migrate one subscriber. `subordinates` (optional) is a list of the
+        master's subordinate / multi-SIM MSISDNs supplied by the user at runtime
+        (strings, or dicts {"msisdn":..., "imsi":...}). They are attached to the
+        master's CBEV contract. AIR cannot enumerate subordinates from the master,
+        so they MUST be provided here for multi-SIM subscribers."""
         result = MigrationResult(msisdn=msisdn)
 
         # Idempotency: skip terminal states unless forced
@@ -66,11 +77,24 @@ class Orchestrator:
         # 1. FETCH --------------------------------------------------------
         try:
             profile = self.ucip.fetch_profile(msisdn)
+            # Attach user-supplied subordinate MSISDNs (multi-SIM). AIR cannot list
+            # them from the master, so the user provides them for this migration.
+            if subordinates:
+                from .models import ECSubordinate
+                subs = []
+                for s in subordinates:
+                    if isinstance(s, dict):
+                        subs.append(ECSubordinate(msisdn=str(s.get("msisdn")),
+                                                  imsi=s.get("imsi")))
+                    elif s:
+                        subs.append(ECSubordinate(msisdn=str(s)))
+                profile.subordinates = subs
             result.state = MigrationState.FETCHED
             result.profile = profile
             await self.store.audit(msisdn, "fetch", "ok",
                                    {"offers": [o.offer_id for o in profile.offers],
-                                    "service_class": profile.service_class})
+                                    "service_class": profile.service_class,
+                                    "subordinates": [s.msisdn for s in profile.subordinates]})
         except Exception as e:  # noqa: BLE001
             return await self._fail(result, "fetch", e)
 
@@ -104,6 +128,11 @@ class Orchestrator:
         try:
             party = await self.migrator.create_party(plan)
             customer = await self.migrator.create_customer(plan)
+            # The BSSF subscription endpoint needs the newly-created customer to
+            # propagate before a contract can be created against it; without a
+            # short settle it returns an intermittent 403. (Tunable.)
+            if self.customer_settle_seconds:
+                await asyncio.sleep(self.customer_settle_seconds)
             contract = await self.migrator.create_contract(plan)
             result.ecev_ids = {
                 "party": party.get("externalId", plan.party_external_id),
@@ -124,21 +153,21 @@ class Orchestrator:
 
         # 4. VERIFY -------------------------------------------------------
         try:
-            # Settle delay: a CPM 'Set' time-slices the bucket, opening a new value
-            # container that starts at the adjustment instant. A balance enquiry in
-            # the same second still sees the old (0) container as 'current'. Wait a
-            # few seconds so 'now' is clearly inside the new container window before
-            # reconciling.
+            # A CPM 'Set' time-slices the bucket: it opens a NEW value container
+            # that becomes the active 'current' value only after a short delay. A
+            # balance enquiry before then still reads the old (0) container, so the
+            # top-level effective amount lags. Poll until it settles (up to ~90s),
+            # with a single re-apply if still off.
             import asyncio as _asyncio
-            await _asyncio.sleep(self.verify_settle_seconds)
-            report = await self.verifier.verify(plan)
-            result.verify_report = report
-            if not report.get("passed"):
-                # settle longer + one re-apply attempt, then roll back
-                await _asyncio.sleep(self.verify_settle_seconds)
+            report = None
+            for delay in (15, 15, 15, 20, 25):   # cumulative ~90s
+                await _asyncio.sleep(delay)
                 report = await self.verifier.verify(plan)
                 result.verify_report = report
-            if not report.get("passed"):
+                if report.get("passed"):
+                    break
+            if report is not None and not report.get("passed"):
+                # one re-apply of the bucket Set, then a final settle + check
                 await self.migrator.adjust_buckets(plan)
                 await _asyncio.sleep(self.verify_settle_seconds)
                 report = await self.verifier.verify(plan)

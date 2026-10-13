@@ -70,7 +70,9 @@ def test_orchestrator_dry_run(workbook, tmp_path):
         ids = result.ecev_ids
         assert ids["party"].startswith("party-") and MASTER not in ids["party"]
         assert ids["contract"].startswith("contract-") and MASTER not in ids["contract"]
-        assert len(ids["bucket_adjustments"]) == 6
+        # Basic (2) + Add-on account+counter+carryover-flag (3) = 5.
+        # Carryover account is not migrated (flag-only carryover model).
+        assert len(ids["bucket_adjustments"]) == 5
         # persisted
         assert await store.get_state(MASTER) == MigrationState.FETCHED
         rep = await store.report()

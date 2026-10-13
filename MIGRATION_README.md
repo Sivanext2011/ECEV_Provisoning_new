@@ -134,8 +134,12 @@ plus `abs/min/max/round/int/float/floor/ceil`.
 - `Regular` / `Initial` POP: activation sets the full allocation, so buckets are
   **overridden after** activation. `Consumption`-only POP: initial bucket set directly.
 - `accountID` characteristic = master MSISDN on **every** product.
-- Multi-SIM (Apple Watch): subordinate MSISDN added as a second
-  `ext_LRS_MSISDN` resource on the **same** contract.
+- Multi-SIM (Apple Watch / One-Number): the subordinate MSISDN is added as a
+  second `ext_LRS_MSISDN` resource on the **same** CBEV contract as the master.
+  On this AIR, subordinate numbers CANNOT be enumerated from the master
+  (`GetMultiSubscriberNumbers` is unavailable and `GetAccountDetails` only exposes
+  `masterSubscriberFlag`). So the **user supplies the subordinate MSISDN(s) at
+  migration time** via `--subordinates` (CLI) or `migrate(subordinates=[...])`.
 
 ---
 
@@ -174,12 +178,13 @@ Two config files are used:
    }
    ```
 
-The UCIP request envelopes default to the LLD samples (`GetAccountDetails`,
-`GetOffers`, `GetBalanceAndDate`, `GetAccumulators`, `GetMultiSubscriberNumbers`,
-`DeleteOffer`). Override any of them per SDP install under `ucip.templates`
-without touching code — field names/xpaths are parsed by local name, so minor
-schema differences are tolerated. **Confirm the operation names and fields
-against the CHT SDP interface specification before production use.**
+The UCIP FETCH operations are driven by the **FetchOperations** sheet in the
+mapping workbook (set each `enabled` Yes/No). Defaults: `GetAccountDetails`,
+`GetOffers`, `GetUsageThresholdsAndCounters` = Yes (required); `GetBalanceAndDate`,
+`GetAccumulators` = No (CHT 5G PPP keeps the data balance in UT/UC, not dedicated
+accounts). Subordinate/multi-SIM numbers are NOT auto-fetched — supply them via
+`--subordinates`. **Confirm the operation names and fields against the CHT SDP
+interface specification before production use.**
 
 ---
 
@@ -201,6 +206,12 @@ python -m migration.cli migrate 886912345678
 
 # 5. Migrate without deleting from EC (provision + verify only)
 python -m migration.cli migrate 886912345678 --no-ec-delete
+
+# 5a. Migrate a MULTI-SIM master WITH its subordinate(s) (comma-separated).
+#     The subordinate MSISDNs are added to the SAME CBEV contract as the master.
+#     Optional msisdn:imsi form, e.g. 886912345679:466920000001234
+python -m migration.cli migrate 886912345678 --subordinates 886912345679
+python -m migration.cli migrate 886912345678 --subordinates 886912345679,886912345680
 
 # 6. Batch migrate from a file (one MSISDN per line) or a comma list
 python -m migration.cli batch msisdns.txt
