@@ -35,7 +35,7 @@ curl -k -X POST \
 
 
 # --- Parameters to adjust ---
-# SBI_FQDN: Your CHA SBI endpoint (e.g. bss-sbi.ecevns-oam-haber031.ews.gic.ericsson.se)
+# SBI_FQDN: Your CHA SBI endpoint (e.g. bss-sbi.<your-env-domain>)
 # imsi: 785007850078780 (subscriber IMSI)
 # msisdn: 7850078780 (subscriber MSISDN)
 # ratingGroup: 1000 (must match PO usage POP dimension condition)

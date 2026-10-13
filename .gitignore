@@ -19,6 +19,8 @@ node_modules/
 .env
 *.env.local
 config/config.json
+config/config.*.backup.json
+config/config.*.bak
 config/catalog.json
 config/certs/
 token.json

@@ -143,7 +143,7 @@ class EricssonClient:
 
             # Token endpoint doesn't require mTLS - use a plain client with no verify.
             # Must honour the SOCKS proxy (same as main client) so IAM is reachable
-            # on proxied environments (e.g. haber031 via the SSH tunnel).
+            # on proxied environments (via the SSH tunnel).
             timeout = self.network_cfg.get("timeout_seconds", 30)
             proxy = self.network_cfg.get("socks5_proxy", "") if self.network_cfg.get("socks5_enabled", False) else ""
             token_client = None
