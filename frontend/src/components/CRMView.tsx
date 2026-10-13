@@ -97,11 +97,15 @@ const flattenBuckets = (data: any): { billing: any[], products: Record<string, a
   return { billing, products: prods }
 }
 
-const fmtBytes = (n: number) => {
-  if (n >= 1073741824) return `${(n / 1073741824).toFixed(2)} GB`
-  if (n >= 1048576) return `${(n / 1048576).toFixed(2)} MB`
-  if (n >= 1024) return `${(n / 1024).toFixed(2)} KB`
-  return `${n} B`
+// Format a byte count. mode 'bytes' = raw bytes (default); 'human' = auto-scaled GiB/MiB/KiB.
+const fmtBytes = (n: number, mode: 'bytes' | 'human' = 'bytes') => {
+  if (mode === 'human') {
+    if (n >= 1073741824) return `${(n / 1073741824).toFixed(2)} GiB`
+    if (n >= 1048576) return `${(n / 1048576).toFixed(2)} MiB`
+    if (n >= 1024) return `${(n / 1024).toFixed(2)} KiB`
+    return `${n} B`
+  }
+  return `${n.toLocaleString('en-US')} B`
 }
 
 // === Main Component ===
@@ -119,6 +123,8 @@ export function CRMView() {
   const [contract, setContract] = useState<any>(null)
   const [balance, setBalance] = useState<any>(null)
   const [specs, setSpecs] = useState<any>(null)
+  // Value-container data unit display: 'bytes' (default, raw) or 'human' (GiB/MiB/KiB)
+  const [unitDisplay, setUnitDisplay] = useState<'bytes' | 'human'>('bytes')
 
   // Action state
   const [actionMsg, setActionMsg] = useState('')
@@ -1248,7 +1254,7 @@ export function CRMView() {
     const rawReserved = Number(bucket?.reservedAmount?.number ?? 0)
     const unit = (bucket?.unitOfMeasure || '').toLowerCase()
     const fmtAmount = (n: number) => {
-      if (unit === 'byte' || unit === 'bytes') return fmtBytes(n)
+      if (unit === 'byte' || unit === 'bytes') return fmtBytes(n, unitDisplay)
       const scaled = decPlaces > 0 ? n / Math.pow(10, decPlaces) : n
       return `${scaled.toFixed(decPlaces > 0 ? 2 : 0)}${unit ? ' ' + bucket.unitOfMeasure : ''}`
     }
@@ -1607,7 +1613,18 @@ export function CRMView() {
                 {/* Products List */}
                 {products.length > 0 && (
                   <div style={{ marginTop: 12 }}>
-                    <div style={{ fontSize: 12, fontWeight: 600, color: '#555', marginBottom: 6 }}>📦 Products ({products.length})</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6, flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: '#555' }}>📦 Products ({products.length})</span>
+                      <span style={{ fontSize: 11, color: '#777' }}>Value container unit:</span>
+                      <div style={{ display: 'inline-flex', border: '1px solid #c4b5fd', borderRadius: 4, overflow: 'hidden' }}>
+                        <button onClick={() => setUnitDisplay('bytes')}
+                          style={{ fontSize: 10, padding: '2px 8px', border: 'none', cursor: 'pointer',
+                                   background: unitDisplay === 'bytes' ? '#7c3aed' : '#fff', color: unitDisplay === 'bytes' ? '#fff' : '#5b21b6' }}>Bytes</button>
+                        <button onClick={() => setUnitDisplay('human')}
+                          style={{ fontSize: 10, padding: '2px 8px', border: 'none', cursor: 'pointer',
+                                   background: unitDisplay === 'human' ? '#7c3aed' : '#fff', color: unitDisplay === 'human' ? '#fff' : '#5b21b6' }}>GiB</button>
+                      </div>
+                    </div>
                     {products.map((p: any, i: number) => {
                       const pStatus = getCurrentStatus(p.status) || ''
                       return (
