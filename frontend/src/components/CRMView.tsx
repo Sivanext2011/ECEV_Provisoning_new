@@ -43,8 +43,38 @@ function getCurrentStatus(statusArr: any[]): string {
   return statusArr[statusArr.length - 1].status || ''
 }
 
-function Card({ title, icon, color, defaultOpen, rawData, children }: { title: string; icon: string; color: string; defaultOpen?: boolean; rawData?: any; children: React.ReactNode }) {
-  const [open, setOpen] = React.useState(defaultOpen ?? true)
+/** Derive a product's effective validity window from its status timeline.
+ *  Products are status-based: the top-level product.validFor is often empty, so
+ *  compute from status[]. Valid From = earliest ProductActive start.
+ *  Valid To = where it leaves active: start of the first ProductInactive/
+ *  ProductTerminated after the active window, else the ProductActive endDateTime,
+ *  else none (open-ended). 9999-* is treated as open-ended. */
+function productValidity(product: any): { from: string | null; to: string | null } {
+  const prodVf = product?.validFor || {}
+  const statuses = product?.status || []
+  const actives = statuses.filter((s: any) => s.status === 'ProductActive')
+  const terms = statuses.filter((s: any) => s.status === 'ProductInactive' || s.status === 'ProductTerminated')
+  const isEot = (d: any) => !d || String(d).startsWith('9999') || String(d).startsWith('0001')
+
+  // Valid From
+  let from: string | null = prodVf.startDateTime || null
+  const activeStarts = actives.map((s: any) => s.validFor?.startDateTime).filter(Boolean).sort()
+  if (activeStarts.length) from = activeStarts[0]
+  if (from && String(from).startsWith('0001')) from = null
+
+  // Valid To: earliest termination/inactive start, else active end
+  let to: string | null = null
+  const termStarts = terms.map((s: any) => s.validFor?.startDateTime).filter((d: any) => d && !isEot(d)).sort()
+  if (termStarts.length) {
+    to = termStarts[0]
+  } else {
+    const activeEnds = actives.map((s: any) => s.validFor?.endDateTime).filter((d: any) => d && !isEot(d)).sort()
+    to = activeEnds.length ? activeEnds[activeEnds.length - 1] : (isEot(prodVf.endDateTime) ? null : prodVf.endDateTime || null)
+  }
+  return { from, to }
+}
+
+function Card({ title, icon, color, defaultOpen, rawData, children }: { title: string; icon: string; color: string; defaultOpen?: boolean; rawData?: any; children: React.ReactNode }) {  const [open, setOpen] = React.useState(defaultOpen ?? true)
   const [showRaw, setShowRaw] = React.useState(false)
   return (
     <div style={{ border: `1px solid ${color}40`, borderRadius: 8, marginBottom: 10, overflow: 'hidden' }}>
@@ -425,15 +455,24 @@ export function CRMView() {
   const changeContractStatus = (status: string) => patchContract({ status: [{ status }] })
   const changeProductStatus = (productExtId: string, status: string) => patchContract({ product: [{ externalId: productExtId, status: [{ status }] }] })
 
-  /** Change or remove a product's expiry (ProductActive status validFor.endDateTime).
-   *  Per CBEV: PATCH the contract with the product's ProductActive status window.
-   *  Omit endDateTime to remove the expiry (open-ended). Preserve the current start. */
+  /** Change or remove a product's expiry.
+   *  CBEV updateContract MERGES the status timeline: to CANCEL a scheduled
+   *  termination you must send a single open-ended ProductActive whose window
+   *  COVERS the future ProductInactive/ProductTerminated entries, which then get
+   *  overwritten. We set endDateTime to the End-of-Time sentinel for "remove"
+   *  (reliably overwrites a future tail), or the chosen date for "set".
+   *  Start = the product's current ProductActive start (<= any future transition). */
+  const EOT = '9999-12-31T12:00:00.001+00:00'
   const setProductExpiry = (product: any, newEndIso: string | null) => {
-    const activeStatus = (product.status || []).find((s: any) => s.status === 'ProductActive')
-    const start = activeStatus?.validFor?.startDateTime
+    const actives = (product.status || []).filter((s: any) => s.status === 'ProductActive')
+    // earliest ProductActive start (so the new window covers future Inactive/Terminated)
+    const start = actives
+      .map((s: any) => s.validFor?.startDateTime)
+      .filter(Boolean)
+      .sort()[0]
     const validFor: any = {}
     if (start) validFor.startDateTime = start
-    if (newEndIso) validFor.endDateTime = newEndIso   // omit entirely to make open-ended
+    validFor.endDateTime = newEndIso || EOT   // remove -> EOT sentinel; set -> chosen date
     return patchContract({ product: [{ externalId: product.externalId, status: [{ status: 'ProductActive', validFor }] }] })
   }
 
@@ -1651,8 +1690,13 @@ export function CRMView() {
                           <InfoRow label="External ID" value={p.externalId} />
                           <InfoRow label="Internal ID" value={p.id} />
                           <InfoRow label="PO External ID" value={p.productOfferingExternalId} />
-                          <InfoRow label="Valid From" value={fmtDate(p.validFor?.startDateTime)} />
-                          <InfoRow label="Valid To" value={fmtDate(p.validFor?.endDateTime)} />
+                          {(() => {
+                            const vv = productValidity(p)
+                            return <>
+                              <InfoRow label="Valid From" value={vv.from ? fmtDate(vv.from) : '—'} />
+                              <InfoRow label="Valid To" value={vv.to ? fmtDate(vv.to) : 'No expiry (open-ended)'} />
+                            </>
+                          })()}
                           <InfoRow label="Billing Account" value={p.billingAccountReference?.externalId} />
                           {p.sharingProvider && (
                             <div style={{ marginTop: 6, padding: '6px 8px', background: '#fef9c3', borderRadius: 4, border: '1px solid #fde047' }}>
