@@ -146,6 +146,9 @@ export function CRMView() {
   const [newProductConsumerListExtId, setNewProductConsumerListExtId] = useState('')
   const [newProductValidFor, setNewProductValidFor] = useState({ enabled: false, startDateTime: '', endDateTime: '' })
   const [newProductStatus, setNewProductStatus] = useState('ProductCreated')
+  // Per-product expiry editor: which product's expiry panel is open + the new date
+  const [expiryProductExtId, setExpiryProductExtId] = useState('')
+  const [expiryDate, setExpiryDate] = useState('')
   const [poSpecs, setPoSpecs] = useState<any>(null)
 
   // POP Personalization state (for Add Product)
@@ -421,6 +424,18 @@ export function CRMView() {
 
   const changeContractStatus = (status: string) => patchContract({ status: [{ status }] })
   const changeProductStatus = (productExtId: string, status: string) => patchContract({ product: [{ externalId: productExtId, status: [{ status }] }] })
+
+  /** Change or remove a product's expiry (ProductActive status validFor.endDateTime).
+   *  Per CBEV: PATCH the contract with the product's ProductActive status window.
+   *  Omit endDateTime to remove the expiry (open-ended). Preserve the current start. */
+  const setProductExpiry = (product: any, newEndIso: string | null) => {
+    const activeStatus = (product.status || []).find((s: any) => s.status === 'ProductActive')
+    const start = activeStatus?.validFor?.startDateTime
+    const validFor: any = {}
+    if (start) validFor.startDateTime = start
+    if (newEndIso) validFor.endDateTime = newEndIso   // omit entirely to make open-ended
+    return patchContract({ product: [{ externalId: product.externalId, status: [{ status: 'ProductActive', validFor }] }] })
+  }
 
   // === Update existing product (characteristics) in 360 view ===
   const [editProductExtId, setEditProductExtId] = useState('')          // which product is being edited
@@ -1686,7 +1701,45 @@ export function CRMView() {
                               style={{ fontSize: 10, padding: '2px 6px', background: modifyPopProduct === p.externalId ? '#7c3aed' : '#f3e8ff', color: modifyPopProduct === p.externalId ? '#fff' : '#7c3aed', border: '1px solid #c4b5fd', borderRadius: 3 }}>
                               {modifyPopProduct === p.externalId ? '✕ Close' : '✎ Modify POP'}
                             </button>
+                            <button disabled={actionLoading} onClick={() => {
+                              if (expiryProductExtId === p.externalId) { setExpiryProductExtId(''); return }
+                              const act = (p.status || []).find((s: any) => s.status === 'ProductActive')
+                              const cur = act?.validFor?.endDateTime
+                              setExpiryDate(cur && !String(cur).startsWith('9999') ? String(cur).slice(0, 10) : '')
+                              setExpiryProductExtId(p.externalId)
+                            }}
+                              style={{ fontSize: 10, padding: '2px 6px', background: expiryProductExtId === p.externalId ? '#0369a1' : '#e0f2fe', color: expiryProductExtId === p.externalId ? '#fff' : '#0369a1', border: '1px solid #7dd3fc', borderRadius: 3 }}>
+                              {expiryProductExtId === p.externalId ? '✕ Close' : '⏱ Expiry'}
+                            </button>
                           </div>
+                          {expiryProductExtId === p.externalId && (() => {
+                            const act = (p.status || []).find((s: any) => s.status === 'ProductActive')
+                            const curEnd = act?.validFor?.endDateTime
+                            const curDisplay = !curEnd || String(curEnd).startsWith('9999') ? 'never (open-ended)' : String(curEnd)
+                            return (
+                              <div style={{ marginTop: 6, padding: '8px 10px', background: '#f0f9ff', border: '1px solid #7dd3fc', borderRadius: 4 }}>
+                                <div style={{ fontSize: 11, fontWeight: 600, color: '#0369a1', marginBottom: 4 }}>⏱ Product expiry</div>
+                                <div style={{ fontSize: 11, color: '#555', marginBottom: 6 }}>Current expiry: <b>{curDisplay}</b></div>
+                                <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+                                  <label style={{ fontSize: 11 }}>New expiry date
+                                    <input type="date" value={expiryDate} onChange={e => setExpiryDate(e.target.value)} style={{ fontSize: 11, marginLeft: 4 }} />
+                                  </label>
+                                  <button disabled={actionLoading || !expiryDate} onClick={() => setProductExpiry(p, expiryDate + 'T23:59:59.999Z')}
+                                    style={{ fontSize: 10, padding: '2px 8px', background: '#0369a1', color: '#fff', border: 'none', borderRadius: 3, cursor: 'pointer' }}>
+                                    {actionLoading ? '...' : 'Set expiry'}
+                                  </button>
+                                  <button disabled={actionLoading} onClick={() => setProductExpiry(p, null)}
+                                    style={{ fontSize: 10, padding: '2px 8px', background: '#fef3c7', color: '#92400e', border: '1px solid #fcd34d', borderRadius: 3, cursor: 'pointer' }}>
+                                    {actionLoading ? '...' : 'Remove expiry (never)'}
+                                  </button>
+                                </div>
+                                <div style={{ fontSize: 10, color: '#888', marginTop: 4 }}>
+                                  Updates the product's ProductActive validity. "Remove" makes it open-ended (omits endDateTime).
+                                  Note: the product is also bounded by the contract's active validity.
+                                </div>
+                              </div>
+                            )
+                          })()}
                           {editProductExtId === p.externalId && (() => {
                             const poObj = poList.find((x: any) => x.externalId === p.productOfferingExternalId)
                             const specChars = (poObj?.characteristics || []).filter((cc: any) => cc.valueRegulator === 'mustBePersonalized' || cc.valueRegulator === 'canBePersonalized' || cc.valueRegulator === 'selection')
